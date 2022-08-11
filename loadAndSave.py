@@ -1,0 +1,547 @@
+"""
+Handy way of adding loading/saving to any data type.
+
+Simply derive class MyClass(LoadAndSave) and then implement
+_encode(self)->data and _decode(self,data)
+
+This will let you load not only local files, but more advanced stuff like html and ftp.
+
+If ezFs is installed, it gets even more wild, allowing access into
+online file stores, compressed files, and more!
+"""
+import typing
+from .iUrl import IURL
+from .iLoadAndSave import ILoadAndSaveBytes, ILoadAndSave
+from .urlTyping import URLCompatible
+
+
+def defaultLoader(f:URLCompatible)->bytes:
+    """
+    load from a file-like object, filename, or url of type
+        file://
+        ftp://
+        http://
+        ** sftp://
+        ** https://
+
+    if a file-like oject is passed in, will simply read it
+
+    If EzFs is installed, it can load any installed filesystem including
+        dropbox,google drive,zipped files,... you name it!
+    """
+    import paths
+    if not isinstance(f,paths.URL):
+        if hasattr(f,'read') and callable(f.read): # type: ignore
+            return f.read()  # type: ignore
+        f=paths.URL(f)
+    #try:
+    #    from ezFs import EzFs
+    #    return EzFs(f).read() # type: ignore
+    #except ImportError:
+    #    pass
+    f=paths.asURL(f)
+    if f.protocol!='file':
+        import urllib.request
+        import urllib.error
+        import urllib.parse
+        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers"
+        request=urllib.request.Request(f.url,None,headers)
+        response=urllib.request.urlopen(request)
+        return response.read()
+    with open(f.filePath,'rb') as f: # type: ignore
+        return f.read() # type: ignore
+
+def defaultSaver(f:URLCompatible,data:bytes)->None:
+    """
+    save to a file-like object, filename, or url of type
+        file://
+        ftp://
+        http://
+        ** sftp://
+        ** https://
+
+    if a file-like oject is passed in, will simply write it
+
+    If EzFs is installed, it can save any installed filesystem including
+        dropbox,google drive,zipped files,... you name it!
+    """
+    import paths
+    if not isinstance(f,paths.URL):
+        if hasattr(f,'write'):
+            f.write(data) # type: ignore
+            return
+        f=paths.URL(f)
+    #try:
+    #    from ezFs import EzFs
+    #    EzFs(f).write(data)  # type: ignore
+    #    return
+    #except ImportError:
+    #    pass
+    if f.protocol!='file':
+        import urllib.request
+        import urllib.error
+        import urllib.parse
+        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers"
+        request=urllib.request.Request(f.url,data,headers,method='PUT')
+        _=urllib.request.urlopen(request)
+        return
+    f=open(f.filePath,'wb') # type: ignore
+    f.write(data)
+
+
+ParamsDict=typing.Dict[str,typing.Any]
+
+
+class LoadAndSaveBytes(ILoadAndSaveBytes):
+    """
+    Handy way of adding loading/saving to any data type.
+
+    Simply derive class MyClass(LoadAndSave) and then implement
+    _encode(self)->data and/or _decode(self,data)
+    (by not implementing one or the other, then LoadAndSave knows it cannot do that)
+
+    This will let you load not only local files, but more advanced stuff like html and ftp.
+
+    If ezFs is installed, it gets even more wild, allowing access into online file
+    stores, compressed files, and more!
+    """
+
+    DefaultFilename:str='UNDEFINED.dat'
+    def _encodeBytes(self)->bytes: return bytes() # pylint: disable=multiple-statements
+    _encodeBytes=None # type: ignore
+    def _decodeBytes(self,data:bytes)->None: _=data # pylint: disable=multiple-statements
+    _decodeBytes=None # type: ignore
+
+    def __init__(self,
+        filename:typing.Optional[URLCompatible]=None,
+        data:typing.Optional[bytes]=None):
+        """ """
+        import paths
+        self._filename:typing.Optional[paths.URL]=None
+        if data is not None:
+            self.decode(data)
+            if filename is not None:
+                self._filename=paths.URL(filename)
+        elif filename is not None:
+            self.load(filename)
+
+    def decode(self,data:bytes)->None:
+        """
+        same as decodeBytes
+        """
+        self.decodeBytes(data)
+    @typing.final
+    def decodeBytes(self,data:bytes)->None:
+        """
+        Decode from raw bytes
+
+        Will raise an error if there is no decoder for this type
+        (you can check with self.canLoad)
+
+        :param data: [description]
+        :type data: bytes
+        :raises Exception: [description]
+        """
+        if self._decodeBytes is None:
+            raise Exception('Cannot load this kind of data')
+        self._decodeBytes(data) # pylint: disable=not-callable
+
+    def encode(self)->bytes:
+        """
+        same as encodeBytes
+        """
+        return self.encodeBytes()
+    @typing.final
+    def encodeBytes(self)->bytes:
+        """
+        Encode to raw bytes
+
+        Will raise an error if there is no encoder for this type
+        (you can check with self.canSave)
+
+        :param data: [description]
+        :type data: bytes
+        :raises Exception: [description]
+        """
+        if self._encodeBytes is None:
+            raise Exception('Cannot save this kind of data')
+        return self._encodeBytes() # pylint: disable=not-callable
+
+    @property
+    def filename(self)->typing.Optional[IURL]:
+        """
+        Setting this is the same as saying load(filename)
+        """
+        return self._filename
+    @filename.setter
+    def filename(self,filename:URLCompatible):
+        self.load(filename)
+    @property
+    def url(self)->typing.Union[IURL,None]:
+        """
+        same as filename
+        """
+        return self._filename
+    @url.setter
+    def url(self,url:URLCompatible):
+        self.load(url)
+
+    def canLoad(self)->bool:
+        """
+        can this load files?
+        """
+        return self._decodeBytes is not None
+
+    def canSave(self)->bool:
+        """
+        can this sace files?
+        """
+        return self._encodeBytes is not None
+
+    def load(self,filename:URLCompatible=None,
+        altDecoder:typing.Optional[typing.Callable[[bytes],None]]=None,
+        altDecoderParams:typing.Optional[ParamsDict]=None
+        )->None:
+        """
+        load from a file-like object, filename, or url of type
+            file://
+            ftp://
+            http://
+            ** sftp://
+            ** https://
+
+        if a file-like oject is passed in, will simply read it
+
+        If EzFs is installed, it can load any installed filesystem including
+            dropbox,google drive,zipped files,... you name it!
+
+        if no filename, will reload the current file
+
+        :param filename: url to load, defaults to None
+        :type filename: paths.URLCompatible, optional
+        :param altDecoder: alternative decoder as opposed to self._decode
+            (used to circumvent normal loading. usually you won't need this)
+            defaults to None
+        :type altDecoder: Callable[[bytes,...],None], optional
+        :param altDecoderParams: extra params dict to pass to altDecoder
+            defaults to None
+        :type altDecoderParams: Dict[str,Any], optional
+        """
+        import paths
+        if filename is None:
+            if self._filename is None:
+                return
+            filename=self._filename
+        else:
+            self._filename=paths.URL(filename)
+        data=defaultLoader(filename)
+        if altDecoder is not None:
+            if altDecoderParams is not None:
+                altDecoder(data,**altDecoderParams) # type: ignore
+            else:
+                altDecoder(data)
+        elif self._decodeBytes is None:
+            raise Exception('Cannot load this kind of data')
+        else:
+            self._decodeBytes(data)
+
+    def save(self,filename:URLCompatible=None,
+        altEncoder:typing.Optional[typing.Callable[...,bytes]]=None,
+        altEncoderParams:typing.Optional[ParamsDict]=None
+        )->None:
+        """
+        save to a file-like object, filename, or url of type
+            file://
+            ftp://
+            http://
+            ** sftp://
+            ** https://
+
+        if a file-like oject is passed in, will simply write it
+
+        If EzFs is installed, it can save any installed filesystem including
+            dropbox,google drive,zipped files,... you name it!
+
+        if no filename, save over the current filename
+            (and if there is no current filename will save as self.DefaultFilename)
+
+        :param filename: filename to save as, defaults to None
+        :type filename: paths.URLCompatible, optional
+        :param altEncoder: alternative decoder as opposed to self._decode
+            (used to circumvent normal loading. usually you won't need this)
+            defaults to None
+        :type altEncoder: Callable[[...],bytes], optional
+        :param altEncoderParams:  extra params dict to pass to altEncoder
+            defaults to None
+        :type altEncoderParams: Dict[str,Any], optional
+        """
+        import paths
+        if filename is None:
+            if self._filename is None:
+                filename=self.DefaultFilename
+            else:
+                filename=self._filename
+        else:
+            self._filename=paths.asURL(filename)
+        if altEncoder is not None:
+            if altEncoderParams is not None:
+                data=altEncoder(**altEncoderParams)
+            else:
+                data=altEncoder()
+        elif self._encodeBytes is None:
+            raise Exception('Cannot save this kind of data')
+        else:
+            data=self._encodeBytes()
+        defaultSaver(filename,data)
+
+    def __repr__(self)->str:
+        return str(self._filename)
+
+
+class LoadAndSave(ILoadAndSave,LoadAndSaveBytes):
+    """
+    Handy way of adding loading/saving to any data type.
+
+    Simply derive class MyClass(LoadAndSave) and then implement
+    _encode(self)->data and/or _decode(self,data)
+    (by not implementing one or the other, then LoadAndSave knows it cannot do that)
+
+    This will let you load not only local files, but more advanced stuff like html and ftp.
+
+    If ezFs is installed, it gets even more wild, allowing access into online
+    file stores, compressed files, and more!
+
+    RECOMMENDED:
+        Auto text decoding gets better if chardet and/or BeautifulSoup are installed
+        pip install chardet bs4
+    """
+
+    DefaultFilename:str='UNDEFINED.txt'
+    def _encode(self)->str: return str() # pylint: disable=multiple-statements
+    _encode=None # type: ignore
+    def _decode(self,data:str)->None: _=data # pylint: disable=multiple-statements
+    _decode=None # type: ignore
+
+    def __init__(self,
+        filename:typing.Optional[URLCompatible]=None,
+        data:typing.Optional[str]=None,
+        encoding:typing.Optional[str]=None):
+        """ """
+        self.encoding:typing.Optional[str]=encoding
+        if data is not None:
+            self.decode(data)
+            LoadAndSaveBytes.__init__(self)
+        else:
+            LoadAndSaveBytes.__init__(self,filename)
+
+    def _detectEncoding(self,data:bytes)->str:
+        """
+        detect the best encoding for a block of bytes
+
+        RECOMMENDED:
+            Auto text decoding gets better if chardet and/or BeautifulSoup are installed
+            pip install chardet bs4
+
+        :param data: a block of bytes
+        :type data: bytes
+        :return: encoding type
+        :rtype: str
+        """
+        try:
+            from bs4 import UnicodeDammit
+            ud=UnicodeDammit(data) # also uses chardet if installed
+            return ud.original_encoding
+        except ImportError:
+            pass
+        try:
+            import chardet  # type: ignore
+            return chardet.detect(data)['encoding']
+        except ImportError:
+            pass
+        return 'UTF-8'
+
+    def _decodeBytes(self, # pylint: disable=arguments-differ
+        data:bytes,
+        errors:str='ignore',
+        altDecoder:typing.Optional[typing.Callable[[str],str]]=None,
+        altDecoderParams:typing.Optional[ParamsDict]=None
+        )->None:
+        """
+        Decode this data from bytes using self.encoding.
+
+        If encoding is not specified, will attempt to guess.
+
+        :param data: data to decode
+        :type data: bytes
+        """
+        if not self.canLoad() and altDecoder is None:
+            raise Exception('Cannot load this kind of data')
+        encoding=self.encoding
+        if encoding is None:
+            encoding=self._detectEncoding(data)
+            self.encoding=encoding
+        textData=data.decode(encoding,errors=errors)
+        if altDecoder is not None:
+            if altDecoderParams is not None:
+                altDecoder(textData,**altDecoderParams) # type: ignore
+            else:
+                altDecoder(textData)
+        else:
+            self.decode(textData)
+
+    def _encodeBytes(self, # pylint: disable=arguments-differ
+        altEncoder:typing.Optional[typing.Callable[[str],str]]=None,
+        altEncoderParams:typing.Optional[ParamsDict]=None
+        )->bytes:
+        """
+        Decode this data from bytes using self.encoding.
+
+        If encoding is not specified, will attempt to guess.
+
+        :param data: data to decode
+        :type data: bytes
+        """
+        if self._encode is None and altEncoder is None:
+            raise Exception('Cannot save this kind of data')
+        textData=''
+        encoding=self.encoding
+        if encoding is None:
+            encoding='UTF-8' # when in doubt, save as the old reliable
+            self.encoding=encoding
+        if altEncoder is not None:
+            if altEncoderParams is not None:
+                textData=altEncoder(textData,**altEncoderParams) # type: ignore
+            else:
+                textData=altEncoder(textData)
+        elif self._encode is None:
+            raise Exception('Cannot save this kind of data')
+        else:
+            textData=self._encode()
+        return textData.encode(encoding)
+
+    def decode(self,data:typing.Union[bytes,str])->None:
+        """
+        Decode from text or raw bytes
+
+        Will raise an error if there is no decoder for this type
+        (you can check with self.canLoad)
+
+        :param data: [description]
+        :type data: bytes
+        :raises Exception: [description]
+        """
+        if isinstance(data,bytes):
+            self._decodeBytes(data)
+        else:
+            if self._decode is None:
+                raise Exception('Cannot load this kind of data')
+            self._decode(data) # pylint: disable=not-callable
+
+    def encode(self)->str: #type: ignore
+        """
+        Encode to text
+
+        Will raise an error if there is no encoder for this type
+        (you can check with self.canSave)
+
+        :param data: [description]
+        :type data: bytes
+        :raises Exception: [description]
+        """
+        if self._encode is None:
+            raise Exception('Cannot save this kind of data')
+
+        return self._encode() # pylint: disable=not-callable
+
+    def load(self,  # type: ignore
+        filename:URLCompatible=None,
+        altDecoder:typing.Optional[typing.Callable[[str],str]]=None,
+        altDecoderParams:typing.Optional[ParamsDict]=None
+        )->None:
+        """
+        load from a file-like object, filename, or url of type
+            file://
+            ftp://
+            http://
+            ** sftp://
+            ** https://
+
+        if a file-like oject is passed in, will simply read it
+
+        If EzFs is installed, it can load any installed filesystem including
+            dropbox,google drive,zipped files,... you name it!
+
+        if no filename, will reload the current file
+
+        :param filename: url to load, defaults to None
+        :type filename: paths.URLCompatible, optional
+        :param altDecoder: alternative decoder as opposed to self._decode
+            (used to circumvent normal loading. usually you won't need this)
+            defaults to None
+        :type altDecoder: Callable[[bytes,...],None], optional
+        :param altDecoderParams: extra params dict to pass to altDecoder
+            defaults to typing.Optional[typing.Dict[str,typing.Any]]=None
+        :type altDecoderParams: Dict[str,Any], optional
+        """
+        if not self.canLoad() and altDecoder is None:
+            raise Exception('Cannot load this kind of data')
+        LoadAndSaveBytes.load(self,filename,
+            altDecoder=self._decodeBytes,altDecoderParams=altDecoderParams)
+
+    def save(self, # type: ignore
+        filename:typing.Optional[URLCompatible]=None,
+        altEncoder:typing.Optional[typing.Callable[...,str]]=None,
+        altEncoderParams:typing.Optional[ParamsDict]=None
+        )->None:
+        """
+        save to a file-like object, filename, or url of type
+            file://
+            ftp://
+            http://
+            ** sftp://
+            ** https://
+
+        if a file-like oject is passed in, will simply write it
+
+        If EzFs is installed, it can save any installed filesystem including
+            dropbox,google drive,zipped files,... you name it!
+
+        if no filename, save over the current filename
+            (and if there is no current filename will save as self.DefaultFilename)
+
+        :param filename: filename to save as, defaults to None
+        :type filename: paths.URLCompatible, optional
+        :param altEncoder: alternative decoder as opposed to self._decode
+            (used to circumvent normal loading. usually you won't need this)
+            defaults to None
+        :type altEncoder: Callable[[...],str], optional
+        :param altEncoderParams:  extra params dict to pass to altEncoder
+            defaults to typing.Optional[typing.Dict[str,typing.Any]]=None
+        :type altEncoderParams: Dict[str,Any], optional
+        """
+        import paths
+        if not self.canSave() and altEncoder is None:
+            raise Exception('Cannot save this kind of data')
+        if filename is None:
+            if self._filename is None:
+                filename=self.DefaultFilename
+            else:
+                filename=self._filename
+        else:
+            self._filename=paths.asURL(filename)
+        if altEncoder is not None:
+            if altEncoderParams is not None:
+                data=altEncoder(**altEncoderParams)
+            else:
+                data=altEncoder()
+        elif self._encode is None:
+            raise Exception('Cannot save this kind of data')
+        else:
+            data=self._encode() # pylint: disable=not-callable
+        encoding=self.encoding
+        if encoding is None:
+            encoding="utf-8"
+        defaultSaver(filename,data.encode(encoding,errors="ignore"))
+
+    def __repr__(self)->str:
+        return str(self._filename)

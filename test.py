@@ -11,7 +11,7 @@ import os
 import paths
 from paths import URL, asUrl, MalformedURL
 
-        
+
 def assertMember(obj,valname,expected):
     result=getattr(obj,valname)
     if result!=expected:
@@ -28,10 +28,10 @@ class Test(unittest.TestCase):
 
     def setUp(self):
         pass
-        
+
     def tearDown(self):
         pass
-        
+
     def testWebUrl(self):
         path=r"http://www.fooblatz.com/the/path/file.php?name=val"
         hr(path)
@@ -50,7 +50,7 @@ class Test(unittest.TestCase):
         assert u['semprini'] is None
         u['semprini']=5
         assert u['semprini']=='5'
-        del u['name'] 
+        del u['name']
         assert u.url==r"http://www.fooblatz.com/the/path/file.php?semprini=5"
         del u['semprini']
         u.subdomain='www1'
@@ -72,7 +72,7 @@ class Test(unittest.TestCase):
         assert u.url==r"http://user@fooblatz.com/the/path/file.php"
         assert u.url==u.name
         print('OK')
-        
+
     def testIpUrl(self):
         path=r"ftp://ralph:secret@192.168.1.47:400"
         hr(path)
@@ -110,9 +110,67 @@ class Test(unittest.TestCase):
         else:
             assertMember(u,'filePath',path)
         print('OK')
-        
-    
-    def testFileUrl(self):
+
+    def testUrlToFile(self):
+        if os.name=='nt':
+            # test won't work on nonwindows
+            url='file://c:/the/path/file.txt'
+            hr(url)
+            u=URL(url)
+            #TODO: fix this bug!
+            #assertMember(u,'dirPath',path.rsplit('\\',1)[0].replace('\\','/'))
+            assertMember(u,'host','localhost')
+            assertMember(u,'domain','localhost')
+            assertMember(u,'subdomain',None)
+            assertMember(u,'port',None)
+            assertMember(u,'protocol','file')
+            assertMember(u,'path','c:/the/path')
+            assertMember(u,'filename','file.txt')
+            assertMember(u,'fullPath','c:/the/path/file.txt')
+            #assertMember(u,'filePath',path)
+            u.assign(None,None) # same as u.clear()
+            assert(u.scheme is None)
+            assert(u.auth is None)
+            assert(u.host is None)
+            assert(u.port is None)
+            assert(u.path is None)
+            assert(len(u.cgi)==0)
+            assert(u.fragment is None)
+            print('OK')
+        else:
+            print('WARN: skipping tests for windows files')
+
+    def testUrlToFilePipeChar(self):
+        if os.name=='nt':
+            # test won't work on nonwindows
+            url='file://c|/the/path/file.txt'
+            hr(url)
+            u=URL(url)
+            #TODO: fix this bug!
+            #assertMember(u,'dirPath',path.rsplit('\\',1)[0].replace('\\','/'))
+            assertMember(u,'host','localhost')
+            assertMember(u,'domain','localhost')
+            assertMember(u,'subdomain',None)
+            assertMember(u,'port',None)
+            assertMember(u,'protocol','file')
+            assertMember(u,'path','c:/the/path')
+            assertMember(u,'filename','file.txt')
+            assertMember(u,'fullPath','c:/the/path/file.txt')
+            #assertMember(u,'filePath',path)
+            u.assign(None,None) # same as u.clear()
+            assert(u.scheme is None)
+            assert(u.auth is None)
+            assert(u.host is None)
+            assert(u.port is None)
+            assert(u.path is None)
+            assert(len(u.cgi)==0)
+            assert(u.fragment is None)
+            print('OK')
+        else:
+            print('WARN: skipping tests for windows files')
+
+
+    def testFileToUrl(self):
         if os.name=='nt':
             # test won't work on nonwindows
             path=r'c:\the\path\file.txt'
@@ -130,8 +188,8 @@ class Test(unittest.TestCase):
             assertMember(u,'fullPath','c:/the/path/file.txt')
             assertMember(u,'filePath',path)
             u.assign(None,None) # same as u.clear()
-            assert(u.scheme is None) 
-            assert(u.auth is None) 
+            assert(u.scheme is None)
+            assert(u.auth is None)
             assert(u.host is None)
             assert(u.port is None)
             assert(u.path is None)
@@ -140,12 +198,12 @@ class Test(unittest.TestCase):
             print('OK')
         else:
             print('WARN: skipping tests for windows files')
-            
+
     def relativeFileUrl(self):
         if os.name=='nt':
             # test won't work on nonwindows
             path=r'.\\test.py'
-            shouldBe=os.path.curdir().replace(os.sep,'/')
+            shouldBe=os.path.curdir.replace(os.sep,'/')
             hr(path)
             u=URL('relativeFileUrl %s'%path)
             assertMember(u,'host',None)
@@ -156,11 +214,11 @@ class Test(unittest.TestCase):
             assertMember(u,'path',shouldBe)
             assertMember(u,'filename','test.py')
             assertMember(u,'fullPath',shouldBe+'/test.py')
-            assertMember(u,'filePath',os.path.curdir()+os.sep()+'test.py')
+            assertMember(u,'filePath',os.path.curdir+os.sep+'test.py')
             print('OK')
         else:
             print('WARN: skipping tests for windows files')
-            
+
     def rootFileUrl(self):
         if os.name=='nt':
             # test won't work on nonwindows
@@ -188,8 +246,8 @@ class Test(unittest.TestCase):
             assertMember(u,'fullPath',None)
             print('OK')
         else:
-            print('WARN: skipping tests for windows files')    
-            
+            print('WARN: skipping tests for windows files')
+
     def windowsDriveUrl(self):
         if os.name=='nt':
             # test won't work on nonwindows
@@ -208,10 +266,9 @@ class Test(unittest.TestCase):
             print('OK')
         else:
             print('WARN: skipping tests for windows files')
-            
+
     def compareUrls(self):
-        u=asUrl()
-        u.name="http://www.zambizi.com/fish/trout.htm"
+        u=asUrl("http://www.zambizi.com/fish/trout.htm")
         u2=u.copy()
         assert u.url==u2.url
         assert u==u2
@@ -313,18 +370,20 @@ def testSuite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(Test("testUncPaths"))
     testSuite.addTest(Test("testFilenameRoundtrip"))
-    #testSuite.addTest(Test("relativeFileUrl"))
-    #testSuite.addTest(Test("testRelativePaths"))
-    #testSuite.addTest(Test("windowsDriveUrl"))
-    #testSuite.addTest(Test("compareUrls"))
-    #testSuite.addTest(Test("testWebUrl"))
-    #testSuite.addTest(Test("testFileUrl"))
-    #testSuite.addTest(Test("testCommandLine"))
-    #testSuite.addTest(Test("testIpUrl"))
-    #testSuite.addTest(Test("testReadWrite"))
+    testSuite.addTest(Test("relativeFileUrl"))
+    testSuite.addTest(Test("testRelativePaths"))
+    testSuite.addTest(Test("windowsDriveUrl"))
+    testSuite.addTest(Test("compareUrls"))
+    testSuite.addTest(Test("testWebUrl"))
+    testSuite.addTest(Test("testFileToUrl"))
+    testSuite.addTest(Test("testUrlToFile"))
+    testSuite.addTest(Test("testUrlToFilePipeChar"))
+    testSuite.addTest(Test("testCommandLine"))
+    testSuite.addTest(Test("testIpUrl"))
+    testSuite.addTest(Test("testReadWrite"))
     return testSuite
-        
-        
+
+
 def cmdline(args):
     """
     Run the command line

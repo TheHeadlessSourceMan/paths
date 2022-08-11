@@ -3,112 +3,41 @@
 """
 This represents a url type
 """
-from collections import OrderedDict
 import typing
 import os
-import time
 import urllib.parse
+from .iUrl import IURL
+from ._uri import URI
+from .urlTyping import URLCompatible, UrlCompatible, isURLCompatible, asURL
+from .loadAndSave import LoadAndSave
+from .urlNavigation import UrlNavigation
+from .dataReadWrite import DataReadWrite
+from .hasCgiDict import HasCgiDict
+from .cleverUrls import CleverUrls
+from .filePathTools import encodeFilePath
+from .errors import MalformedURL
 
-
-# --------------------- typing shenanigans
-class HasURL(typing.Protocol):
-    """
-    Duck typing for any object that has a .URL member
-    """
-    url:typing.Union['URLCompatible',typing.Callable[[],'URLCompatible']]
-    #def getUrl(self) -> typing.Union["URL",str]:
-    #   ...  # Empty method body (explicit '...')
-
-class DictLike(typing.Protocol):
-    """
-    Duck typing for a dict-like object
-    """
-    def keys(self)->str:
-        ...
-    def __getitem__(self,idx:str)->typing.Any:
-        ...
-
-class IsFileWithName(typing.Protocol):
-    """
-    a file object with a .name member, pointing to an existing filename on the system
-    """
-    fileno:int
-    name:str
-
-URLCompatibleStrict=typing.Union['URL',HasURL,IsFileWithName] # must be certain it is a url, not some other thing
-URLCompatible=typing.Union[URLCompatibleStrict,str,bytes,DictLike]
-UrlCompatibleStrict=URLCompatibleStrict
-UrlCompatible=URLCompatible
-
-def isUrlCompatible(obj:typing.Any,strict=False)->bool:
-    if isinstance(obj,(str,bytes)) and not strict:
-        return True
-    return isinstance(obj,URL) or hasattr(obj,'url') or (hasattr(obj,"fileno") and hasattr(obj,"name"))
-isURLCompatible=isUrlCompatible # alias name
-
-
-# ------------------------- teh code
-class MalformedURL(Exception):
-    """
-    This is thrown when a url is in bad form
-    """
-    
-    def __init__(self,url:str,reason:str):
-        Exception(self,'Malformed URL "'+url+'"\n('+reason+')')
-
-
-def asURL(url:URLCompatible,relativeTo:typing.Optional[URLCompatible]=None)->typing.Union['URL',None]:
-    r"""
-    Gets the url always as a URL object or None if it is None or "".
-    If url is a URL object, WILL NOT create a new one, otherwise, it will.
-    If you would rather always have a new URL object, simply create an instance of URL(url)
-        (because this supports passing a URL object as the initialization)
-
-    Raises MalformedURL exception if it doesn't work.
-
-    See also:
-        https://www.ietf.org/rfc/rfc3986.html
-
-    TODO:
-        what about re, for instance ^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?
-        or something from https://regexpattern.com/
-
-    :param url: Can be:
-        * another URL object
-        * a properly-formatted URL string
-        * any object with a (Url,url, or URL) data member
-            or (filename,path) like it is referring to a file
-            or even (href,src,location,rel) like in html-ish objects
-        * a file object with a .name member
-        * a system path+file where the path exists
-    :type url: URLCompatible
-    :param relativeTo: the url parameter is relative to this. eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-        if relativeTo is a simple string ending in ":" it suffices as a default protocol eg asURL('bob@mailbox.com','mailto:')
-        if NONE, relativeTo is treated as "file://[current directory]" eg asUrl("readme.txt") gives "file://./readme.txt"
-    :type relativeTo: str, optional
-    :return: A URL object of url
-    :rtype: URL
-    """
-    if url is None:
-        return None
-    if isinstance(url,URL):
-        return url
-    return URL(url)
-asUrl=asURL # alias name
-
-
-class URL:
+class URL(
+    IURL,
+    URI,
+    DataReadWrite,
+    HasCgiDict,
+    UrlNavigation,
+    CleverUrls,
+    LoadAndSave
+    ):
     r"""
     Any URL of the form:
-        <protocol>://<user>:<password>@<host>:<port>/<path...>/<resource>[?<option=value>&<option=value...>]
-        
+        <protocol>://<user>:<pass>@<host>:<port>/<path>/<resource>[?<option=value>&<option=value..>]
+
     All members of this object are properly decoded automatically.
 
     This includes local file paths, which are interpereted as file:// urls
         see: https://en.wikipedia.org/wiki/File_URI_scheme
         * does handle Windows paths (c:\dir\file)
         * does handle Windows UNC paths (\\machine\dir\file)
-        * does handle technically malformed paths (file://filename should actually be file:///filename)
+        * does handle technically malformed paths
+            (file://filename should actually be file:///filename)
 
     This is directly compatible with urllib3 and backwards-compatible to urllib.
 
@@ -126,17 +55,26 @@ class URL:
         u2=u.relative('/images/1.jpg')
         print(u2)
         # prints "http://www.mysite.com/path/images/1.jpg"
-        
+
     NOTE: specifying password in the url is generally considered bad form
 
     NOTE: has EXPERIMENTAL file-like object access
 
     TODO: IPv6 hosts
+    TODO: look into parsing by hand instead of present urllib workarounds
+        https://www.ietf.org/rfc/rfc3986.html#section-3.1
+        https://en.wikipedia.org/wiki/File_URI_scheme
+    TODO: pull in default readers from imageTools
     """
 
-    URL_LIKE_MEMBERS=['url','URL','Url','filename','path','href','src','location','rel'] # object members that could likely contain a url. order is important
-    
-    def __init__(self,url:URLCompatible=None,relativeTo:typing.Optional[URLCompatible]=None):
+    # object members that could likely contain a url. order is important
+    URL_LIKE_MEMBERS=['url','URL','Url','filename','path','href','src','location','rel']
+
+    DefaultFilename:str='Untitled.url'
+
+    def __init__(self,
+        url:URLCompatible=None,
+        relativeTo:typing.Optional[URLCompatible]=None):
         """
         Raises MalformedURL exception if url assignment doesn't work.
 
@@ -149,46 +87,39 @@ class URL:
             * a file object with a .name member
             * a system path+file where the path exists
         :type url: URLCompatible
-        :param relativeTo: the url parameter is relative to this. eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-            if relativeTo is a simple string ending in ":" it suffices as a default protocol eg asURL('bob@mailbox.com','mailto:')
-            if NONE, relativeTo is treated as "file://[current directory]" eg asUrl("readme.txt") gives "file://./readme.txt"
+        :param relativeTo: the url parameter is relative to this.
+            eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
+            if relativeTo is a simple string ending in ":" it suffices as a default protocol
+                eg asURL('bob@mailbox.com','mailto:')
+            if NONE, relativeTo is treated as "file://[current directory]"
+                eg asUrl("readme.txt") gives "file://./readme.txt"
         :type relativeTo: str, optional
         """
-        self.URL_GETTER=None
-        self.scheme:typing.Optional[str]=None
+        DataReadWrite.__init__(self)
+        HasCgiDict.__init__(self)
+        UrlNavigation.__init__(self)
+        CleverUrls.__init__(self)
+        self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/
+        self.scheme:str=''
         self.username:typing.Optional[str]=None
         self.password:typing.Optional[str]=None
-        self.domain:typing.Optional[str]=None
+        self.domain:str=''
         self.subdomain:typing.Optional[str]=None
         self.port:typing.Optional[int]=None
         self._path:typing.Optional[str]=None
-        self.cgi:typing.Dict[str,typing.Any]=OrderedDict()
         self.fragment:typing.Optional[str]=None
         self.isUNC:bool=False
         self.cache:bool=True
         self.persist:bool=True
-        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo is local as opposed to a host named foo  - basically False is more standards-compliant, but True is more used in practice
-        self._data:typing.Optional[bytearray]=None
-        self._idx:int=0
+        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo is local
+        # as opposed to a host named foo
+        # basically False is more standards-compliant, but True is more used in practice
+        self._isDirectory:typing.Optional[bool]=None
         if url is not None:
             self.assign(url,relativeTo)
 
     @property
-    def parent(self):
-        """
-        parent directory
-        """
-        return self.relative('..')
-
-    @property
-    def root(self):
-        """
-        domain root directory
-        """
-        return self.relative('/')
-
-    @property
-    def dirPath(self):
+    def dirPath(self)->str:
         """
         directory location path
 
@@ -207,9 +138,9 @@ class URL:
                 if len(p)>1:
                     ret='/'.join(p[0:-1])
                 else:
-                    ret=[0]
+                    ret=p[0]
         return ret
-        
+
     @property
     def filename(self)->typing.Optional[str]:
         """
@@ -224,123 +155,72 @@ class URL:
     def filename(self,filename:typing.Optional[str]):
         self.resource=filename
 
-    def clear(self):
+    def clear(self)->None:
         """
         clean out existing data
         """
-        self.scheme=None
-        self.auth=None
+        self.scheme=''
+        self.auth=''
         self.host=None
         self.port=None
-        self.path=None
+        self.path=''
         self.isUNC=False
-        self.cgi=OrderedDict()
+        self.cgi={}
         self.fragment=None
+        self._isDirectory=None
 
-    def copy(self):
+    def copy(self)->"URL":
         """
         create an identical copy
         """
         return Url(self)
 
-    def __len__(self):
+    def call(self,**kwds)->str:
         """
-        access like a dict
-        """
-        return len(self.cgi)
+        If URL.read() is not advanced enough, you can use this to pass cgi parameters.
 
-    def __iter__(self):
+        You can pass in cgi arguments also!
+        Thus:
+            u=URL('https://fooblatz.com/something.cgi')
+            u.call(name="fred flinstone")
+        Constructs and fetches:
+            'https://fooblatz.com/something.cgi?name=fred+flinstone')
+        NOTE: this is also how you can call the class like a function
+            u(name="fred flinstone")
         """
-        access like a dict
-        """
-        return self.cgi.items().__iter__()
-
-    def __setitem__(self,k,v):
-        """
-        access like a dict
-        """
-        self.cgi[k]=str(v)
-
-    def __delitem__(self,k):
-        """
-        access like a dict
-        """
-        del self.cgi[k]
-
-    def __getitem__(self,k):
-        """
-        access like a dict
-        """
-        return self.cgi.get(k)
-
-    def items(self):
-        """
-        access like a dict
-        """
-        return self.cgi.items()
-
-    def keys(self):
-        """
-        access like a dict
-        """
-        return self.cgi.keys()
-
-    def values(self):
-        """
-        access like a dict
-        """
-        return self.cgi.values()
-
-    def get(self,key,default=None):
-        """
-        access like a dict
-        """
-        return self.cgi.get(key,default)
+        if kwds is not None:
+            url=self.copy()
+            url.update(kwds)
+            return url.read()
+        return self.read()
+    __call__=call
 
     @property
-    def query(self):
-        """
-        the query as a string
-
-        NOTE: the self.cgi[x] dict is safer, easier, and simpler
-        """
-        if not self.cgi:
-            return None
-        return urllib.parse.urlencode(self.cgi)
-    @query.setter
-    def query(self,query):
-        self.cgi={}
-        if query is not None:
-            query=urllib.parse.parse_qs(query,keep_blank_values=True)
-            for k,vv in query.items():
-                self.cgi[k]=vv[-1]
-
-    @property
-    def auth(self):
+    def auth(self)->str:
         """
         full authentication section of the url
 
         NOTE: it may be easier for you to set username and password individually
         """
-        if self.username is None:
-            return None
-        if self.password is None:
+        if self.username is None or not self.username:
+            return ''
+        if self.password is None or not self.password:
             return self.username
         return '%s:%s'%(self.username,self.password)
     @auth.setter
-    def auth(self,auth):
+    def auth(self,auth:str):
         if auth is None or not auth:
             self.username=None
             self.password=None
         else:
-            auth=auth.split(':',1)
-            self.username=auth[0]
-            if len(auth)>1:
-                self.password=auth[1]
+            kv=auth.split(':',1)
+            self.username=kv[0].strip()
+            if len(kv)>1:
+                self.password=kv[1].strip()
             else:
                 self.password=None
 
-    def isLocalhost(self):
+    def isLocalhost(self)->bool:
         """
         returns whether the host is referring to ourselves
 
@@ -350,48 +230,77 @@ class URL:
         """
         return self.host in (None,'','localhost','127.0.0.1','::1')
 
-    @property
-    def filePath(self):
+    def getFilePath(self,
+        enquote:bool=True,
+        illegalChars:str=None,
+        errors:str='exception'
+        )->typing.Optional[str]:
         """
         for file:// urls, convert back into a native filesystem path
         (only works for host=localhost)
 
         (Other url schemes will return None!)
+
+        enquote: whether to call enquoteFilePath() default=True
+        illegalChars: a string of illegal filename characters - if None, use os alone
+        errors: works similarly to str.encode("",errors="ignore")
+            can be "ignore" or "exception"(default) or something else to replace the chars with
         """
+        osForPath:str='posix'
         if self.scheme!='file' or not (self.isUNC or self.isLocalhost()):
             return None
         path=self.url
-        path=path.split('://')[-1].split('?',1)[0]
+        path=path.split('://',1)[-1].split('?',1)[0]
         if os.sep!='/':
+            osForPath='nt'
             path=path.replace('/',os.sep)
             # assuming windows, root doesn't start with /
             while path and path[0]==os.sep:
                 path=path[1:]
         if self.isUNC:
+            osForPath='nt'
             path='\\\\'+path
+        path=urllib.parse.unquote_plus(path)
+        # NOTE: os for path is inferred from the path itself
+        path=encodeFilePath(path,enquote,illegalChars,osForPath,errors)
         return path
+
+    @property
+    def filePath(self)->typing.Optional[str]:
+        """
+        for file:// urls, convert back into a native filesystem path
+        (only works for host=localhost)
+
+        (Other url schemes will return None!)
+
+        NOTE: reading this is the same as calling
+            self.getFilePath(enquote=False,illegalChars=None,errors='exception')
+        """
+        return self.getFilePath(enquote=False,illegalChars=None,errors='exception')
     @filePath.setter
-    def filePath(self,filepath):
+    def filePath(self,filepath:str):
         self.assign(filepath)
 
     @property
-    def protocol(self):
+    def protocol(self)->str:
         """
         alias for self.scheme
         """
         return self.scheme
     @protocol.setter
-    def protocol(self,protocol):
+    def protocol(self,protocol:str):
         self.scheme=protocol
 
     @property
-    def path(self):
+    def path(self)->str:
         """
         the path portion of the url
         """
+        if self._path is None:
+            return ''
         return self._path
     @path.setter
-    def path(self,path):
+    def path(self,path:str):
         """
         fix a path by removing .. and . entries
             example
@@ -402,7 +311,7 @@ class URL:
         if path is None or not path:
             self._path=None
             return
-        ret=[]
+        ret:typing.List[str]=[]
         pathElements=path.replace('//','/').replace('//','/').split('/')
         if pathElements.count('C:')>1:
             raise Exception('Attempt to set two c:')
@@ -428,10 +337,14 @@ class URL:
             ret.append('')
         self._path=('/'.join(ret)).replace('//','/').replace('//','/')
 
-    def __eq__(self,url:URLCompatible)->bool: # type: ignore
+    def __eq__(self,
+        url:UrlCompatible
+        )->bool:
         """
         compare this url with another
         """
+        if not isURLCompatible(url):
+            return False
         urlObj=asURL(url)
         if urlObj is None:
             return False
@@ -444,18 +357,13 @@ class URL:
             self.resource==urlObj.resource and
             self.cgi==urlObj.cgi)
 
-    def __repr__(self)->str:
+    def __hash__(self)->int:
         """
-        string representation of the url
+        Hashing function for adding to lookup dicts
         """
-        return self.url
+        return self.url.__hash__()
 
-    def domainMatches(self,other:UrlCompatible)->bool:
-        """
-        alias for sameDomain()
-        """
-        return self.sameDomain(other)
-    def sameDomain(self,other:UrlCompatible):
+    def sameDomain(self,other:URLCompatible)->bool:
         """
         returns true if the given urls are of the same domain
             (disregarding the domain prefix)
@@ -468,116 +376,8 @@ class URL:
         if otherUrl.domain is None:
             return False
         return self.domain.lower()==otherUrl.domain.lower()
+    domainMatches=sameDomain
 
-    def location(self):
-        """
-        Gets the working location of the url
-        (useful for deciphering relative urls)
-
-        Always contains trailing '/' for convenience
-        """
-        url=self.url.split('?',1)[0] # no cgi
-        components=url.split('://',1)
-        components[-1]=components[-1].split('/')
-        # trim off the file
-        if not components[-1]:
-            components[-1].append('')
-        else:
-            components[-1][-1]=''
-        # put it back together
-        components[-1]='/'.join(components[-1])
-        return '://'.join(components)
-
-    def unRelativeUrl(self,url:URLCompatible)->typing.Optional['URL']:
-        """
-        alias of getRelativeUrl
-        """
-        return self.getRelativeUrl(url)
-    def getRelativeUrl(self,url:typing.Optional[URLCompatible])->typing.Optional['URL']:
-        """
-        Turns a relative url (eg href="/about") to its full form.
-
-        If it is already a full url, that's okay too.  It will simply return it.
-        """
-        if url is None:
-            return None
-        if not isinstance(url,str):
-            # assume it is fully qualified, whatever it is
-            return asURL(url)
-        urlStr=str(url)
-        currentLocation=self.location()
-        if currentLocation=='':
-            return asURL(urlStr)
-        while currentLocation[-1]=='/':
-            currentLocation=currentLocation[0:-1]
-        protoPos=urlStr.find('://')
-        if (protoPos>0 and protoPos<6):# or getDomain(currentLocation)==getDomain(urlStr):
-            return asURL(urlStr)
-        currentParts=currentLocation.split('/')
-        lastEmpty=False
-        for step in urlStr.split('/'):
-            if step in ('','.'):
-                lastEmpty=True
-                pass
-            elif step=='..':
-                lastEmpty=False
-                # check if we are navigating past root
-                # or if windows file, we are trying to navigate past c:/
-                if len(currentParts)<5:
-                    if len(currentParts)<4 or currentParts[3].endswith(':'):
-                        raise MalformedURL(urlStr,'Attempt to navigate past root in "%s"'%currentLocation)
-                # go up a level
-                currentParts.pop()
-            else:
-                lastEmpty=False
-                currentParts.append(step)
-        if lastEmpty: # special case where we end in a /
-            currentParts.append('')
-        urlStr='/'.join(currentParts)
-        return asURL(urlStr)
-    def relative(self,subPath):
-        """
-        Get a url relative to this url
-
-        Example:
-            u=Url("http://something.com/foo/bar/app?q=1")
-            u.relative('images/img1.jpeg')
-            # "http://something.com/foo/bar/images/img1.jpeg"
-            u.relative('/images/img1.jpeg')
-            # "http://something.com/images/img1.jpeg"
-            u.relative('../images/img1.jpeg')
-            # "http://something.com/foo/images/img1.jpeg"
-            u.relative('../../../images/img1.jpeg')
-            # big fat exception
-
-        NOTE: if subPath is a full url (eg 'http://whatever') then there is no resolving
-        """
-        return self.getRelativeUrl(subPath)
-        if subPath is None:
-            ret=self
-        elif not isinstance(subPath,str) or subPath.find('://')>=0:
-            ret=Url(subPath)
-        else:
-            ret=Url(self)
-            ret.path='%s/%s'%(self.path.rsplit('/',1)[0],subPath)
-        return ret
-
-    def watch(self,notifyFn=None,pollInterval:float=1):
-        """
-        If there is a notifyFn, will run forever (meant to be run threaded)
-        
-        If not, will return when the data has changed.
-        """
-        d=self._data
-        while True:
-            time.sleep(pollInterval)
-            self.read()
-            if self.data!=d:
-                if notifyFn is None:
-                    return
-                else:
-                    notifyFn(self)
-        
     @property
     def url(self)->str:
         """
@@ -609,8 +409,9 @@ class URL:
             px=[]
             for p in self.path.split('/'):
                 if allowColons:
-                    # special case: when there's a colon in the first path segment, such as windows files
-                    px.append(urllib.parse.quote(p).replace('%3A',':'))
+                    # special case: when there's a colon in the first path segment
+                    #   such as windows files
+                    px.append(urllib.parse.quote(p).replace('%3A',self.windowsDriveSeparator))
                 else:
                     px.append(urllib.parse.quote(p))
             ret.append('/'.join(px))
@@ -632,114 +433,28 @@ class URL:
                 ret.append('&'.join(rr))
         return ''.join(ret)
     @url.setter
-    def url(self,url):
+    def url(self,url:URLCompatible):
         self.assign(url)
-        
-    @property
-    def name(self)->str:
+    name=url
+    def __repr__(self)->str:
         """
-        same as the url itself
-
-        used for compatibility where objects with names are expected
+        string representation of the url
         """
         return self.url
-    @name.setter
-    def name(self,name:str):
-        self.url=name
-        
-    @property
-    def data(self):
-        """
-        the remote data
-        (will be read on demand)
-        """
-        if self._data is None:
-            self._readFile()
-        return self._data
-    @data.setter
-    def data(self,data):
-        self.write(data)
-        
-    def write(self,data:typing.Union[str,bytes])->None:
-        """
-        file-like object write method
-        """
-        self._dirty=True
-        if isinstance(data,str):
-            data=data.encode('utf-8')
-        if self._data is None:
-            self._data=bytearray(data)
-        else:
-            self._data.extend(data)
-        
-    def close(self):
-        """
-        file-like object close method
-        """
-        self.flush()
-        self._data=None
-        self._idx=0
-        
-    def flush(self):
-        """
-        file-like object flush method
-        """
-        if self._dirty and self._data is not None:
-            self._writeFile()
-        self._dirty=False
-        
-    def read(self,bytes:typing.Optional[int]=None)->str:
-        """
-        file-like object read method
-        """
-        if bytes is None:
-            ret=self.data[self._idx:len(self.data)]
-            self._idx=len(self.data)
-        else:
-            ret=self.data[self._idx:min(self._idx+bytes,len(self.data))]
-            self._idx+=len(ret)
-        return ret.decode('utf-8')
 
-    def _readFile(self)->None:
+    def _encode(self)->str:
         """
-        Physically go and read the file right now
+        Encode this to a string
+        (used for saving .url files)
         """
-        # TODO: use EzFs instead if installed
-        if self.protocol=='file':
-            f=open(self.filePath,'rb')
-            self._data=bytearray(f.read())
-            f.close()
-        else:
-            # TODO: read typical things python can read, such as http and ftp
-            raise NotImplementedError()
+        return self.url
 
-    def _writeFile(self)->None:
+    def _decode(self,data:str)->None:
         """
-        Physically go and write the file right now
+        Decode this from a string
+        (used for loading .url files)
         """
-        # TODO: use EzFs instead if installed
-        if self.protocol=='file':
-            f=open(self.filePath,'wb')
-            if self._data is not None:
-                f.write(bytes(self._data))
-            f.close()
-        else:
-            # TODO: read typical things python can read, such as http and ftp
-            raise NotImplementedError()
-
-    def seek(self,idx:int,fromWhere:int=0):
-        """
-        file-like object seek method
-        """
-        if fromWhere==0: # means your reference point is the beginning of the file
-            self._idx=idx
-        elif fromWhere==1: # means your reference point is the current file position
-            self._idx+=idx
-        elif fromWhere==2: # means your reference point is the end of the file
-            self._idx=len(self.data)-idx
-        
-    def tell(self)->int:
-        return self._idx
+        self.url=data
 
     @property
     def fullPath(self)->typing.Optional[str]:
@@ -756,7 +471,7 @@ class URL:
     @fullPath.setter
     def fullPath(self,fullPath:typing.Optional[str]):
         if fullPath is None or not fullPath:
-            self.path=None
+            self._path=None
             self.resource=None
             return
         pr=fullPath.rsplit('/',1)
@@ -764,9 +479,18 @@ class URL:
         if len(pr)>1:
             self.path=pr[0]
         else:
-            self.path=None
+            self._path=None
         if fullPath.find('//')>1:
             raise Exception()
+
+    def hyperlink(self,caption:typing.Optional[str]=None)->str:
+        """
+        Get this url as a hyperlink <a href="">caption</a>
+        """
+        href=str(self)
+        if caption is None:
+            caption=href
+        return f'<a href="{href}">{caption}</a>'
 
     @property
     def user(self)->typing.Optional[str]:
@@ -782,7 +506,7 @@ class URL:
     def host(self)->typing.Optional[str]:
         """
         NOTE: that is self.host = self.subdomain + self.domain
-            eg "www.fooblatz.com"="www"+"."+"fooblatz.com" 
+            eg "www.fooblatz.com"="www"+"."+"fooblatz.com"
         """
         if self.domain is None:
             return None
@@ -792,7 +516,7 @@ class URL:
     @host.setter
     def host(self,host:typing.Optional[str]):
         if host is None:
-            self.domain=None
+            self.domain=''
             self.subdomain=None
         else:
             ss=host.split('.')
@@ -808,8 +532,8 @@ class URL:
                 # this has no subdomain
                 self.domain=host
                 self.subdomain=None
-    
-    def _getUrlString(self,url:UrlCompatible)->typing.Union[str,"URL"]:
+
+    def _getUrlString(self,url:URLCompatible)->str:
         """
         get the best(tm) possible url string from an object
 
@@ -820,7 +544,7 @@ class URL:
         if url is None:
             return None
         if isinstance(url,URL):
-            return url
+            return str(url)
         if not isinstance(url,(str,bytes)):
             # check its members for something url-like
             foundSomething=False
@@ -832,7 +556,7 @@ class URL:
                         url=url()
                     if isinstance(url,URL):
                         # in case the member was a URL obj
-                        return url
+                        return url.url
                     break
             if (not foundSomething) and hasattr(url,'read') and hasattr(url,'name'):
                 # for file-like objects "name" can be considered a filename
@@ -840,50 +564,80 @@ class URL:
                 url=getattr(url,'name')
             if (not foundSomething) and hasattr(url,'keys'):
                 # it's a dict-like, so we can check that too
-                keys=url.keys() # type: ignore
+                keys=url.keys()
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
-                        url=url[memberName] # type: ignore
+                        url=url[memberName]
                         if callable(url):
                             url=url()
                         if isinstance(url,URL):
                             # in case the member was a URL obj
-                            return url
+                            return str(url)
                         break
             if not isinstance(url,str):
                 # couldn't figure out how that object translates into a URL
-                raise MalformedURL(str(url),'incompatible type %s for assigning'%url.__class__.__name__)
+                typename=url.__class__.__name__
+                raise MalformedURL(str(url),'incompatible type %s for assigning'%typename)
         if isinstance(url,bytes):
-            url=url.decode('utf-8')
-        return url
+            url=url.decode('utf-8','ignore')
+        return self._getCleverURL(url)
 
-    def _getCleverURL(self,url:str)->typing.Optional["URL"]:
+    @property
+    def isFile(self)->bool:
         """
-        This is a hook used to get cleverly get things as urls,
-        for instance 
-        "sam@abc.com"->"mailto:sam@abc.com"
-        "(800)555-1234"->"tel:+18005551234"
-        """
-        # TODO: this is an interesting concept, but needs
-        # 1) to be more extensible
-        # 2) called only after proper urls get their chance
-        # 3) need some mechanism for getting these from an object
-        return None
+        is True if this is a file:// url
 
-    def setUrl(self,url:URLCompatible,assume='http'):
+        This IS NOT similar to url.isDirectory!!!
         """
-        same as assign()
+        return self.protocol=='file'
+
+    @property
+    def isDirectory(self)->bool:
         """
-    def assign(self,url:typing.Optional[URLCompatible],relativeTo:typing.Optional[URLCompatible],_useRelTo=True)->None:
+        NOTE: for file:// urls we can determine this,
+        but for other types it is merely a guess unless
+        explicitly assigned.
+
+        Eg: is http://fooblatz.com/items going to be a
+            directory or a webpage?  Or both (implied index.htm)?
+        But you can always set url.isDirectory=True to track that
+
+        NOTE: the algorithm for determining if url is a directory is:
+            1) if there is cgi, it IS NOT a directory
+            2)
+        """
+        if self._isDirectory is None:
+            if self.isFile:
+                if not self.filePath:
+                    self._isDirectory=True # / is a directory
+                else:
+                    self._isDirectory=os.path.isdir(self.filePath)
+            elif self.cgi:
+                self._isDirectory=False
+            else:
+                q=self.path.rsplit('/')
+                self._isDirectory=q[-1].find('.')<0
+        return self._isDirectory
+    @isDirectory.setter
+    def isDirectory(self,isDirectory:bool):
+        self._isDirectory=isDirectory
+
+    def assign(self,
+        url:typing.Optional[URLCompatible],
+        relativeTo:typing.Optional[URLCompatible]=None,
+        _useRelTo=True,
+        _isDirectory=None
+        )->None:
         """
         Assign this url to something
 
         Raises MalformedURL exception if it doesn't work.
 
-        NOTE: unlike many things like asURL(), relativeTo has no default =None (which will assume file://[current directory]).
-            This is because in most cases you probably want to be relative to the current location eg
-                myUrl.assign(url,myUrl)
+        NOTE: unlike many things like asURL(), relativeTo has no default
+            (which means file://[current directory]).
+            This is because in most cases you probably want to be relative to the current location
+                eg myUrl.assign(url,myUrl)
             Removing the default was intended to force the caller to be specific in their intent.
 
         :param url: Can be:
@@ -895,135 +649,20 @@ class URL:
             * a file object with a .name member
             * a system path+file where the path exists
         :type url: URLCompatible
-        :param relativeTo: the url parameter is relative to this. eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-            if relativeTo is a simple string ending in ":" it suffices as a default protocol eg asURL('bob@mailbox.com','mailto:')
-            if NONE, relativeTo is treated as "file:///[current directory]" eg asUrl("readme.txt") gives "file:///./readme.txt"
+        :param relativeTo: the url parameter is relative to this.
+            eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
+            if relativeTo is a simple string ending in ":" it suffices as a default protocol
+                eg asURL('bob@mailbox.com','mailto:')
+            if NONE, relativeTo is treated as "file:///[current directory]"
+                eg asUrl("readme.txt") gives "file:///./readme.txt"
         :type relativeTo: URLCompatible
         """
-        self.clear()
-        if url is None:
-            return
-        url=self._getUrlString(url)
-        if isinstance(url,URL):
-            self.scheme=url.scheme
-            self.username=url.username
-            self.password=url.password
-            self.host=url.host
-            self.port=url.port
-            self.path=url.path
-            self.isUNC=url.isUNC
-            self.resource=url.resource
-            self.cgi=url.cgi
-            return
-        # by now url is ALWAYS a simple url string
-        url2:typing.Union[None,"URL"]=self._getCleverURL(url)
-        if url2 is not None:
-            self.assign(url2,None)
-            return
-        # check for possibly malformed file://
-        #    technically file://foo/bar means foo=host, though most people assume foo is directory
-        #    the "correct" way of foo as a directory is file:///foo/bar
-        #    this section attemts to guess what they really meant and correct as necessary
-        #    the algorithm used to determine to treat foo is a local file:
-        #        * if self.filesUrlPreferLocal is True
-        #        * if there is no more to the path assume they meant file://file not file://host
-        #        * if first dir ends with a :, assume they meant file://c: not host named c
-        #    result of this stage is url is modified with triple slash if necessary
-        if url.startswith('file://') and not url.startswith('file:///'):
-            if os.sep!='/':
-                url=url.replace(os.sep,'/')
-            parts=url.split('/',4)
-            if self.filesUrlPreferLocal or len(parts)<3 or parts[2].endswith(':'):
-                parts.insert(1,'') 
-                url='/'.join(parts)
-        # check for UNC paths
-        if url.startswith('\\\\'):
-            # the format is different than url, so it makes more sense to do this manually
-            self.isUNC=True
-            s=url.split('\\')
-            self.scheme='file'
-            self.host=s[2]
-            if len(s)>2:
-                if len(s)>3:
-                    self.path='/'.join(s[3:-1])
-                self.filename=s[-1]
-            return
-        if url.startswith('file://///'):
-            # the format is different than url, so it makes more sense to do this manually
-            self.isUNC=True
-            s=url.split('/')[3:]
-            self.host=s[2]
-            self.scheme='file'
-            if len(s)>2:
-                if len(s)>3:
-                    self.path='/'.join(s[3:-1])
-                self.filename=s[-1]
-            return
-        # check for dos/windows absolute paths
-        isWindowsAbsolutePath=False
-        if len(url)<2 or url[1]==':':
-            # windows-like filename (eg c:\something)
-            isWindowsAbsolutePath=True
-            relativeTo='file:///./' # no real need as c:\ is an absolute path
-            url='/'+url.replace('\\','/')
-        elif os.sep!='/':
-            url=url.replace(os.sep,'/')
-        # url is always using '/' as the separator from here on out
-        # make sure relativeTo is ready for use
-        if _useRelTo:
-            if relativeTo is None:
-                relativeTo='file:///./'
-            rTo=URL()
-            rTo.assign(relativeTo,None,False)
-            if rTo is None:
-                raise MalformedURL(str(relativeTo),"Unable to parse url for relativeTo")
-            else:
-                relativeTo=rTo
-        # let the standard parser have a go at it
-        parsed=urllib.parse.urlparse(url)
-        ret=URL()
-        ret.scheme=parsed.scheme
-        ret.username=parsed.username
-        ret.password=parsed.password
-        ret.host=parsed.hostname
-        if ret.host is None or ret.host=='':
-            ret.host='localhost'
-        ret.port=parsed.port
-        path=parsed.path
-        if isWindowsAbsolutePath:
-            # TODO: I believe they also sometimes used to use '|' instead of ':'. Should we support this?
-            path.replace('%3A',':',1) # url decode where they encoded the ':'
-            ret.scheme='file'
-        if path.startswith('/'):
-            path=path[1:]
-        ret.fullPath=path
-        ret.cgi={}
-        if parsed.query is not None:
-            cgi=parsed.query.split('&')
-            for c in cgi:
-                item=[urllib.parse.unquote(v) for v in c.split('=',1)]
-                if len(item)<2:
-                    ret.cgi[item[0]]=None
-                else:
-                    ret.cgi[item[0]]=item[1]
-        if ret.protocol is None and _useRelTo:
-            r2=relativeTo.getRelativeUrl(ret) # type: ignore
-            if r2 is None:
-                MalformedURL(url,'relative url broke')
-            else:
-                ret=r2
-        if ret.host is None and ret.protocol!='file':
-            MalformedURL(url,'missing host')
-        if self.protocol!='file' and self.path is not None:
-            # remove any leading / from path
-            if path.startswith('/'):
-                path=path[1:]
-        self.assign(ret,None)
-
-
+        from .urlSplitter import urlAssign
+        urlAssign(self,url,relativeTo,_useRelTo,_isDirectory)
+    setUrl=assign
 Url=URL # same thing
 
-        
+
 def cmdline(args:typing.Iterable[str])->int:
     """
     Run the command line
@@ -1052,10 +691,11 @@ def cmdline(args:typing.Iterable[str])->int:
 
 
 if __name__=='__main__':
-    import sys
+    #import sys
     #cmdline(sys.argv[1:])
-    u=URL(r'file:///c:/folder/')
-    u=u.relative('childchild/../../..')
-    print(u.fullPath)
-    print('url=',u)
-    print('filePath=',u.filePath)
+    #u=URL(r'file:///c:/folder/')
+    #u=u.relative('childchild/../../..')
+    #print(u.fullPath)
+    #print('url=',u)
+    #print('filePath=',u.filePath)
+    pass
