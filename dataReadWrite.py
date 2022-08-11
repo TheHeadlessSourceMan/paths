@@ -124,12 +124,11 @@ class DataReadWrite:
 
         NOTE: can use EzFs if installed
         """
-        hasEzFs=False
         try:
             import ezFs
-            #hasEzFs=True # TODO: ezFs needs work
+            hasEzFs=True
         except ImportError:
-            pass
+            hasEzFs=False
         if hasEzFs:
             ez=ezFs.EzFs()
             f=ez.open(self.filePath,'rb')

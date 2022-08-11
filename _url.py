@@ -8,7 +8,7 @@ import os
 import urllib.parse
 from .iUrl import IURL
 from ._uri import URI
-from .urlTyping import URLCompatible, UrlCompatible, isURLCompatible, asURL
+from .urlTyping import URLCompatible, isURLCompatible, asURL
 from .loadAndSave import LoadAndSave
 from .urlNavigation import UrlNavigation
 from .dataReadWrite import DataReadWrite
@@ -140,6 +140,49 @@ class URL(
                 else:
                     ret=p[0]
         return ret
+
+    def openInBrowser(self,
+        preferred:typing.Optional[str]=None,
+        newWindow:bool=False,
+        newTab:bool=False,
+        autoraise:bool=True)->typing.Any:
+        """
+        Open this url in the system browser
+
+        Preferred can be whatever python's built-in webbrowser module supports, for instance:
+            'mozilla'
+            'firefox'
+            'netscape'
+            'galeon'
+            'epiphany'
+            'skipstone'
+            'kfmclient'
+            'konqueror'
+            'kfm'
+            'mosaic'
+            'opera'
+            'grail'
+            'links'
+            'elinks'
+            'lynx'
+            'w3m'
+            'windows-default'
+            'macosx'
+            'safari'
+            'google-chrome'
+            'chrome'
+            'chromium'
+            'chromium-browser'
+        """
+        import webbrowser
+        new=0
+        if newWindow:
+            new=1
+        elif newTab:
+            new=2
+        browser=webbrowser.get(preferred)
+        browser.open(str(self),new,autoraise)
+        return browser
 
     @property
     def filename(self)->typing.Optional[str]:
@@ -338,7 +381,7 @@ class URL(
         self._path=('/'.join(ret)).replace('//','/').replace('//','/')
 
     def __eq__(self,
-        url:UrlCompatible
+        url:typing.Any
         )->bool:
         """
         compare this url with another
@@ -693,9 +736,8 @@ def cmdline(args:typing.Iterable[str])->int:
 if __name__=='__main__':
     #import sys
     #cmdline(sys.argv[1:])
-    #u=URL(r'file:///c:/folder/')
-    #u=u.relative('childchild/../../..')
-    #print(u.fullPath)
-    #print('url=',u)
-    #print('filePath=',u.filePath)
-    pass
+    u=URL(r'file:///c:/folder/')
+    u=u.relative('childchild/../../..')
+    print(u.fullPath)
+    print('url=',u)
+    print('filePath=',u.filePath)

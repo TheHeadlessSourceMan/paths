@@ -1,0 +1,84 @@
+"""
+used to convert a file offset into a row,col location
+or vice-versa
+
+The reason this is its own class is you can gain
+efficiencies by on-demand precalculating how many characters
+per line.
+"""
+import typing
+import itertools
+import bisect
+from fileLocation import FileLocation
+
+class LineLookup:
+    """
+    used to convert a file offset into a row,col location
+    or vice-versa
+    
+    The reason this is its own class is you can gain
+    efficiencies by on-demand precalculating how many characters
+    per line.
+    """
+    def __init__(self,filename:str,data:typing.Optional[str]=None):
+        self.filename:str=filename
+        if data is None:
+            data=''
+            with open(filename,'r') as f:
+                data=f.read()
+        self.data:str=data
+        self._totalBeforeLine:typing.Optional[typing.List[int]]=None
+        
+    @property
+    def totalBeforeLine(self)->typing.List[int]:
+        if self._totalBeforeLine is None:
+            self._totalBeforeLine=list(itertools.accumulate([len(x)+1 for x in self.data.split('\n')]))
+        return self._totalBeforeLine
+
+    def getLines(self,start:int,end:typing.Optional[int]=None)->str:
+        """
+        Get a set of lines as a string
+        """
+        if end is None:
+            end=start
+        tbl=self.totalBeforeLine
+        s=tbl[start]
+        e=len(self.data) if end>=len(tbl) else self.totalBeforeLine[end+1]
+        return self.data[s:e]
+
+    def __getitem__(self,idx:typing.Union[int,typing.Tuple[int,int]])->str:
+        if isinstance(idx,tuple):
+            return self.getLines(idx[0],idx[1])
+        return self.getLines(idx)
+
+    def rlookup(self,row:typing.Union[int,FileLocation],col:typing.Optional[int]=None)->int:
+        """
+        reverse lookup to determine character position based
+        upon row and column
+        """
+        if isinstance(row,FileLocation):
+            col=row.col
+            row=row.row
+        elif col is None:
+            col=1
+        total=0
+        if row>0:
+            total+=self.totalBeforeLine[row-1]
+        total+=col
+        return total
+    position=rlookup
+        
+    def lookup(self,pos:int)->FileLocation:
+        """
+        given a file position, returns FileLocation
+        
+        CAUTION: pos is a character position, not necessarily a byte position.
+        For single-byte character encodings this is the same thing,
+        but for multi-byte you cannot take this for granted!
+        """
+        row=bisect.bisect(self.totalBeforeLine,pos)
+        col=pos
+        if row>0:
+            col=pos-self.totalBeforeLine[row-1]
+        return FileLocation(self.filename,row+1,col+1)
+    location=lookup

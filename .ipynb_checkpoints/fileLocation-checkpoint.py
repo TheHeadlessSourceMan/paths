@@ -9,7 +9,6 @@ myfile.txt:1:2-2:3 # get an oddly specific range
 import typing
 import re
 import paths
-import urllib.parse
 
 
 class LocationWithinFile:
@@ -37,34 +36,10 @@ class LocationWithinFile:
     @fromLine.setter
     def fromLine(self,fromLine:typing.Optional[int]):
         self._fromLine=fromLine
-    @property
-    def line(self):
-        """
-        same as fromRow
-        """
-        return self._fromLine
-    @line.setter
-    def line(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
-        
-    @property
-    def fromRow(self):
-        """
-        same as fromRow
-        """
-        return self._fromLine
-    @fromRow.setter
-    def fromRow(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
-    @property
-    def row(self):
-        """
-        same as fromRow
-        """
-        return self._fromLine
-    @row.setter
-    def row(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
+    fromRow=fromLine
+    _fromRow=fromLine
+    line=fromLine
+    row=fromLine
 
     @property
     def toLine(self):
@@ -136,10 +111,9 @@ class FileLocation(LocationWithinFile):
         myfile.txt[1:-1]
     """
 
-    FILE_LOCATION_REGEX=re.compile(r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""")
+    FILE_LOCATION_REGEX=re.compile(r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>[0-9])(\s*[:,]\s*(?P<col>[0-9]*))?[)]?)""")
 
-    def __init__(self,
-        url:paths.URLCompatible,
+    def __init__(self,url:paths.URLCompatible,
         fromRow:typing.Optional[int]=None,
         fromColumn:typing.Optional[int]=None,
         toLine:typing.Optional[int]=None,
@@ -148,9 +122,7 @@ class FileLocation(LocationWithinFile):
         """ """
         LocationWithinFile.__init__(self,fromRow,fromColumn,toLine,toColumn)
         self.smartDecodeUrl=smartDecodeUrl
-        self._url:paths.URLCompatible=url
-        if isinstance(url,str):
-            self.assign(url,fromRow,fromColumn)
+        self._url:paths.URLCompatible=url;
 
     def read(self)->str:
         """
@@ -165,24 +137,19 @@ class FileLocation(LocationWithinFile):
         lines[-1]=lines[-1][0:self.toColumn]
         return '\n'.join(lines)
 
-    def assign(self,fileLocation:str,row:typing.Optional[int]=0,col:typing.Optional[int]=0)->None:
+    def assign(self,fileLocation:str,row:int=0,col:int=0)->None:
         """
         assign the value of this file location
         """
-        fileLocationParts=fileLocation.replace('\\','/').split('/')
-        fileRowCol=fileLocationParts[-1].split(':')
-        if row is None:
-            row=0
-        if len(fileRowCol)>1:
-            if row==0:
-                row=int(fileRowCol[1])
-            if len(fileRowCol)>2 and col==0:
-                col=int(fileRowCol[2])
-            fileLocationParts[-1]=fileRowCol[0]
-            fileLocation='/'.join(fileLocationParts)
-        self._url=fileLocation
-        self.row=row
-        self.fromColumn=col
+        m=self.FILE_LOCATION_REGEX.match(fileLocation)
+        if m is not None:
+            if m.group('row') is not None:
+                row=m.group('row')
+            if m.group('col') is not None:
+                col=m.group('col')
+        self.filename=fileLocation
+        self._row=int(row)
+        self._col=int(col)
 
     @property
     def url(self)->paths.URL:
@@ -197,20 +164,6 @@ class FileLocation(LocationWithinFile):
     @property
     def filename(self)->str:
         return self.url.filePath
-    
-    def html(self,hrefFormat,title=None):
-        """
-        Get this as an html tag.
-        
-        hrefFormat is a string with replacements, see help for the formatted() function
-        
-        :property title: title of the thing to click on.  If None, uses the filename as the title
-        """
-        if title is None:
-            title=self.filename
-        href=self.formatted(hrefFormat)
-        urllib.parse.quote(href)
-        return f'<a href="{href}">{title}</a>'
  
     def formatted(self,fmt,otherReplacements:typing.Optional[typing.Dict[str,typing.Any]]=None):
         """
@@ -233,26 +186,24 @@ class FileLocation(LocationWithinFile):
         # now solve all conditionals
         truths={}
         for k,v in replacements.items():
-            if (isinstance(v,int) and v>1) or v:
+            if isinstance(v,int) and v>1:
                 truths[k]=True
-        conditionalResults:typing.List[str]=[]
-        for section in fmt.split('{'):
-            if not conditionalResults:
-                # first is what it is
-                conditionalResults.append(section)
-            else:
-                section=section.rsplit('}')
-                cond=section[0].split('?',1)
+            elif v:
+                truths[k]=True
+        conditionalResults=[]
+        for section in fmt.split('}'):
+            section=section.rsplit('{',1)
+            conditionalResults.append(section[0])
+            if len(section)>1:
+                cond=section[1].split('?',1)
                 if cond[0] in truths:
                     conditionalResults.append(cond[1])
-                if len(section)>1:
-                    conditionalResults.append(section[-1])
         return ''.join(conditionalResults)
         
-    def __repr__(self)->str:
+    def __new_repr__(self)->str:
         return self.formatted('{filename}{row?:{row}{col?:{col}}}')
     
-    def __old_repr__(self)->str:
+    def __repr__(self)->str:
         r"""
         Get this location as a string.  Eg:
             /home/tjones/file.txt:3
@@ -377,10 +328,7 @@ class MultiFileLocation(FileLocation):
             if self.line is not None:
                 ret.append('Line ')
         elif self.url.protocol=='file':
-            fp=self.url.filePath
-            if not fp:
-                fp='[unknown]'
-            ret.append(fp)
+            ret.append(self.url.filePath)
             ret.append(':')
         else:
             ret.append(str(self.url))
