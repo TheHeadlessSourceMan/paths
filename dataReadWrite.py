@@ -129,6 +129,7 @@ class DataReadWrite:
             hasEzFs=True
         except ImportError:
             hasEzFs=False
+        hasEzFs=False # TODO: it's busted again
         if hasEzFs:
             ez=ezFs.EzFs()
             f=ez.open(self.filePath,'rb')

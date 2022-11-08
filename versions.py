@@ -20,13 +20,13 @@ _VersionSegmentRe=re.compile(r"""\d+|([a-z]+(_[a-z]+)*)""",re.IGNORECASE)
 class Version:
     """
     Decipher software version numbers so they can be compared.
-    
+
     Note that:
         Version("1.0")==Version("1.0.5")
     but
         Version("1.0.0")!=Version("1.0.5")
     This design was chosen so you can determine if a version is in the 1.0 branch.
-    
+
     NOTE: handles:
         versions - "1.0"
         indefinite sub-versions - "1.0.3.7.21.8"
@@ -36,7 +36,7 @@ class Version:
         formats starting with "v"/"ver"/"version" - "Version_1_0" "v1.0"
         Mooshed-together text parts "1.0rc3"
     """
-    
+
     def __init__(self,
         value:typing.Optional[VersionCompatible],
         experimental:typing.Optional[bool]=None):
@@ -45,7 +45,7 @@ class Version:
         self.experimental=False
         if value is not None:
             self.assign(value,experimental)
-        
+
     def assign(self,
         value:VersionCompatible,
         experimental:typing.Optional[bool]=None):
@@ -69,7 +69,7 @@ class Version:
                     self._segments.append(segment)
         if experimental is not None:
             self.experimental=experimental
-            
+
     @property
     def release(self)->bool:
         return not self.experimental
@@ -132,7 +132,10 @@ class Version:
         other=asVersion(other)
         ret=Version(None)
         for us,them in zip(self._segments,other._segments):
-            ret._segments.append(us+them)
+            if isinstance(us,str) or isinstance(them,str):
+                ret._segments.append(them)
+            else:
+                ret._segments.append(us+them)
         return ret
 
     def __eq__(self,other:typing.Any)->bool:
@@ -180,7 +183,7 @@ class Version:
             if self.__seg_cmp__(us,them)<=0:
                 return True
         return False
-    
+
     def __repr__(self):
         """
         Joins int segments with '.' and int-text or text-text segmens with ' '
@@ -202,24 +205,24 @@ class Version:
                 ret.append(seg)
                 lastWasInt=False
         return ''.join(ret)
-    
-def asVersion(ver:VersionCompatible):
+
+def asVersion(ver:VersionCompatible)->Version:
     """
     Always return ver as a version.
-    
+
     If it is already one, simply return.
     Otherwise, convert it.
     """
     if isinstance(ver,Version):
         return ver
     return Version(ver)
-    
-        
-    
+
+
+
 class VersioningScheme:
     r"""
     The rules used for creating/interpreting version numbers.
-    
+
     It is based on like your time formatting pattern or whatever.
         %R - release version
         %P - pre-release version
