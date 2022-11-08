@@ -388,7 +388,7 @@ class URL(
         """
         if not isURLCompatible(url):
             return False
-        urlObj=asURL(url)
+        urlObj:URL=asURL(url)
         if urlObj is None:
             return False
         return (self.protocol==urlObj.protocol and
