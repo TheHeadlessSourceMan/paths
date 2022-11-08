@@ -28,6 +28,37 @@ class LocationWithinFile:
         self._toLine:typing.Optional[int]=toRow
         self._toColumn:typing.Optional[int]=toColumn
 
+    def contains(self,other:'LocationWithinFile')->bool:
+        """
+        Does this entirely contain another location?
+        """
+        if other.fromLine<=self.toLine:
+            if other.fromColumn<=self.toColumn:
+                if other.toLine>=self.fromLine:
+                    if other.toColumn>=self.toColumn:
+                        return True
+        return False
+
+    def containedBy(self,other:'LocationWithinFile')->bool:
+        """
+        Is this entirely contained by another location?
+        """
+        return other.contains(self)
+
+    def overlaps(self,other:'LocationWithinFile')->bool:
+        """
+        Does this contain or overlap another location?
+        """
+        # if either point in the other item is within the range of this item, return True
+        if other.fromLine<=self.toLine and other.fromColumn<=self.toColumn and \
+            other.fromLine>=self.fromLine and other.fromColumn>=self.fromColumn:
+                return True
+        if other.toLine<=self.toLine and other.toColumn<=self.toColumn and \
+            other.toLine>=self.fromLine and other.toColumn>=self.fromColumn:
+                return True
+        # or if other completely contains this
+        return other.contains(self)
+
     @property
     def fromLine(self):
         """
@@ -152,17 +183,39 @@ class FileLocation(LocationWithinFile):
         if isinstance(url,str):
             self.assign(url,fromRow,fromColumn)
 
+    def contains(self,other:LocationWithinFile)->bool:
+        """
+        Does this entirely contain another location?
+        """
+        if isinstance(other,FileLocation) and other.url!=self.url:
+            return False
+        return LocationWithinFile.contains(self,other)
+
+    def overlaps(self,other:LocationWithinFile)->bool:
+        """
+        Does this contain or overlap another location?
+        """
+        if isinstance(other,FileLocation) and other.url!=self.url:
+            return False
+        return LocationWithinFile.overlaps(self,other)
+
     def read(self)->str:
         """
         read the data at the specified location
         """
+        def v2a(n,default=0):
+            if n is None:
+                return default
+            if n<1:
+                return 0
+            return n-1
         data=self.url.read()
         if self.fromLine is None:
             return data
         lines=data.replace('\r','').split('\n')
-        lines=lines[self.fromLine:self.toLine]
-        lines[0]=lines[0][self.fromColumn:]
-        lines[-1]=lines[-1][0:self.toColumn]
+        lines=lines[v2a(self.fromLine):v2a(self.toLine,None)]
+        lines[0]=lines[0][v2a(self.fromColumn):]
+        lines[-1]=lines[-1][0:v2a(self.toColumn,None)]
         return '\n'.join(lines)
 
     def assign(self,fileLocation:str,row:typing.Optional[int]=0,col:typing.Optional[int]=0)->None:
