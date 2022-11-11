@@ -106,7 +106,7 @@ class Path:
         p.reduce()
         return p
 
-    def __iter__(self)->typing.Iterable[str]:
+    def __iter__(self)->typing.Iterator[str]:
         return iter(self._pathElements)
 
     def __getattr__(self, __name: str) -> typing.Any:
