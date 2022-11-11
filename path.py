@@ -36,7 +36,12 @@ class Path:
         Assign the value of this path
         """
         if not isinstance(path,str):
-            path=str(path)
+            if isinstance(path,Path):
+                path=str(path)
+            elif hasattr(path,'__iter__'):
+                path='/'.join(path)
+            else:
+                path=str(path)
         if relativeTo is not None and relativeTo:
             self.assign(path)
             if not self.isAbsolute:
@@ -100,7 +105,7 @@ class Path:
         return '/'.join(self._pathElements)
 
 
-PathCompatible=typing.Union[str,Path]
+PathCompatible=typing.Union[str,Path,typing.Iterable[str]]
 def asPath(path:PathCompatible)->Path:
     if not isinstance(path,Path):
         path=Path(path)
