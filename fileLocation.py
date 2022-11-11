@@ -242,13 +242,13 @@ class FileLocation(LocationWithinFile):
         """
         The file to whom we are referring
         """
-        return paths.asURL(self._url)
+        return typing.cast(paths.URL,paths.asURL(self._url))
     @url.setter
     def url(self,url:paths.URLCompatible):
         self._url=url
 
     @property
-    def filename(self)->str:
+    def filename(self)->typing.Optional[str]:
         return self.url.filePath
     
     def html(self,hrefFormat,title=None):
@@ -327,7 +327,7 @@ class FileLocation(LocationWithinFile):
                     ret.append(':')
         except paths.MalformedURL:
             # if there's an error, print what we've got so we can at least debug stuff
-            ret.append(self._url)
+            ret.append(str(self._url))
             ret.append(':')
         ret.append(LocationWithinFile.__repr__(self))
         return ''.join(ret)

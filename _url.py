@@ -8,6 +8,7 @@ import os
 import urllib.parse
 from .iUrl import IURL
 from ._uri import URI
+from .path import Path
 from .urlTyping import URLCompatible, isURLCompatible, asURL
 from .loadAndSave import LoadAndSave
 from .urlNavigation import UrlNavigation
@@ -20,6 +21,7 @@ from .errors import MalformedURL
 class URL(
     IURL,
     URI,
+    # Path, # TODO: use this for base functionality
     DataReadWrite,
     HasCgiDict,
     UrlNavigation,
