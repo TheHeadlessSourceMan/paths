@@ -24,14 +24,18 @@ class Path:
         print(p) => "/home/~rthomas/crustations/clams"
     """
 
-    def __init__(self,path:typing.Optional["PathCompatible"],relativeTo:typing.Optional["PathCompatible"]=None):
+    def __init__(self,
+        path:typing.Optional["PathCompatible"],
+        relativeTo:typing.Optional["PathCompatible"]=None):
         """
         """
         self._pathElements:typing.List[str]=[]
         if path is not None:
             self.assign(path,relativeTo)
 
-    def assign(self,path:"PathCompatible",relativeTo:typing.Optional["PathCompatible"]=None):
+    def assign(self,
+        path:"PathCompatible",
+        relativeTo:typing.Optional["PathCompatible"]=None):
         """
         Assign the value of this path
         """
@@ -70,6 +74,13 @@ class Path:
         Create a copy of this path
         """
         return Path(self)
+
+    def getRelative(self,relative:"PathCompatible"):
+        """
+        Get a path relative to this one
+        """
+        return Path(relative,self)
+    get=getRelative
 
     def reduce(self)->None:
         """
