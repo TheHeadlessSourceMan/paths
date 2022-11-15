@@ -28,6 +28,30 @@ class LocationWithinFile:
         self._toLine:typing.Optional[int]=toRow
         self._toColumn:typing.Optional[int]=toColumn
 
+    def __eq__(self, __o: object)->bool:
+        """
+        Compare to another location
+        """
+        if isinstance(__o,LocationWithinFile):
+            if __o.fromRow>1 and self.fromRow>1:
+                if __o.fromRow!=self.fromRow:
+                    return False
+                if __o.fromColumn>1 and self.fromColumn>1:
+                    if __o.fromColumn!=self.fromColumn:
+                        return False
+                    if __o.toRow>1 and self.toRow>1:
+                        if __o.toRow!=self.toRow:
+                            return False
+                        if __o.toColumn>1 and self.toColumn>1:
+                            if __o.toColumn!=self.toColumn:
+                                return False
+            return True
+        elif hasattr(__o,'location'):
+            return self==getattr(__o,'location')
+        elif isinstance(__o,str):
+            return self==FileLocation(__o)
+        return False
+
     def contains(self,other:'LocationWithinFile')->bool:
         """
         Does this entirely contain another location?
@@ -106,8 +130,15 @@ class LocationWithinFile:
     @toLine.setter
     def toLine(self,toLine:typing.Optional[int]):
         self._toLine=toLine
-    toRow=toLine
-    _toRow=toLine
+    @property
+    def toRow(self):
+        """
+        same as toRow
+        """
+        return self.toLine
+    @toRow.setter
+    def toRow(self,toRow:typing.Optional[int]):
+        self.toLine=toRow
 
     @property
     def fromColumn(self):
@@ -182,6 +213,34 @@ class FileLocation(LocationWithinFile):
         self._url:paths.URLCompatible=url
         if isinstance(url,str):
             self.assign(url,fromRow,fromColumn)
+        
+    def __eq__(self, __o: object)->bool:
+        """
+        Compare to a filename, location, or url
+        """
+        if isinstance(__o,FileLocation):
+            if __o.url!=self.url:
+                return False
+            if __o.fromRow>1 and self.fromRow>1:
+                if __o.fromRow!=self.fromRow:
+                    return False
+                if __o.fromColumn>1 and self.fromColumn>1:
+                    if __o.fromColumn!=self.fromColumn:
+                        return False
+                    if __o.toRow>1 and self.toRow>1:
+                        if __o.toRow!=self.toRow:
+                            return False
+                        if __o.toColumn>1 and self.toColumn>1:
+                            if __o.toColumn!=self.toColumn:
+                                return False
+            return True
+        elif hasattr(__o,'location'):
+            return self==getattr(__o,'location')
+        elif isinstance(__o,str):
+            return self==FileLocation(__o)
+        elif isinstance(__o,paths.URL) or hasattr(__o,'url') or hasattr(__o,'filename'):
+            return self.url==paths.asURL(typing.cast(paths.URLCompatible,__o))
+        return False
 
     def contains(self,other:LocationWithinFile)->bool:
         """
@@ -361,10 +420,12 @@ class MultiFileLocation(FileLocation):
                 fl.toRow,fl.toColumn,
                 self.smartDecodeUrl)
 
-    @property
-    def fromRow(self):
+    @property # type: ignore
+    def fromRow(self)->typing.Optional[int]:
         """
         the starting row/line in the file
+
+        NOTE: there is no setter, because that doesn't make sense
         """
         r=None
         for loc in self.locations:
@@ -375,10 +436,12 @@ class MultiFileLocation(FileLocation):
     line=fromRow
     fromLine=fromRow
 
-    @property
-    def toRow(self):
+    @property # type: ignore
+    def toRow(self)->typing.Optional[int]:
         """
         ending row/line in the file
+
+        NOTE: there is no setter, because that doesn't make sense
         """
         r=None
         for loc in self.locations:
@@ -387,10 +450,12 @@ class MultiFileLocation(FileLocation):
         return r
     toLine=toRow
 
-    @property
-    def fromColumn(self):
+    @property # type: ignore
+    def fromColumn(self)->typing.Optional[int]:
         """
         starting column/character for the given row in the file
+
+        NOTE: there is no setter, because that doesn't make sense
         """
         r=None
         c=None
@@ -402,10 +467,12 @@ class MultiFileLocation(FileLocation):
                 c=loc.fromColumn
         return c
 
-    @property
-    def toColumn(self):
+    @property # type: ignore
+    def toColumn(self)->typing.Optional[int]:
         """
         ending column/character for the given row in the file
+
+        NOTE: there is no setter, because that doesn't make sense
         """
         r=None
         c=None
