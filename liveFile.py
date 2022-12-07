@@ -1,6 +1,19 @@
 import typing
-from paths import URLCompatible,URL
+import datetime
+from paths import URLCompatible,URL,asURL
 
+
+class CacheEntry:
+    """
+    A single entry in a data cache
+    """
+    def __init__(self,url:URL,data:str,cacheTime:datetime.datetime):
+        self.url=url
+        self.data=data
+        self.cacheTime=cacheTime
+
+    def __hash__(self) -> int:
+        return self.url.__hash__()
 
 class LiveFilePool:
     """
@@ -8,17 +21,25 @@ class LiveFilePool:
     to support communal buffering
     """
     def __init__(self):
-        self.data={}
-        self.lastCheckTime={}
+        self.data:typing.Dict[URL,CacheEntry]={}
 
-    def getData(self,filename:URLCompatible):
-        filename=URL(filename)
-        data=self.data.get(filename)
+    def getCacheEntry(self,url:URLCompatible)->CacheEntry:
+        url=URL(url)
+        data=self.data.get(url)
         if data is None:
-            with open(data,'r') as f:
-                data=f.read()
-                self.data[filename]=data
-            
+            data=CacheEntry(url,url.read(),datetime.datetime.now())
+            self.data[url]=data
+        return data
+
+    def getData(self,url:URLCompatible)->str:
+        return self.getCacheEntry(url).data
+
+    def __getitem__(self,idx:URLCompatible)->str:
+        """
+        Access this like a dict, eg
+        html=liveFilePool["http://www.toshistation.com"]
+        """
+        return self.getData(idx)
 
 class LiveFile:
     """
@@ -28,8 +49,8 @@ class LiveFile:
     
     POOL=LiveFilePool()
     
-    def __init__(self,filename:URLCompatible):
-        self.filename=URL(filename)
+    def __init__(self,url:URLCompatible):
+        self.url=URL(url)
         self.watchChanges=True # only works on certain filesystems
         self.pollingInterval=90 # only used if polling is needed
         self.garbageCollectAfter=1200 # free up memory after this long of inactivity

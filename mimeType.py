@@ -1,5 +1,7 @@
 """
 Simple wrapper to distinguish a MIME type from a regular old string
+
+TODO: move into networkTools
 """
 import typing
 

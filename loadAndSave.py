@@ -39,7 +39,7 @@ def defaultLoader(f:URLCompatible)->bytes:
     #    return EzFs(f).read() # type: ignore
     #except ImportError:
     #    pass
-    f=paths.asURL(f)
+    f=typing.cast(paths.URL,paths.asURL(f))
     if f.protocol!='file':
         import urllib.request
         import urllib.error
@@ -282,7 +282,7 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
             else:
                 filename=self._filename
         else:
-            self._filename=paths.asURL(filename)
+            self._filename=typing.cast(paths.Url,paths.asURL(filename))
         if altEncoder is not None:
             if altEncoderParams is not None:
                 data=altEncoder(**altEncoderParams)
@@ -528,7 +528,7 @@ class LoadAndSave(ILoadAndSave,LoadAndSaveBytes):
             else:
                 filename=self._filename
         else:
-            self._filename=paths.asURL(filename)
+            self._filename=typing.cast(paths.URL,paths.asURL(filename))
         if altEncoder is not None:
             if altEncoderParams is not None:
                 data=altEncoder(**altEncoderParams)

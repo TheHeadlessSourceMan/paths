@@ -25,7 +25,7 @@ class HasCgiDict(typing.Dict[str,typing.Any]):
         """
         return len(self.cgi)
 
-    def __iter__(self)->typing.Iterable[typing.Tuple[str,typing.Any]]:
+    def __iter__(self)->typing.Iterable[typing.Tuple[str,typing.Any]]: # type: ignore
         """
         access like a list
 
@@ -39,7 +39,7 @@ class HasCgiDict(typing.Dict[str,typing.Any]):
         """
         self.cgi[k]=str(v)
 
-    def update(self,otherDict:typing.MutableMapping[str,typing.Any])->None:
+    def update(self,otherDict:typing.MutableMapping[str,typing.Any])->None: # type: ignore
         """
         access like a dict
         """

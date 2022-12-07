@@ -1,5 +1,5 @@
 """
-A simple path which could be applied to anything
+A simple general-purpose path which could be applied to anything
 (filenames, tree location, url, html dom, etc...)
 """
 import typing
@@ -7,7 +7,7 @@ import typing
 
 class Path:
     """
-    A simple path which could be applied to anything
+    A simple general-purpose path which could be applied to anything
     (filenames, tree location, url, html dom, etc...)
 
     Supports:

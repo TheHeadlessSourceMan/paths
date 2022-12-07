@@ -62,10 +62,17 @@ def isUrlCompatible(obj:typing.Any,strict:bool=False)->bool:
         or (hasattr(obj,"fileno") and hasattr(obj,"name"))
 isURLCompatible=isUrlCompatible # alias name
 
-
+@typing.overload
+def asURL(url:None,
+    relativeTo:typing.Optional[URLCompatible]=None
+    )->None: ...
+@typing.overload
 def asURL(url:URLCompatible,
     relativeTo:typing.Optional[URLCompatible]=None
-    )->IURL:
+    )->IURL:...
+def asURL(url:typing.Optional[URLCompatible],
+    relativeTo:typing.Optional[URLCompatible]=None
+    )->typing.Optional[IURL]:
     r"""
     Gets the url always as a URL object or None if it is None or "".
     If url is a URL object, WILL NOT create a new one, otherwise, it will.

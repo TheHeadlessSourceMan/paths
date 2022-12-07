@@ -1,6 +1,8 @@
 """
 Wrapper around a MAC address string that allows you to do useful
 things like formatting, etc.
+
+TODO: move into networkTools
 """
 import typing
 
