@@ -75,12 +75,28 @@ class Path:
         """
         return Path(self)
 
-    def getRelative(self,relative:"PathCompatible"):
+    def getRelative(self,relative:"PathCompatible")->'Path':
         """
         Get a path relative to this one
+
+        NOTE: given existing path x, these are equivilent:
+            1) y=Path(relativePath,x)
+            2) y=x.getRelative(relativePath)
+            3) y=x+relativePath
         """
         return Path(relative,self)
     get=getRelative
+
+    def __add__(self,relative:"PathCompatible")->'Path':
+        """
+        Get a path relative to this one
+
+        NOTE: given existing path x, these are equivilent:
+            1) y=Path(relativePath,x)
+            2) y=x.getRelative(relativePath)
+            3) y=x+relativePath
+        """
+        return Path(relative,self)
 
     def reduce(self)->None:
         """
@@ -109,7 +125,25 @@ class Path:
     def __iter__(self)->typing.Iterator[str]:
         return iter(self._pathElements)
 
+    @typing.overload
+    def __getitem__(self,idx:slice)->typing.Iterable[str]: ...
+    @typing.overload
+    def __getitem__(self,idx:typing.Union[int,str])->str: ...
+    def __getitem__(self,idx:typing.Union[int,str,slice])->typing.Union[str,typing.Iterable[str]]:
+        """access like [str] or dict"""
+        if isinstance(idx,str):
+            return getattr(self,idx)
+        return self._pathElements[idx]
+    typing.SupportsIndex
+
+    def __len__(self)->int:
+        """access like [str]"""
+        return len(self._pathElements)
+
     def __getattr__(self, __name: str) -> typing.Any:
+        """
+        where possible, access like an object member
+        """
         return getattr(self._pathElements,__name)
 
     def __repr__(self)->str:
