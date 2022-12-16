@@ -6,7 +6,7 @@ import typing
 
 
 class Path:
-    """
+    r"""
     A simple general-purpose path which could be applied to anything
     (filenames, tree location, url, html dom, etc...)
 
@@ -22,14 +22,25 @@ class Path:
     Can be relative to another path:
         p=Path("../clams",relativeTo="/home/~rthomas/crustations/oysters/").reduced()
         print(p) => "/home/~rthomas/crustations/clams"
+    And this can be easily done with the + operator
+        Path(r"c:\directory\wrongdir")+r"..\file.txt" => "c:\directory\file.txt"
+
+    Change separators:
+        p=Path("this|is|the|path",separators=('|'))
+        p.separators=('/')
+        print(p) => "this/is/the/path"
     """
 
     def __init__(self,
         path:typing.Optional["PathCompatible"],
-        relativeTo:typing.Optional["PathCompatible"]=None):
+        relativeTo:typing.Optional["PathCompatible"]=None,
+        separators:typing.Sequence[str]='/\\'):
         """
+        :separators: all separators that can denote a path break
+            the first separator is used as the join
         """
         self._pathElements:typing.List[str]=[]
+        self.separators:typing.Sequence[str]=separators
         if path is not None:
             self.assign(path,relativeTo)
 
@@ -43,7 +54,7 @@ class Path:
             if isinstance(path,Path):
                 path=str(path)
             elif hasattr(path,'__iter__'):
-                path='/'.join(path)
+                path=self.separators[0].join(path)
             else:
                 path=str(path)
         if relativeTo is not None and relativeTo:
@@ -56,7 +67,10 @@ class Path:
                 self._pathElements=list(relativeTo._pathElements)
                 self._pathElements.extend(current)
         else:
-            self._pathElements=path.replace('\\','/').split('/')
+            if len(self.separators)>1:
+                for s in self.separators[1:]:
+                    path=path.replace(s,self.separators[0])
+            self._pathElements=path.split(self.separators[0])
 
     @property
     def isAbsolute(self)->bool:
@@ -73,7 +87,7 @@ class Path:
         """
         Create a copy of this path
         """
-        return Path(self)
+        return Path(self,separators=self.separators)
 
     def getRelative(self,relative:"PathCompatible")->'Path':
         """
@@ -84,7 +98,7 @@ class Path:
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self)
+        return Path(relative,self,separators=self.separators)
     get=getRelative
 
     def __add__(self,relative:"PathCompatible")->'Path':
@@ -96,7 +110,7 @@ class Path:
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self)
+        return Path(relative,self,separators=self.separators)
 
     def reduce(self)->None:
         """
@@ -147,7 +161,7 @@ class Path:
         return getattr(self._pathElements,__name)
 
     def __repr__(self)->str:
-        return '/'.join(self._pathElements)
+        return self.separators[0].join(self._pathElements)
 
 
 PathCompatible=typing.Union[str,Path,typing.Iterable[str]]
