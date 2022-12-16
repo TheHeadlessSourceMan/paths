@@ -113,6 +113,7 @@ class URL(
         self.isUNC:bool=False
         self.cache:bool=True
         self.persist:bool=True
+        self.ignoreAlreadyEncoded=True # do not attempt to re-encode % signs (eg no http://x.com/space%20bar => http://x.com/space%2520bar)
         self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo is local
         # as opposed to a host named foo
         # basically False is more standards-compliant, but True is more used in practice
@@ -453,12 +454,19 @@ class URL(
             allowColons=self.protocol=='file'
             px=[]
             for p in self.path.split('/'):
+                p=urllib.parse.quote(p)
+                if self.ignoreAlreadyEncoded:
+                    p=p.replace(r'%',r'//%PCT%//')
+                    p=urllib.parse.quote(p)
+                    p=p.replace(r'//%25PCT%25//',r'%')
+                else:
+                    p=urllib.parse.quote(p)
                 if allowColons:
                     # special case: when there's a colon in the first path segment
                     #   such as windows files
-                    px.append(urllib.parse.quote(p).replace('%3A',self.windowsDriveSeparator))
+                    px.append(p.replace('%3A',self.windowsDriveSeparator))
                 else:
-                    px.append(urllib.parse.quote(p))
+                    px.append(p)
             ret.append('/'.join(px))
         if self.path is not None or self.host is not None:
             ret.append('/')
@@ -526,7 +534,7 @@ class URL(
         else:
             self._path=None
         if fullPath.find('//')>1:
-            raise Exception()
+            raise MalformedURL(fullPath,'Cannot find "://"')
 
     def hyperlink(self,caption:typing.Optional[str]=None)->str:
         """
@@ -609,11 +617,11 @@ class URL(
                 url=getattr(url,'name')
             if (not foundSomething) and hasattr(url,'keys'):
                 # it's a dict-like, so we can check that too
-                keys=url.keys()
+                keys=typing.cast(typing.Dict[str,typing.Any],url).keys()
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
-                        url=url[memberName]
+                        url=typing.cast(typing.Dict[str,typing.Any],url)[memberName]
                         if callable(url):
                             url=url()
                         if isinstance(url,URL):
