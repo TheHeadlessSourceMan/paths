@@ -221,6 +221,24 @@ class URL(
         """
         return Url(self)
 
+    def replace(self,replaceThis:typing.Union[str,typing.Pattern],withThis:typing.Union[str,typing.Any])->"Url":
+        """
+        Does everything that str.replace() does, so url.replace(x,y) is exactly the same as Url(str(url).replace(x,y))
+        Also, if you pass in a compiled regex for replaceThis, it is smart enough to use the regex.sub() instead
+
+        NOTE: if you are trying to replace something with path separators,
+        always use "/"
+        NOTE: if your replacement makes this an un-parseble Url(), that's on you!
+        """
+        s=str(self)
+        if not isinstance(withThis,str):
+            withThis=str(withThis)
+        if isinstance(replaceThis,str):
+            s=replaceThis.replace(s,withThis)
+        else:
+            s=replaceThis.sub(withThis,s)
+        return Url(s)
+
     def call(self,**kwds)->str:
         """
         If URL.read() is not advanced enough, you can use this to pass cgi parameters.
