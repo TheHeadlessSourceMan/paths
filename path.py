@@ -160,6 +160,24 @@ class Path:
         """
         return getattr(self._pathElements,__name)
 
+    def matchesPath(self,path:'PathCompatible')->bool:
+        """
+        Determine if another path matches this path
+        """
+        path=asPath(path)
+        if len(path)!=len(self):
+            return False
+        for a,b in zip(path,self):
+            if a!=b:
+                return False
+        return True
+
+    def __equ__(self,other:typing.Any)->bool:
+        """
+        Comparison operator is based on other.matchesPath(self)
+        """
+        return hasattr(other,'matchesPath') and other.matchesPath(self)
+
     def __repr__(self)->str:
         return self.separators[0].join(self._pathElements)
 
@@ -169,5 +187,9 @@ def asPath(path:PathCompatible)->Path:
     if not isinstance(path,Path):
         path=Path(path)
     return path
+
+class HasMatchesPath(typing.Protocol):
+    def matchesPath(self,path:PathCompatible)->bool:
+        ...
 
 TreePath=Path
