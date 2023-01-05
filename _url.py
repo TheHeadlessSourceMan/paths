@@ -442,6 +442,19 @@ class URL(
         return self.domain.lower()==otherUrl.domain.lower()
     domainMatches=sameDomain
 
+    @classmethod
+    def urlencode(self,s:str)->str:
+        """
+        General-purpose url encode tool
+        """
+        return urllib.parse.quote(s)
+    @classmethod
+    def urldecode(self,s:str)->str:
+        """
+        General-purpose url decode tool
+        """
+        return urllib.parse.unquote(s)
+
     @property
     def url(self)->str:
         """
