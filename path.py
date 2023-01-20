@@ -178,6 +178,42 @@ class Path:
         """
         return hasattr(other,'matchesPath') and other.matchesPath(self)
 
+    def startswith(self,path:'PathCompatible')->bool:
+        """
+        similar to str.startswith()
+        """
+        for a,b in zip(asPath(path),self):
+            if a!=b:
+                return False
+        return True
+
+    def reversed(self)->"Path":
+        """
+        similar to list.reversed()
+        """
+        r=[s for s in self]
+        r.reverse()
+        return Path(r)
+
+    def endswith(self,path:'PathCompatible')->bool:
+        """
+        similar to str.endswith()
+        """
+        path=list(asPath(path))
+        for a,b in zip(asPath(path).reversed(),self.reversed()):
+            if a!=b:
+                return False
+        return True
+
+    def contains(self,step:str)->bool:
+        """
+        check to see if it contains a particular path step
+        """
+        for s in self:
+            if s==step:
+                return True
+        return False
+
     def __repr__(self)->str:
         return self.separators[0].join(self._pathElements)
 
