@@ -2,15 +2,16 @@
 Errors to go with this class
 """
 import typing
-from .iFileLocation import IFileLocation
-from .iUrl import IURL
 
 
 class DecodeError(Exception):
     """
     General purpose error when attempting to decode some data
     """
-    def __init__(self,occouredIn:typing.Union[None,str,IFileLocation,IURL]):
+    if typing.TYPE_CHECKING:
+        from paths import URL, FileLocation
+
+    def __init__(self,occouredIn:typing.Union[None,str,"FileLocation","URL"]):
         self.occouredIn=occouredIn # save a copy to provide info to catchers
         if occouredIn is None:
             occouredIn=''
@@ -22,7 +23,10 @@ class EncodeError(Exception):
     """
     General purpose error when attempting to encode some data
     """
-    def __init__(self,occouredIn:typing.Union[None,str,IFileLocation,IURL]):
+    if typing.TYPE_CHECKING:
+        from paths import URL, FileLocation
+
+    def __init__(self,occouredIn:typing.Union[None,str,"FileLocation","URL"]):
         self.occouredIn=occouredIn # save a copy to provide info to catchers
         if occouredIn is None:
             occouredIn=''
@@ -36,4 +40,4 @@ class MalformedURL(Exception):
     """
 
     def __init__(self,url:str,reason:str):
-        Exception.__init__(self,'Malformed URL "'+url+'"\n('+reason+')')
+        Exception.__init__(self,f'Malformed URL "{url}"\n({reason})')

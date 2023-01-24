@@ -6,7 +6,6 @@ This represents a url type
 import typing
 import os
 import urllib.parse
-from .iUrl import IURL
 from ._uri import URI
 from .path import Path
 from .urlTyping import URLCompatible, isURLCompatible, asURL
@@ -19,7 +18,6 @@ from .filePathTools import encodeFilePath
 from .errors import MalformedURL
 
 class URL(
-    IURL,
     URI,
     # Path, # TODO: use this for base functionality
     DataReadWrite,
@@ -70,12 +68,12 @@ class URL(
     """
 
     # object members that could likely contain a url. order is important
-    URL_LIKE_MEMBERS=['url','URL','Url','filename','path','href','src','location','rel']
+    URL_LIKE_MEMBERS=('url','URL','Url','filename','path','href','src','location','rel')
 
     DefaultFilename:str='Untitled.url'
 
     def __init__(self,
-        url:URLCompatible=None,
+        url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None):
         """
         Raises MalformedURL exception if url assignment doesn't work.
@@ -188,18 +186,14 @@ class URL(
         return browser
 
     @property
-    def filename(self)->typing.Optional[str]:
+    def filename(self)->typing.Any:
         """
-        get the filename portion of the url, for example
-            http://x.com/foo/bar/baz.htm
-            filename=baz.htm
-
-        alias for self.resource
+        Url.filename is ambigiuous.  Use: Url.resource instead
         """
-        return self.resource
+        raise NotImplementedError("Url.filename is ambigiuous.  Use: Url.resource instead")
     @filename.setter
-    def filename(self,filename:typing.Optional[str]):
-        self.resource=filename
+    def filename(self,filename:typing.Any):
+        raise NotImplementedError("Url.filename is ambigiuous.  Use: Url.resource instead")
 
     def clear(self)->None:
         """
@@ -296,7 +290,7 @@ class URL(
 
     def getFilePath(self,
         enquote:bool=True,
-        illegalChars:str=None,
+        illegalChars:typing.Optional[str]=None,
         errors:str='exception'
         )->typing.Optional[str]:
         """
@@ -421,7 +415,7 @@ class URL(
             self.resource==urlObj.resource and
             self.cgi==urlObj.cgi)
 
-    def __hash__(self)->int:
+    def __hash__(self)->int: # type: ignore
         """
         Hashing function for adding to lookup dicts
         """
@@ -455,7 +449,7 @@ class URL(
         """
         return urllib.parse.unquote(s)
 
-    @property
+    @property # type: ignore
     def url(self)->str:
         """
         the url in plain old string form
@@ -744,6 +738,7 @@ class URL(
         from .urlSplitter import urlAssign
         urlAssign(self,url,relativeTo,_useRelTo,_isDirectory)
     setUrl=assign
+
 Url=URL # same thing
 
 

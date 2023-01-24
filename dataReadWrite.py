@@ -37,14 +37,14 @@ class DataReadWrite:
         """
 
     @property
-    def data(self)->str:
+    def data(self)->bytes:
         """
         the remote data
         (will be read on demand)
         """
         if self._data is None:
             self._readFile()
-        return self._data
+        return typing.cast(bytes,self._data)
     @data.setter
     def data(self,data:typing.Union[str,bytes]):
         self.write(data)
@@ -125,7 +125,7 @@ class DataReadWrite:
         NOTE: can use EzFs if installed
         """
         try:
-            import ezFs
+            import ezFs # type: ignore
             hasEzFs=True
         except ImportError:
             hasEzFs=False
@@ -136,7 +136,7 @@ class DataReadWrite:
             self._data=bytearray(f.read())
             f.close()
         else:
-            if self.protocol=='file':
+            if self.protocol=='file' and self.filePath is not None:
                 f=open(self.filePath,'rb')
                 self._data=bytearray(f.read())
                 f.close()
@@ -151,7 +151,7 @@ class DataReadWrite:
         NOTE: can use EzFs if installed
         """
         try:
-            import ezFs
+            import ezFs # type: ignore
             hasEzFs=True
         except ImportError:
             hasEzFs=False
@@ -162,7 +162,7 @@ class DataReadWrite:
                 f.write(bytes(self._data))
             f.close()
         else:
-            if self.protocol=='file':
+            if self.protocol=='file' and self.filePath is not None:
                 f=open(self.filePath,'wb')
                 if self._data is not None:
                     f.write(bytes(self._data))

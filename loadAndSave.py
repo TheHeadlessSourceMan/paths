@@ -10,8 +10,6 @@ If ezFs is installed, it gets even more wild, allowing access into
 online file stores, compressed files, and more!
 """
 import typing
-from .iUrl import IURL
-from .iLoadAndSave import ILoadAndSaveBytes, ILoadAndSave
 from .urlTyping import URLCompatible
 
 
@@ -92,7 +90,7 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
 ParamsDict=typing.Dict[str,typing.Any]
 
 
-class LoadAndSaveBytes(ILoadAndSaveBytes):
+class LoadAndSaveBytes:
     """
     Handy way of adding loading/saving to any data type.
 
@@ -105,6 +103,8 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
     If ezFs is installed, it gets even more wild, allowing access into online file
     stores, compressed files, and more!
     """
+    if typing.TYPE_CHECKING:
+        from paths import URL
 
     DefaultFilename:str='UNDEFINED.dat'
     def _encodeBytes(self)->bytes: return bytes() # pylint: disable=multiple-statements
@@ -168,7 +168,7 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
         return self._encodeBytes() # pylint: disable=not-callable
 
     @property
-    def filename(self)->typing.Optional[IURL]:
+    def filename(self)->typing.Optional["URL"]:
         """
         Setting this is the same as saying load(filename)
         """
@@ -177,7 +177,7 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
     def filename(self,filename:URLCompatible):
         self.load(filename)
     @property
-    def url(self)->typing.Union[IURL,None]:
+    def url(self)->typing.Union["URL",None]:
         """
         same as filename
         """
@@ -198,7 +198,8 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
         """
         return self._encodeBytes is not None
 
-    def load(self,filename:URLCompatible=None,
+    def load(self,
+        filename:typing.Optional[URLCompatible]=None,
         altDecoder:typing.Optional[typing.Callable[[bytes],None]]=None,
         altDecoderParams:typing.Optional[ParamsDict]=None
         )->None:
@@ -245,7 +246,8 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
         else:
             self._decodeBytes(data)
 
-    def save(self,filename:URLCompatible=None,
+    def save(self,
+        filename:typing.Optional[URLCompatible]=None,
         altEncoder:typing.Optional[typing.Callable[...,bytes]]=None,
         altEncoderParams:typing.Optional[ParamsDict]=None
         )->None:
@@ -298,7 +300,7 @@ class LoadAndSaveBytes(ILoadAndSaveBytes):
         return str(self._filename)
 
 
-class LoadAndSave(ILoadAndSave,LoadAndSaveBytes):
+class LoadAndSave(LoadAndSaveBytes):
     """
     Handy way of adding loading/saving to any data type.
 
@@ -454,7 +456,7 @@ class LoadAndSave(ILoadAndSave,LoadAndSaveBytes):
         return self._encode() # pylint: disable=not-callable
 
     def load(self,  # type: ignore
-        filename:URLCompatible=None,
+        filename:typing.Optional[URLCompatible]=None,
         altDecoder:typing.Optional[typing.Callable[[str],str]]=None,
         altDecoderParams:typing.Optional[ParamsDict]=None
         )->None:

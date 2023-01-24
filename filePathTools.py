@@ -1,10 +1,11 @@
 """
 tools for working with file paths
 """
+import typing
 import paths
 
 
-def illegalCharsForOs(osName:str=None)->str:
+def illegalCharsForOs(osName:typing.Optional[str]=None)->str:
     """
     get all characters that are illegal to use in a filename
 
@@ -33,8 +34,8 @@ def enquoteFilePath(filePath:str)->str:
 def encodeFilePath(
     filePath:str,
     enquote:bool=True,
-    illegalChars:str=None,
-    osName:str=None,
+    illegalChars:typing.Optional[str]=None,
+    osName:typing.Optional[str]=None,
     errors:str='exception'
     )->str:
     """
@@ -70,7 +71,10 @@ def encodeFilePath(
     return filePath
 
 
-def filenameFixer(filename:str,replaceWith='_',osName:str=None)->str:
+def filenameFixer(
+    filename:str,
+    replaceWith='_',osName:typing.Optional[str]=None
+    )->str:
     """
     Attempt to fix up a filename by removing illegal characters
 

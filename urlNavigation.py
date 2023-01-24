@@ -5,14 +5,12 @@ navigate around a url, like with
 this is specific to the needs of URL object and
 is not intended for public consumption.
 """
-from abc import abstractmethod
 import typing
-from .iUrlNavigation import IUrlNavigation
-from .iUrl import IURL
+from abc import abstractmethod
 from .urlTyping import URLCompatible
 
 
-class UrlNavigation(IUrlNavigation):
+class UrlNavigation:
     """
     navigate around a url, like with
         root,parent,children,siblings,...
@@ -20,6 +18,8 @@ class UrlNavigation(IUrlNavigation):
     this is specific to the needs of URL object and
     is not intended for public consumption.
     """
+    if typing.TYPE_CHECKING:
+        from paths import URL
 
     def __init__(self):
         pass
@@ -39,14 +39,14 @@ class UrlNavigation(IUrlNavigation):
         """
 
     @property
-    def parent(self)->IURL:
+    def parent(self)->"URL":
         """
         parent directory
         """
         return self.relative('..')
 
     @property
-    def root(self)->IURL:
+    def root(self)->"URL":
         """
         domain root directory
         """
@@ -54,7 +54,7 @@ class UrlNavigation(IUrlNavigation):
 
     def subdir(self,
         url:typing.Optional[URLCompatible]
-        )->IURL:
+        )->"URL":
         r"""
         creates a new url based on this url+subdir eg
             given
@@ -72,7 +72,7 @@ class UrlNavigation(IUrlNavigation):
         """
         import paths
         if url is None:
-            return self
+            return self # type: ignore
         if isinstance(url,paths.URL):
             # assume it is fully qualified, whatever it is
             return url
@@ -80,7 +80,7 @@ class UrlNavigation(IUrlNavigation):
             url=str(url)
         if not self.isDirectory:
             raise NotADirectoryError(str(self))
-        ret=paths.URL(self)
+        ret=paths.URL(self) # type: ignore
         ret.path=f'{ret.path}/{ret.resource}'
         ret.resource=url
         ret.cgi=None
@@ -93,7 +93,7 @@ class UrlNavigation(IUrlNavigation):
 
     def getRelativeUrl(self,
         url:typing.Optional[URLCompatible]
-        )->IURL:
+        )->"URL":
         """
         Turns a relative url (eg href="./about") to its full form.
 
@@ -136,7 +136,7 @@ class UrlNavigation(IUrlNavigation):
 
     def getSibling(self,
         url:typing.Optional[URLCompatible]
-        )->IURL:
+        )->"URL":
         r"""
         Gets a sibling location in reference to this one
 
@@ -151,7 +151,7 @@ class UrlNavigation(IUrlNavigation):
         import paths
         if url is None:
             return self
-        if isinstance(url,IURL):
+        if isinstance(url,"URL"):
             # assume it is fully qualified, whatever it is
             return url
         if not isinstance(url,str):
@@ -191,3 +191,4 @@ class UrlNavigation(IUrlNavigation):
     sibling=getSibling
     getSiblingUrl=getSibling
     peer=getSibling
+

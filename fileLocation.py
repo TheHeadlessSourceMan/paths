@@ -151,7 +151,15 @@ class LocationWithinFile:
         if fromColumn is None:
             fromColumn=0
         self._fromColumn=fromColumn
-    col=fromColumn
+    @property
+    def col(self):
+        """
+        starting column/character for the given row in the file
+        """
+        return self.fromColumn
+    @col.setter
+    def col(self,fromColumn:typing.Optional[int]):
+        self.fromColumn=fromColumn
 
     @property
     def toColumn(self):

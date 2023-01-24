@@ -2,7 +2,9 @@
 typing shenanigans to make URL objects more easy and enjoyable
 """
 import typing
-from .iUrl import IURL
+
+if typing.TYPE_CHECKING:
+    from paths import URL
 
 
 class HasURL(typing.Protocol):
@@ -31,7 +33,7 @@ class IsFileWithName(typing.Protocol):
     fileno:int
     name:str
 
-URLCompatibleStrict=typing.Union[IURL,HasURL,IsFileWithName]
+URLCompatibleStrict=typing.Union["URL",HasURL,IsFileWithName]
 URLCompatible=typing.Union[URLCompatibleStrict,str,bytes,DictLike]
 UrlCompatibleStrict=URLCompatibleStrict
 UrlCompatible=URLCompatible
@@ -65,7 +67,7 @@ isURLCompatible=isUrlCompatible # alias name
 
 def asURL(url:URLCompatible,
     relativeTo:typing.Optional[URLCompatible]=None
-    )->IURL:
+    )->"URL":
     r"""
     Gets the url always as a URL object or None if it is None or "".
     If url is a URL object, WILL NOT create a new one, otherwise, it will.

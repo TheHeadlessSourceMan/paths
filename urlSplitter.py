@@ -114,7 +114,7 @@ def urlAssign(self:paths.URL,
     if _useRelTo:
         if relativeTo is None:
             relativeTo='file:///./'
-        rTo=paths.URL()
+        rTo=paths.URL(None)
         rTo.assign(relativeTo,None,False)
         if rTo is None:
             raise paths.MalformedURL(str(relativeTo),"Unable to parse url for relativeTo")
@@ -122,7 +122,7 @@ def urlAssign(self:paths.URL,
             relativeTo=rTo
     # let the standard parser have a go at it
     parsed=urllib.parse.urlparse(url)
-    ret=paths.URL()
+    ret=paths.URL(None)
     ret.scheme=parsed.scheme
     ret.username=parsed.username
     ret.password=parsed.password

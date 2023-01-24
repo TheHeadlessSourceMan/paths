@@ -55,15 +55,19 @@ class LineLookup:
         """
         reverse lookup to determine character position based
         upon row and column
+
+        :row: can either be a row number or a FileLocation(which will have the row & col inside it)
         """
         if isinstance(row,FileLocation):
             col=row.col
             row=row.row
-        elif col is None:
+            if row is None:
+                row=1
+        if col is None:
             col=1
         total=0
-        if row>0:
-            total+=self.totalBeforeLine[row-1]
+        if typing.cast(int,row)>0:
+            total+=self.totalBeforeLine[typing.cast(int,row)-1]
         total+=col
         return total
     position=rlookup

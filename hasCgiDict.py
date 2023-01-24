@@ -59,19 +59,19 @@ class HasCgiDict(typing.Dict[str,typing.Any]):
             return list(self.cgi.values())[k]
         return self.cgi.get(k)
 
-    def items(self)->typing.ItemsView[str,typing.Any]:
+    def items(self)->typing.ItemsView[str,typing.Any]: # type: ignore
         """
         access like a dict
         """
         return self.cgi.items()
 
-    def keys(self)->typing.KeysView[str]:
+    def keys(self)->typing.KeysView[str]: # type: ignore
         """
         access like a dict
         """
         return self.cgi.keys()
 
-    def values(self)->typing.ValuesView[typing.Any]:
+    def values(self)->typing.ValuesView[typing.Any]: # type: ignore
         """
         access like a dict
         """

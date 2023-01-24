@@ -65,5 +65,5 @@ class CleverUrls:
             if m is not None:
                 if repl is None:
                     return url
-                return pattern.sub(repl,count)
+                return pattern.sub(str(m),repl,count)
         raise MalformedURL(str(url),'unable to coerce data into a url')
