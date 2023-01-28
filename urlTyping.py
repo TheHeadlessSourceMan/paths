@@ -122,6 +122,7 @@ def asURL(url:typing.Optional[URLCompatible],
     return paths.URL(url,relativeTo)
 asUrl=asURL # alias name
 
+
 URLListCompatible=typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
 UrlListCompatible=URLListCompatible
 def toURLList(urls:URLListCompatible,
