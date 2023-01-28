@@ -121,3 +121,22 @@ def asURL(url:typing.Optional[URLCompatible],
         return url
     return paths.URL(url,relativeTo)
 asUrl=asURL # alias name
+
+URLListCompatible=typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
+UrlListCompatible=URLListCompatible
+def toURLList(urls:URLListCompatible,
+    )->typing.List[URL]:
+    """
+    Create a list of URL's from one or more URLCompatible items
+
+    :param urls: one or more URLCompatible items (if None, retuns empt list)
+    :type urls: typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
+    :return: the urls
+    :rtype: typing.List[URL]
+    """
+    if urls is None:
+        return []
+    if isURLCompatible(urls):
+        return [URL(typing.cast(URLCompatible,urls))]
+    return [URL(url) for url in typing.cast(typing.Iterable[URLCompatible],urls)]
+toUrlList=toURLList
