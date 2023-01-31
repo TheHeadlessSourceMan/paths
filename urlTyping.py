@@ -126,7 +126,7 @@ asUrl=asURL # alias name
 URLListCompatible=typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
 UrlListCompatible=URLListCompatible
 def toURLList(urls:URLListCompatible,
-    )->typing.List[URL]:
+    )->typing.List["URL"]:
     """
     Create a list of URL's from one or more URLCompatible items
 
