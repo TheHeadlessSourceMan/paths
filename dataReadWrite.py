@@ -7,6 +7,7 @@ is not intended for public consumption.
 import typing
 from abc import abstractmethod
 import time
+from .mimeType import MimeType
 
 
 class DataReadWrite:
@@ -18,7 +19,8 @@ class DataReadWrite:
     """
 
     def __init__(self):
-        self._data:typing.Optional[bytearray]=None
+        self._data:typing.Union[None,bytearray,bytes]=None
+        self._mimeType:typing.Optional[MimeType]=None
         self._idx:int=0
         self._dirty:bool=False # is there data that needs to be written
 
@@ -49,6 +51,53 @@ class DataReadWrite:
     def data(self,data:typing.Union[str,bytes]):
         self.write(data)
 
+    @property
+    def mimeType(self)->typing.Optional[MimeType]:
+        """
+        If the mime type is known, return it.  Otherwise attempt to guess.
+        (this isn't the most sophisticated guessing in the world, but just enough to get by)
+        It may need to pre-read the data to determine this.
+        When in doubt returns "application/octet-stream" or "text/plain".
+        Only if the data cannot be retrieved will it return None.
+
+        NOTE: you can assign a mime type, which will be passed into HTTP accepts header.
+
+        SEE ALSO: https://en.wikipedia.org/wiki/List_of_file_signatures
+        """
+        if self._mimeType is None:
+            if self._data is None:
+                first500=self.readBytes(500)
+                if first500 is None:
+                    return None
+                isBinary=False
+                try:
+                    first500txt=first500.decode('utf-8')
+                except UnicodeDecodeError:
+                    isBinary=True
+                if not isBinary:
+                    if first500.startswith(b'MZ'):
+                        self._mimeType=MimeType('application/zip')
+                    elif first500.startswith(b'"%PDF"'):
+                        self._mimeType=MimeType('application/pdf')
+                    else:
+                        self._mimeType=MimeType('application/octet-stream')
+                else:
+                    first500txt=first500txt.lstrip()
+                    if first500txt[0]=='<':
+                        if first500txt.find('<html')>=0:
+                            self._mimeType=MimeType('text/html')
+                        else:
+                            self._mimeType=MimeType('application/xml')
+                    elif first500txt[0]=='{':
+                        self._mimeType=MimeType('application/json')
+                    elif first500txt.startswith('---') and first500txt[3]!='-':
+                        self._mimeType=MimeType('application/yaml')
+                    elif len(first500txt.split(',',4))>3 or len(first500txt.split('\t',4))>3:
+                        self._mimeType=MimeType('text/csv')
+                    else:
+                        self._mimeType=MimeType('text/plain')
+        return self._mimeType
+
     def write(self,
         data:typing.Union[str,bytes]
         )->None:
@@ -60,6 +109,9 @@ class DataReadWrite:
             data=data.encode('utf-8')
         if self._data is None:
             self._data=bytearray(data)
+        elif isinstance(self.data,bytes):
+            self._data=bytearray(self._data)
+            self._data.extend(data)
         else:
             self._data.extend(data)
 
@@ -141,8 +193,10 @@ class DataReadWrite:
                 self._data=bytearray(f.read())
                 f.close()
             else:
-                # TODO: read typical things python can read, such as http and ftp
-                raise NotImplementedError()
+                #  read typical things python can read, such as http and ftp
+                from webfetch.WebFetch import WebFetch
+                w=WebFetch()
+                self._data,self._mimeType=w.fetchNow(self) # type: ignore
 
     def _writeFile(self)->None:
         """
