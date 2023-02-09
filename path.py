@@ -175,9 +175,6 @@ class Path:
         # munch on relativeTo first, in case they passed in self
         if relativeTo is not None and (not isinstance(relativeTo,Path) or id(relativeTo)==id(self)):
             relativeTo=Path(relativeTo)
-            self._pathSteps=[step for step in relativeTo]
-        else:
-            self._pathSteps=[]
         # make path always a string
         if not isinstance(path,str):
             if isinstance(path,Path):
@@ -186,28 +183,41 @@ class Path:
                 path=self.separators[0].join([str(ps) for ps in path])
             else:
                 path=str(path)
-        # split it out and assign it
+        # split it out
         if len(self.separators)>1:
             for s in self.separators[1:]:
                 path=path.replace(s,self.separators[0])
-        self._pathSteps.extend([PathStep(ps) for ps in path.split(self.separators[0])])
+        pathParts=path.split(self.separators[0])
+        # assign it
+        if relativeTo is None or self._firstPathIsAbsolute(pathParts[0]):
+            # either there is nothing it is relative to
+            # or it is absolute and it will clobber relativeTo anyway
+            self._pathSteps=[PathStep(ps) for ps in pathParts]
+        else:
+            # add relativeTo first, then the path
+            self._pathSteps=[ps for ps in relativeTo]
+            self._pathSteps.extend([PathStep(ps) for ps in pathParts])
+
+    @staticmethod
+    def _firstPathIsAbsolute(first:str)->bool:
+        """
+        This is defined as starting with either
+        '/' or 'something:/' or 'x|/'
+        """
+        return (not first) or first.endswith(':') or (len(first)==2 and first[1]=='|')
 
     @property
     def isAbsolute(self)->bool:
         """
         This is defined as starting with either
-        '/' or '*:/'
+        '/' or 'something:/' or 'x|/'
         """
-        try:
-            s=str(self[0])
-        except IndexError:
-            return False
-        return (not s) or s.endswith(':')
+        return self and self._firstPathIsAbsolute(str(self[0]))
     @property
     def isRelative(self)->bool:
         """
         This is defined as not starting with either
-        '/' or '*:/'
+        '/' or 'something:/' or 'x|/'
         """
         return self.isAbsolute==False
 
