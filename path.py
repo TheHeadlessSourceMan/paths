@@ -82,6 +82,13 @@ class Path:
             if not self._pathElements[0] or self._pathElements[0][-1]==':':
                 return True
         return False
+    @property
+    def isRelative(self)->bool:
+        """
+        This is defined as not starting with either
+        '/' or '*:/'
+        """
+        return self.isAbsolute==False
 
     def copy(self)->"Path":
         """
@@ -165,6 +172,8 @@ class Path:
         Determine if another path matches this path
         """
         path=asPath(path)
+        if path.isRelative!=self.isRelative:
+            return False
         if len(path)!=len(self):
             return False
         for a,b in zip(path,self):
