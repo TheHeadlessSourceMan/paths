@@ -3,7 +3,109 @@ A simple general-purpose path which could be applied to anything
 (filenames, tree location, url, html dom, etc...)
 """
 import typing
+import urllib
 
+
+PATH_PARAM_VAL_TYPE=typing.Union[str,typing.List[str]]
+class PathStep:
+    """
+    A single step in the path
+
+    This consists of a name and optional parameters,
+    for example, this path is technically valid
+        http://fooblatz.com/this?a=10&b=11/that?a=20&b=30
+    So the parameters would always be the same
+    """
+
+    def __init__(self,raw:str):
+        self._name:str=''
+        self._params:typing.Dict[str,PATH_PARAM_VAL_TYPE]
+        self._hash:typing.Optional[int]
+
+    @property
+    def name(self)->str:
+        return self.name
+    @name.setter
+    def name(self,name:str)->None:
+        self._name=name
+        self._hash=None
+
+    def set(self,k:str,v:typing.Any)->None:
+        if isinstance(v,(list,tuple)):
+            self._params[k]=[str(vv) for vv in v]
+        else:
+            self._params[k]=str(v)
+        self._hash=None
+    def __setitem__(self,k:str,v:typing.Any)->None:
+        self.set(k,v)
+    def get(self,k:str,default:typing.Any=None)->typing.Any:
+        return self._params.get(k,default)
+    def __getitem__(self,k:str)->PATH_PARAM_VAL_TYPE:
+        return self._params[k]
+
+    def items(self)->typing.Iterable[typing.Tuple[str,PATH_PARAM_VAL_TYPE]]:
+        return self._params.items()
+    def __iter__(self)->typing.Iterable[str]:
+        return iter(self._params)
+    def __len__(self)->int:
+        return len(self._params)
+
+    def assign(self,raw:str)->None:
+        self._hash=None
+        parts=raw.split('?',1)
+        self.name=urllib.parse.unquote(parts[0])
+        self._params={}
+        if len(parts)>1:
+            parts=parts[1].split('&')
+            for part in parts:
+                kv=[urllib.parse.unquote(x) for x in part.split('=',1)]
+                if len(kv)<2:
+                    kv.append('True')
+                if kv[0] in self._params:
+                    existing=self._params.get(kv[0])
+                    if existing is None:
+                        self._params[kv[0]]=kv[1]
+                    elif isinstance(existing,list):
+                        existing.append(kv[1])
+                    else:
+                        self._params[kv[0]]=[existing,kv[1]]
+                else:
+                    self._params[kv[0]]=kv[1]
+
+    def __hash__(self)->int:
+        if self._hash is None:
+            self._hash=hash(str(self))
+        return self._hash
+
+    def __eq__(self,other:typing.Any)->bool:
+        """
+        Can compare to other PathStep or a simple str.
+
+        If this has parameters, then the other must match
+        all parameters as well!
+
+        NOTE: this is immune to order, though.
+            "x?a=1&b=2" == "x?b=2&a=1"
+        """
+        if isinstance(other,str):
+            other=PathStep(other)
+        elif not isinstance(other,PathStep):
+            return False
+        if self.name!=other.name:
+            return False
+        return hash(self)==hash(other)
+
+    def __repr__(self)->str:
+        vals=[]
+        for k,v in self._params.items():
+            if isinstance(v,(list,tuple)):
+                for vv in v:
+                    vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}')
+            else:
+                vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(v)}')
+        if vals:
+            return urllib.parse.quote(self.name)+'?'+('&'.join(vals))
+        return urllib.parse.quote(self.name)
 
 class Path:
     r"""
@@ -34,15 +136,24 @@ class Path:
     def __init__(self,
         path:typing.Optional["PathCompatible"],
         relativeTo:typing.Optional["PathCompatible"]=None,
-        separators:typing.Sequence[str]='/\\'):
+        separators:typing.Sequence[str]='/\\',
+        inheritChanges:bool=False):
         """
         :separators: all separators that can denote a path break
             the first separator is used as the join
+        
+        :inheritChanges: if True, changes to this will result in changes to the
+            derived path.  If False (default) the returned path is its own new thing.
         """
-        self._pathElements:typing.List[str]=[]
+        self._pathSteps:typing.List[PathStep]=[]
         self.separators:typing.Sequence[str]=separators
+        self._boundParentPath:typing.Optional["Path"]=None
         if path is not None:
-            self.assign(path,relativeTo)
+            if isinstance(relativeTo,Path) and inheritChanges:
+                self._boundParentPath=relativeTo
+                self.assign(path)
+            else:
+                self.assign(path,relativeTo)
 
     def assign(self,
         path:"PathCompatible",
@@ -54,7 +165,7 @@ class Path:
             if isinstance(path,Path):
                 path=str(path)
             elif hasattr(path,'__iter__'):
-                path=self.separators[0].join(path)
+                path=self.separators[0].join([str(ps) for ps in path])
             else:
                 path=str(path)
         if relativeTo is not None and relativeTo:
@@ -63,14 +174,14 @@ class Path:
                 if not isinstance(relativeTo,Path):
                     relativeTo=Path(relativeTo)
                 # prepend the relativeTo path before this one
-                current=self._pathElements
-                self._pathElements=list(relativeTo._pathElements)
-                self._pathElements.extend(current)
+                current=self._pathSteps
+                self._pathSteps=[PathStep(step) for step in relativeTo]
+                self._pathSteps.extend(current)
         else:
             if len(self.separators)>1:
                 for s in self.separators[1:]:
                     path=path.replace(s,self.separators[0])
-            self._pathElements=path.split(self.separators[0])
+            self._pathSteps=[PathStep(ps) for ps in path.split(self.separators[0])]
 
     @property
     def isAbsolute(self)->bool:
@@ -78,10 +189,11 @@ class Path:
         This is defined as starting with either
         '/' or '*:/'
         """
-        if self._pathElements: 
-            if not self._pathElements[0] or self._pathElements[0][-1]==':':
-                return True
-        return False
+        try:
+            s=str(self[0])
+        except IndexError:
+            return False
+        return (not s) or s.endswith(':')
     @property
     def isRelative(self)->bool:
         """
@@ -96,16 +208,19 @@ class Path:
         """
         return Path(self,separators=self.separators)
 
-    def getRelative(self,relative:"PathCompatible")->'Path':
+    def getRelative(self,relative:"PathCompatible",inheritChanges=False)->'Path':
         """
         Get a path relative to this one
+
+        :inheritChanges: if True, changes to this will result in changes to the
+            derived path.  If False (default) the returned path is its own new thing.
 
         NOTE: given existing path x, these are equivilent:
             1) y=Path(relativePath,x)
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self,separators=self.separators)
+        return Path(relative,self,separators=self.separators,inheritChanges=inheritChanges)
     get=getRelative
 
     def __add__(self,relative:"PathCompatible")->'Path':
@@ -125,15 +240,16 @@ class Path:
             eg Path("./x//y/z/../") => "./x/y"
         """
         first=True
-        ret:typing.List[str]=[]
-        for el in self._pathElements:
-            if first or el not in ('','.'):
+        ret:typing.List[PathStep]=[]
+        for ps in self._pathSteps:
+            sps=str(ps)
+            if first or sps not in ('','.'):
                 first=False
-                if el=='..' and ret:
+                if sps=='..' and ret:
                     ret.pop()
                 else:
-                    ret.append(el)
-        self._pathElements=ret
+                    ret.append(ps)
+        self._pathSteps=ret
 
     def reduced(self)->"Path":
         """
@@ -143,29 +259,49 @@ class Path:
         p.reduce()
         return p
 
-    def __iter__(self)->typing.Iterator[str]:
-        return iter(self._pathElements)
+    def __iter__(self)->typing.Generator[PathStep,None,None]:
+        if self._boundParentPath is not None:
+            yield from self._boundParentPath
+        yield from self._pathSteps
 
     @typing.overload
-    def __getitem__(self,idx:slice)->typing.Iterable[str]: ...
+    def __getitem__(self,idx:slice)->typing.Iterable[PathStep]: ...
     @typing.overload
-    def __getitem__(self,idx:typing.Union[int,str])->str: ...
-    def __getitem__(self,idx:typing.Union[int,str,slice])->typing.Union[str,typing.Iterable[str]]:
+    def __getitem__(self,idx:typing.Union[int,str])->PathStep: ...
+    def __getitem__(self,idx:typing.Union[int,str,slice])->typing.Union[PathStep,typing.Iterable[PathStep]]:
         """access like [str] or dict"""
         if isinstance(idx,str):
             return getattr(self,idx)
-        return self._pathElements[idx]
+        if self._boundParentPath is not None:
+            l=len(self._boundParentPath)
+            if isinstance(idx,int):
+                if idx<l:
+                    return self._boundParentPath[idx]
+                return self._pathSteps[idx-l]
+            elif idx.stop<l:
+                # slice is entirely in the bound parent
+                return self._boundParentPath[idx]
+            elif idx.start>l:
+                # slice is entirely within our data
+                return self._pathSteps[idx.start-l:idx.stop-l]
+            ret=self._pathSteps[idx.start:]
+            ret.extend(self._pathSteps[0:idx.stop-l])
+            return ret
+        # the simple condition, we have no bound parent to worry about
+        return self._pathSteps[idx]
     typing.SupportsIndex
 
     def __len__(self)->int:
         """access like [str]"""
-        return len(self._pathElements)
+        if self._boundParentPath is None:
+            return len(self._pathSteps)
+        return len(self._boundParentPath)+len(self._pathSteps)
 
-    def __getattr__(self, __name: str) -> typing.Any:
+    def __getattr__(self,__name:str) -> typing.Any:
         """
         where possible, access like an object member
         """
-        return getattr(self._pathElements,__name)
+        return getattr(self._pathSteps,__name)
 
     def matchesPath(self,path:'PathCompatible')->bool:
         """
@@ -181,11 +317,14 @@ class Path:
                 return False
         return True
 
-    def __equ__(self,other:typing.Any)->bool:
+    def __eq__(self,other:typing.Any)->bool:
         """
         Comparison operator is based on other.matchesPath(self)
         """
         return hasattr(other,'matchesPath') and other.matchesPath(self)
+
+    def __hash__(self)->int:
+        return hash(str(self))
 
     def startswith(self,path:'PathCompatible')->bool:
         """
@@ -214,17 +353,32 @@ class Path:
                 return False
         return True
 
-    def contains(self,step:str)->bool:
+    def matchesPathAt(self,subPath:'PathCompatible',atPosition:int)->bool:
         """
-        check to see if it contains a particular path step
+        check to see if it matches a particular sub-path at the specified point
         """
-        for s in self:
-            if s==step:
-                return True
+        subPath=list(asPath(subPath))
+        if subPath and len(subPath)<=len(self)-atPosition:
+            for ours,theirs in zip(subPath,self[atPosition:atPosition+len(subPath)]):
+                if ours!=theirs:
+                    return False
+            return True
+        return False
+
+    def contains(self,subPath:'PathCompatible')->bool:
+        """
+        check to see if it contains a particular sub-path
+        """
+        subPath=list(asPath(subPath))
+        if subPath:
+            for i,step in enumerate(self):
+                if step==subPath[0]:
+                    if self.matchesPathAt(subPath,i):
+                        return True
         return False
 
     def __repr__(self)->str:
-        return self.separators[0].join(self._pathElements)
+        return self.separators[0].join([str(step) for step in iter(self)])
 
 
 PathCompatible=typing.Union[str,Path,typing.Iterable[str]]
