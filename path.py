@@ -212,7 +212,7 @@ class Path:
         This is defined as starting with either
         '/' or 'something:/' or 'x|/'
         """
-        return self and self._firstPathIsAbsolute(str(self[0]))
+        return len(self)>0 and self._firstPathIsAbsolute(str(self[0]))
     @property
     def isRelative(self)->bool:
         """
