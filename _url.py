@@ -120,6 +120,20 @@ class URL(
             self.assign(url,relativeTo)
 
     @property
+    def extension(self)->str:
+        if self.resource is not None:
+            s=self.resource.rsplit('.',1)
+            if len(s)>1:
+                return s[1]
+        return ''
+    @property
+    def ext(self)->str:
+        return self.extension
+    @property
+    def fileExtension(self)->str:
+        return self.extension
+
+    @property
     def dirPath(self)->str:
         """
         directory location path
@@ -738,6 +752,14 @@ class URL(
         from .urlSplitter import urlAssign
         urlAssign(self,url,relativeTo,_useRelTo,_isDirectory)
     setUrl=assign
+
+    def __add__(self,other:URLCompatible)->"Url":
+        """
+        You can use the + operator to create a new relative url
+
+        Url("c:\\something")+"something_else" == Url("c:\\something\\something_else")
+        """
+        return Url(other,self)
 
 Url=URL # same thing
 
