@@ -12,7 +12,7 @@ from .urlTyping import URLCompatible, isURLCompatible, asURL
 from .loadAndSave import LoadAndSave
 from .urlNavigation import UrlNavigation
 from .dataReadWrite import DataReadWrite
-from .hasCgiDict import HasCgiDict
+from .paramDict import ParamDict
 from .cleverUrls import CleverUrls
 from .filePathTools import encodeFilePath
 from .errors import MalformedURL
@@ -21,7 +21,6 @@ class URL(
     URI,
     # Path, # TODO: use this for base functionality
     DataReadWrite,
-    HasCgiDict,
     UrlNavigation,
     CleverUrls,
     LoadAndSave
@@ -96,9 +95,9 @@ class URL(
         :type relativeTo: str, optional
         """
         DataReadWrite.__init__(self)
-        HasCgiDict.__init__(self)
         UrlNavigation.__init__(self)
         CleverUrls.__init__(self)
+        self.cgi:ParamDict=ParamDict()
         self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/
         self.scheme:str=''
         self.username:typing.Optional[str]=None
@@ -219,7 +218,7 @@ class URL(
         self.port=None
         self.path=''
         self.isUNC=False
-        self.cgi={}
+        self.cgi=ParamDict()
         self.fragment=None
         self._isDirectory=None
 
@@ -262,7 +261,7 @@ class URL(
         """
         if kwds is not None:
             url=self.copy()
-            url.update(kwds)
+            url.cgi.update(kwds)
             return url.read()
         return self.read()
     __call__=call
@@ -511,18 +510,9 @@ class URL(
             ret.append('/')
         if self.resource is not None:
             ret.append(urllib.parse.quote(self.resource))
-        if self.cgi:
-            rr:typing.List[str]=[]
-            for k,v in self.cgi.items():
-                if k is None or not k:
-                    continue
-                kv=[urllib.parse.quote(k)]
-                if v is not None:
-                    kv.append(urllib.parse.quote(str(v)))
-                rr.append('='.join(kv))
-            if rr:
-                ret.append('?')
-                ret.append('&'.join(rr))
+        query=self.cgi.queryString
+        if query:
+            ret.append(query)
         return ''.join(ret)
     @url.setter
     def url(self,url:URLCompatible):
@@ -705,8 +695,6 @@ class URL(
                     self._isDirectory=True # / is a directory
                 else:
                     self._isDirectory=os.path.isdir(self.filePath)
-            elif self.cgi:
-                self._isDirectory=False
             else:
                 q=self.path.rsplit('/')
                 self._isDirectory=q[-1].find('.')<0

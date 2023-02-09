@@ -4,9 +4,9 @@ A simple general-purpose path which could be applied to anything
 """
 import typing
 import urllib
+from .paramDict import ParamDict
 
 
-PATH_PARAM_VAL_TYPE=typing.Union[str,typing.List[str]]
 class PathStep:
     """
     A single step in the path
@@ -19,8 +19,8 @@ class PathStep:
 
     def __init__(self,raw:str):
         self._name:str=''
-        self._params:typing.Dict[str,PATH_PARAM_VAL_TYPE]={}
-        self._hash:typing.Optional[int]=None
+        self.params:ParamDict=ParamDict()
+        self._hash:typing.Optional[int]=None # type: ignore
         self.assign(raw)
 
     @property
@@ -31,51 +31,43 @@ class PathStep:
         self._name=name
         self._hash=None
 
-    def set(self,k:str,v:typing.Any)->None:
-        if isinstance(v,(list,tuple)):
-            self._params[k]=[str(vv) for vv in v]
-        else:
-            self._params[k]=str(v)
-        self._hash=None
-    def __setitem__(self,k:str,v:typing.Any)->None:
-        self.set(k,v)
-    def get(self,k:str,default:typing.Any=None)->typing.Any:
-        return self._params.get(k,default)
-    def __getitem__(self,k:str)->PATH_PARAM_VAL_TYPE:
-        return self._params[k]
-
-    def items(self)->typing.Iterable[typing.Tuple[str,PATH_PARAM_VAL_TYPE]]:
-        return self._params.items()
-    def __iter__(self)->typing.Iterable[str]:
-        return iter(self._params)
-    def __len__(self)->int:
-        return len(self._params)
-
     def assign(self,raw:str)->None:
+        """
+        Assign the value of this path step
+
+        This will split out any parameters, such as
+            name?a=1&b=2
+        """
         self._hash=None
         parts=raw.split('?',1)
         self.name=urllib.parse.unquote(parts[0])
-        self._params={}
+        self.params=ParamDict()
         if len(parts)>1:
             parts=parts[1].split('&')
             for part in parts:
                 kv=[urllib.parse.unquote(x) for x in part.split('=',1)]
                 if len(kv)<2:
                     kv.append('True')
-                if kv[0] in self._params:
-                    existing=self._params.get(kv[0])
+                if kv[0] in self.params:
+                    existing=self.params.get(kv[0])
                     if existing is None:
-                        self._params[kv[0]]=kv[1]
+                        self.params[kv[0]]=kv[1]
                     elif isinstance(existing,list):
                         existing.append(kv[1])
                     else:
-                        self._params[kv[0]]=[existing,kv[1]]
+                        self.params[kv[0]]=[existing,kv[1]]
                 else:
-                    self._params[kv[0]]=kv[1]
+                    self.params[kv[0]]=kv[1]
 
-    def __hash__(self)->int:
+    def __hash__(self)->int: # type: ignore
+        """
+        get an order-independent hash of this item
+        """
         if self._hash is None:
-            self._hash=hash(str(self))
+            hashstr=[self._name]
+            for k,v in sorted(self.params.items()):
+                hashstr.append(f'{k}={v}')
+            self._hash=hash('&'.join(hashstr))
         return self._hash
 
     def __eq__(self,other:typing.Any)->bool:
@@ -97,16 +89,7 @@ class PathStep:
         return hash(self)==hash(other)
 
     def __repr__(self)->str:
-        vals=[]
-        for k,v in self._params.items():
-            if isinstance(v,(list,tuple)):
-                for vv in v:
-                    vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}')
-            else:
-                vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(v)}')
-        if vals:
-            return urllib.parse.quote(self._name)+'?'+('&'.join(vals))
-        return urllib.parse.quote(self._name)
+        return f'{urllib.parse.quote(self._name)}{self.params.queryString}'
 
 class Path:
     r"""

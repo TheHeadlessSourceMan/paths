@@ -57,7 +57,7 @@ def urlAssign(self:paths.URL,
         self.path=url.path
         self.isUNC=url.isUNC
         self.resource=url.resource
-        self.cgi=url.cgi
+        self._params=url._params
         return
     # make it ALWAYS a simple url string for processing
     url=self._getUrlString(url) # pylint: disable=protected-access
@@ -137,15 +137,15 @@ def urlAssign(self:paths.URL,
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path
-    ret.cgi={}
+    ret._params={}
     if parsed.query is not None:
         cgi=parsed.query.split('&')
         for c in cgi:
             item=[urllib.parse.unquote(v) for v in c.split('=',1)]
             if len(item)<2:
-                ret.cgi[item[0]]=None
+                ret._params[item[0]]=None
             else:
-                ret.cgi[item[0]]=item[1]
+                ret._params[item[0]]=item[1]
     if ret.protocol is None and _useRelTo:
         r2=relativeTo.getRelativeUrl(ret) # type: ignore
         if r2 is None:
