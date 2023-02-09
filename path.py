@@ -175,7 +175,7 @@ class Path:
                     relativeTo=Path(relativeTo)
                 # prepend the relativeTo path before this one
                 current=self._pathSteps
-                self._pathSteps=[PathStep(step) for step in relativeTo]
+                self._pathSteps=[PathStep(str(step)) for step in relativeTo]
                 self._pathSteps.extend(current)
         else:
             if len(self.separators)>1:
@@ -337,18 +337,40 @@ class Path:
 
     def reversed(self)->"Path":
         """
-        similar to list.reversed()
+        Get a reversed copy of the path
+
+        Analogous to list.reversed()
         """
-        r=[s for s in self]
+        r=self.copy()
         r.reverse()
-        return Path(r)
+        return r
+
+    def reverse(self):
+        """
+        Reverse the path
+
+        (this will break the link for any 
+        inherited changes)
+        """
+        self.stopInheritingChanges()
+        self._pathSteps.reverse()
+
+    def stopInheritingChanges(self)->None:
+        """
+        If this path is inheriting changes, will
+        break the link and freeze the path to
+        whatever the bound path is at the present time.
+        """
+        if self._boundParentPath is not None:
+            self._pathSteps=[step for step in self]
+            self._boundParentPath=None
 
     def endswith(self,path:'PathCompatible')->bool:
         """
         similar to str.endswith()
         """
-        path=list(asPath(path))
-        for a,b in zip(asPath(path).reversed(),self.reversed()):
+        path=asPath(path)
+        for a,b in zip(path.reversed(),self.reversed()):
             if a!=b:
                 return False
         return True
@@ -357,7 +379,7 @@ class Path:
         """
         check to see if it matches a particular sub-path at the specified point
         """
-        subPath=list(asPath(subPath))
+        subPath=asPath(subPath)
         if subPath and len(subPath)<=len(self)-atPosition:
             for ours,theirs in zip(subPath,self[atPosition:atPosition+len(subPath)]):
                 if ours!=theirs:
@@ -369,7 +391,7 @@ class Path:
         """
         check to see if it contains a particular sub-path
         """
-        subPath=list(asPath(subPath))
+        subPath=asPath(subPath)
         if subPath:
             for i,step in enumerate(self):
                 if step==subPath[0]:
