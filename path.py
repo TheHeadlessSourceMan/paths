@@ -131,6 +131,16 @@ class Path:
         p=Path("this|is|the|path",separators=('|'))
         p.separators=('/')
         print(p) => "this/is/the/path"
+
+    Inheriting changes:
+        base=Path("/home/fred/stuff")
+        readme=Path("readme.txt",base,inheritChanges=True)
+        print(readme) => "/home/fred/stuff/readme.txt"
+        base+="../other_stuff"
+        print(readme) => "/home/fred/other_stuff/readme.txt"
+        readme.stopInheritingChanges() # no longer watch for changes to base
+        base+="../stuff_i_dont_care_about"
+        print(readme) => "/home/fred/other_stuff/readme.txt"
     """
 
     def __init__(self,
