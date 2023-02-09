@@ -19,8 +19,9 @@ class PathStep:
 
     def __init__(self,raw:str):
         self._name:str=''
-        self._params:typing.Dict[str,PATH_PARAM_VAL_TYPE]
-        self._hash:typing.Optional[int]
+        self._params:typing.Dict[str,PATH_PARAM_VAL_TYPE]={}
+        self._hash:typing.Optional[int]=None
+        self.assign(raw)
 
     @property
     def name(self)->str:
@@ -104,8 +105,8 @@ class PathStep:
             else:
                 vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(v)}')
         if vals:
-            return urllib.parse.quote(self.name)+'?'+('&'.join(vals))
-        return urllib.parse.quote(self.name)
+            return urllib.parse.quote(self._name)+'?'+('&'.join(vals))
+        return urllib.parse.quote(self._name)
 
 class Path:
     r"""
@@ -136,10 +137,10 @@ class Path:
         base=Path("/home/fred/stuff")
         readme=Path("readme.txt",base,inheritChanges=True)
         print(readme) => "/home/fred/stuff/readme.txt"
-        base+="../other_stuff"
+        base.add("../other_stuff")
         print(readme) => "/home/fred/other_stuff/readme.txt"
         readme.stopInheritingChanges() # no longer watch for changes to base
-        base+="../stuff_i_dont_care_about"
+        base.add("../stuff_i_dont_care_about")
         print(readme) => "/home/fred/other_stuff/readme.txt"
     """
 
@@ -171,6 +172,13 @@ class Path:
         """
         Assign the value of this path
         """
+        # munch on relativeTo first, in case they passed in self
+        if relativeTo is not None and (not isinstance(relativeTo,Path) or id(relativeTo)==id(self)):
+            relativeTo=Path(relativeTo)
+            self._pathSteps=[step for step in relativeTo]
+        else:
+            self._pathSteps=[]
+        # make path always a string
         if not isinstance(path,str):
             if isinstance(path,Path):
                 path=str(path)
@@ -178,20 +186,11 @@ class Path:
                 path=self.separators[0].join([str(ps) for ps in path])
             else:
                 path=str(path)
-        if relativeTo is not None and relativeTo:
-            self.assign(path)
-            if not self.isAbsolute:
-                if not isinstance(relativeTo,Path):
-                    relativeTo=Path(relativeTo)
-                # prepend the relativeTo path before this one
-                current=self._pathSteps
-                self._pathSteps=[PathStep(str(step)) for step in relativeTo]
-                self._pathSteps.extend(current)
-        else:
-            if len(self.separators)>1:
-                for s in self.separators[1:]:
-                    path=path.replace(s,self.separators[0])
-            self._pathSteps=[PathStep(ps) for ps in path.split(self.separators[0])]
+        # split it out and assign it
+        if len(self.separators)>1:
+            for s in self.separators[1:]:
+                path=path.replace(s,self.separators[0])
+        self._pathSteps.extend([PathStep(ps) for ps in path.split(self.separators[0])])
 
     @property
     def isAbsolute(self)->bool:
@@ -235,7 +234,7 @@ class Path:
 
     def __add__(self,relative:"PathCompatible")->'Path':
         """
-        Get a path relative to this one
+        Get a new path relative to this one
 
         NOTE: given existing path x, these are equivilent:
             1) y=Path(relativePath,x)
@@ -243,6 +242,16 @@ class Path:
             3) y=x+relativePath
         """
         return Path(relative,self,separators=self.separators)
+
+    def append(self,path:"PathCompatible")->None:
+        """
+        adjust this path by another path
+        """
+        self.assign(path,self)
+        self.reduce()
+    cd=append
+    chdir=append
+    add=append
 
     def reduce(self)->None:
         """
