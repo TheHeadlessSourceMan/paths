@@ -120,10 +120,14 @@ class URL(
 
     @property
     def extension(self)->str:
+        """
+        NOTE: extensions are ALWAYS lower case,
+        even if that's not how the url had it
+        """
         if self.resource is not None:
             s=self.resource.rsplit('.',1)
             if len(s)>1:
-                return s[1]
+                return s[1].lower()
         return ''
     @property
     def ext(self)->str:
@@ -218,7 +222,7 @@ class URL(
         self.port=None
         self.path=''
         self.isUNC=False
-        self.cgi=ParamDict()
+        self.cgi.clear()
         self.fragment=None
         self._isDirectory=None
 
@@ -573,6 +577,9 @@ class URL(
         if caption is None:
             caption=href
         return f'<a href="{href}">{caption}</a>'
+    @property
+    def html(self)->str:
+        return self.hyperlink()
 
     @property
     def user(self)->typing.Optional[str]:

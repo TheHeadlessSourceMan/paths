@@ -44,7 +44,8 @@ class UrlNew:
         self.host=host
         self.port=port
         self.part=part
-        self.cgi=cgi
+        self.cgi.clear()
+        self.cgi.update(cgi)
         self.username=username
         self.password=password
         self.path=path
@@ -123,14 +124,14 @@ class UrlNew:
         self.host='localhost'
         self.port=None
         self.part=None
-        self.cgi=None
+        self.cgi.clear()
         self.relative=False
 
     def _assignOther(self,other):
         self.host=None
         self.port=None
         self.part=None
-        self.cgi=None
+        self.cgi.clear()
         filePath=other
         standardPath=other
         if os.sep!='/':

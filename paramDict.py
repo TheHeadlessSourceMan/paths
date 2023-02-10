@@ -14,8 +14,15 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
     Manages cgi-like url parameters and acts like a dict
     """
 
-    def __init__(self):
+    def __init__(self,otherDict:typing.Union[ # type: ignore
+        None,
+        "ParamDict",
+        typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]=None):
+        """
+        """
         self._params:typing.Dict[str,PARAM_VAL_TYPE]={}
+        if otherDict is not None:
+            self.assign(otherDict)
 
     def __len__(self)->int:
         """
@@ -52,11 +59,40 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
             return list(self._params.values())[k]
         return self._params[k]
 
-    def update(self,otherDict:typing.MutableMapping[str,PARAM_VAL_TYPE])->None: # type: ignore
+    def copy(self)->'ParamDict':
+        """
+        duplicate this object
+        """
+        return ParamDict(self)
+
+    def clear(self)->None:
         """
         access like a dict
         """
+        self._params.clear()
+
+    def update(self,otherDict:typing.Union[ # type: ignore
+        "ParamDict",
+        typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]
+        )->None: 
+        """
+        access like a dict
+        """
+        if isinstance(otherDict,ParamDict):
+            otherDict=otherDict.items()
         self._params.update(otherDict)
+
+    def assign(self,otherDict:typing.Union[ # type: ignore
+        None,
+        "ParamDict",
+        typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]
+        )->None:
+        """
+        Exactly the same thing as a clear() followed by an update()
+        """
+        self.clear()
+        if otherDict is not None:
+            self.update(otherDict)
 
     def __delitem__(self,k:str)->None:
         """

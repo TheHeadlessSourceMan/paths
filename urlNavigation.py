@@ -83,7 +83,7 @@ class UrlNavigation:
         ret=paths.URL(self) # type: ignore
         ret.path=f'{ret.path}/{ret.resource}'
         ret.resource=url
-        ret._params=None
+        ret.cgi.clear()
         ret.fragment=None
         return ret
     getSubUrl=subdir
