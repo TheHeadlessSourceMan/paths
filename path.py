@@ -25,7 +25,7 @@ class PathStep:
 
     @property
     def name(self)->str:
-        return self.name
+        return self._name
     @name.setter
     def name(self,name:str)->None:
         self._name=name
@@ -148,6 +148,10 @@ class Path:
                 self.assign(path)
             else:
                 self.assign(path,relativeTo)
+
+    @property
+    def params(self)->ParamDict:
+        return self._pathSteps[-1].params
 
     def assign(self,
         path:"PathCompatible",
