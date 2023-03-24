@@ -400,6 +400,11 @@ class FileLocation(LocationWithinFile):
         return ''.join(ret)
 FileLocationRange=FileLocation
 
+FileLocationCompatible=typing.Union[FileLocation,paths.URLCompatible]
+def asFileLocation(location:FileLocationCompatible)->FileLocation:
+    if isinstance(location,FileLocation):
+        return location
+    return FileLocation(location)
 
 class MultiFileLocation(FileLocation):
     """
