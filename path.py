@@ -3,6 +3,7 @@ A simple general-purpose path which could be applied to anything
 (filenames, tree location, url, html dom, etc...)
 """
 import typing
+from collections.abc import Iterable
 import urllib
 from .paramDict import ParamDict
 
@@ -52,7 +53,7 @@ class PathStep:
                     existing=self.params.get(kv[0])
                     if existing is None:
                         self.params[kv[0]]=kv[1]
-                    elif isinstance(existing,list):
+                    elif isinstance(existing,Iterable) and not isinstance(existing,str):
                         existing.append(kv[1])
                     else:
                         self.params[kv[0]]=[existing,kv[1]]
@@ -166,7 +167,7 @@ class Path:
         if not isinstance(path,str):
             if isinstance(path,Path):
                 path=str(path)
-            elif hasattr(path,'__iter__'):
+            elif isinstance(path,Iterable):
                 path=self.separators[0].join([str(ps) for ps in path])
             else:
                 path=str(path)

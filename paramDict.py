@@ -5,6 +5,7 @@ this is specific to the needs of URL object and
 is not intended for public consumption.
 """
 import typing
+from collections.abc import Iterable
 import urllib
 
 
@@ -39,7 +40,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         return self._params.items().__iter__()
 
     def set(self,k:str,v:typing.Any)->None:
-        if isinstance(v,(list,tuple)):
+        if isinstance(v,Iterable) and not isinstance(v,str):
             self._params[k]=[str(vv) for vv in v]
         else:
             self._params[k]=str(v)
@@ -143,7 +144,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         vals=[]
         for k,v in self._params.items():
-            if isinstance(v,(list,tuple)):
+            if isinstance(v,Iterable) and not isinstance(v,str):
                 for vv in v:
                     vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}')
             else:
