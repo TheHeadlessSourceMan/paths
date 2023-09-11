@@ -51,6 +51,13 @@ class LocationWithinFile:
         elif isinstance(__o,str):
             return self==FileLocation(__o)
         return False
+    
+    def openEditor(self,editor:typing.Optional[str]=None):
+        """
+        shortcut to call the openEditor tool
+        """
+        import openEditor
+        openEditor.openEditor(editor=editor)
 
     def contains(self,other:'LocationWithinFile')->bool:
         """
