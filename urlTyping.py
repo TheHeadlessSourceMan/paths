@@ -27,7 +27,8 @@ class DictLike(typing.Protocol):
 
 class IsFileWithName(typing.Protocol):
     """
-    a file object with a .name member, pointing to an existing filename on the system
+    a file object with a .name member, pointing to an
+    existing filename on the system
     """
     fileno:int
     name:str
@@ -66,33 +67,38 @@ isURLCompatible=isUrlCompatible # alias name
 @typing.overload
 def asURL(url:None,
     relativeTo:typing.Optional[URLCompatible]=None
-    )->None: ...
+    )->None:
+    ...
 @typing.overload
 def asURL(url:URLCompatible,
     relativeTo:typing.Optional[URLCompatible]=None
-    )->"URL":...
+    )->"URL":
+    ...
 def asURL(url:typing.Optional[URLCompatible],
     relativeTo:typing.Optional[URLCompatible]=None
     )->typing.Optional["URL"]:
     r"""
     Gets the url always as a URL object or None if it is None or "".
     If url is a URL object, WILL NOT create a new one, otherwise, it will.
-    If you would rather always have a new URL object, simply create an instance of URL(url)
+    If you would rather always have a new URL object, simply create
+        an instance of URL(url)
         (because this supports passing a URL object as the initialization)
 
     Raises MalformedURL exception if it doesn't work.
 
-    NOTE: This can be a good efficiency boost, but also can lead to mutablilyt troubles
-        when sharing the same URL.  For instance, if somebody else changes it!
+    NOTE: This can be a good efficiency boost, but also can lead to mutablily
+        troubles when sharing the same URL.  For instance, if
+        somebody else changes it!
 
-        A good rule is: if you are assigning a url object member, use URL(x) not asURL(x)
-        so you keep a copy to what you expect.
+        A good rule is: if you are assigning a url object member, use URL(x)
+        not asURL(x) so you keep a copy to what you expect.
 
     See also:
         https://www.ietf.org/rfc/rfc3986.html
 
     TODO:
-        what about re, for instance ^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?
+        what about re, for instance
+        ^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?
         or something from https://regexpattern.com/
 
     :param url: Can be:
@@ -105,8 +111,10 @@ def asURL(url:typing.Optional[URLCompatible],
         * a system path+file where the path exists
     :type url: URLCompatible
     :param relativeTo: the url parameter is relative to this.
-        eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-        if relativeTo is a simple string ending in ":" it suffices as a default protocol
+        eg asUrl('about.htm','http://fooblatz.com') gives
+            "http://fooblatz.com/about.htm"
+        if relativeTo is a simple string ending in ":"
+            it suffices as a default protocol
             eg asURL('bob@mailbox.com','mailto:')
         if NONE, relativeTo is treated as "file://[current directory]"
             eg asUrl("readme.txt") gives "file://./readme.txt"
@@ -123,7 +131,8 @@ def asURL(url:typing.Optional[URLCompatible],
 asUrl=asURL # alias name
 
 
-URLListCompatible=typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
+URLListCompatible=typing.Union[
+    None,URLCompatible,typing.Iterable[URLCompatible]]
 UrlListCompatible=URLListCompatible
 
 def toURLList(urls:URLListCompatible
@@ -136,9 +145,11 @@ def toURLList(urls:URLListCompatible
     :return: the urls
     :rtype: typing.List[URL]
     """
+    import paths
     if urls is None:
         return []
     if isURLCompatible(urls):
-        return [URL(typing.cast(URLCompatible,urls))]
-    return [URL(url) for url in typing.cast(typing.Iterable[URLCompatible],urls)]
+        return [paths.URL(typing.cast(URLCompatible,urls))]
+    return [paths.URL(url)
+        for url in typing.cast(typing.Iterable[URLCompatible],urls)]
 toUrlList=toURLList

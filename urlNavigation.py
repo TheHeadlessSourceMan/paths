@@ -7,7 +7,7 @@ is not intended for public consumption.
 """
 import typing
 from abc import abstractmethod
-from .urlTyping import URLCompatible
+from .urlTyping import URLCompatible,URL
 
 
 class UrlNavigation:
@@ -67,8 +67,8 @@ class UrlNavigation:
             but
             "c:\this\that".getSibling("x.htm") => "c:\this\x.htm"
 
-        NOTE: if subPath is a full url (eg 'http://whatever') then there is no resolving.
-            It will simply return it.
+        NOTE: if subPath is a full url (eg 'http://whatever')
+            then there is no resolving. It will simply return it.
         """
         import paths
         if url is None:
@@ -109,7 +109,8 @@ class UrlNavigation:
             # big fat exception
 
         TODO: open up a browser and verify this gives the same answer
-            (getRelativeUrl may need to be a switching mechanism between getSibling and getChild)
+            (getRelativeUrl may need to be a switching mechanism
+            between getSibling and getChild)
         """
         return self.getSibling(url)
     unRelativeUrl=getRelativeUrl
@@ -145,13 +146,13 @@ class UrlNavigation:
             but
             "c:\this\that".getSibling("x.htm") => "c:\this\x.htm"
 
-        NOTE: if subPath is a full url (eg 'http://whatever') then there is no resolving.
-            It will simply return it.
+        NOTE: if subPath is a full url (eg 'http://whatever')
+            then there is no resolving. It will simply return it.
         """
         import paths
         if url is None:
             return self
-        if isinstance(url,"URL"):
+        if isinstance(url,URL):
             # assume it is fully qualified, whatever it is
             return url
         if not isinstance(url,str):
@@ -164,7 +165,7 @@ class UrlNavigation:
         while currentLocation[-1]=='/':
             currentLocation=currentLocation[0:-1]
         protoPos=urlStr.find('://')
-        if (protoPos>0 and protoPos<6):# or getDomain(currentLocation)==getDomain(urlStr):
+        if (protoPos>0 and protoPos<6):# or getDomain(currentLocation)==getDomain(urlStr): # noqa: E501 # pylint: disable=line-too-long
             return paths.asURL(urlStr)
         currentParts=currentLocation.split('/')
         lastEmpty=False
@@ -178,7 +179,8 @@ class UrlNavigation:
                 if len(currentParts)<5:
                     if len(currentParts)<4 or currentParts[3].endswith(':'):
                         raise paths.MalformedURL(urlStr,
-                            'Attempt to navigate past root in "%s"'%currentLocation)
+                            'Attempt to navigate past root in "%s"'%
+                            currentLocation)
                 # go up a level
                 currentParts.pop()
             else:
@@ -191,4 +193,3 @@ class UrlNavigation:
     sibling=getSibling
     getSiblingUrl=getSibling
     peer=getSibling
-

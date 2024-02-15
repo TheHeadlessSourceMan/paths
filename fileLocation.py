@@ -8,8 +8,8 @@ myfile.txt:1:2-2:3 # get an oddly specific range
 """
 import typing
 import re
-import paths
 import urllib.parse
+import paths
 
 
 class LocationWithinFile:
@@ -51,13 +51,13 @@ class LocationWithinFile:
         elif isinstance(__o,str):
             return self==FileLocation(__o)
         return False
-    
+
     def openEditor(self,editor:typing.Optional[str]=None):
         """
         shortcut to call the openEditor tool
         """
         import openEditor
-        openEditor.openEditor(editor=editor)
+        openEditor.openEditor(self,editor=editor)
 
     def contains(self,other:'LocationWithinFile')->bool:
         """
@@ -80,13 +80,18 @@ class LocationWithinFile:
         """
         Does this contain or overlap another location?
         """
-        # if either point in the other item is within the range of this item, return True
-        if other.fromLine<=self.toLine and other.fromColumn<=self.toColumn and \
-            other.fromLine>=self.fromLine and other.fromColumn>=self.fromColumn:
-                return True
-        if other.toLine<=self.toLine and other.toColumn<=self.toColumn and \
-            other.toLine>=self.fromLine and other.toColumn>=self.fromColumn:
-                return True
+        # if either point in the other item is within
+        # the range of this item, return True
+        if other.fromLine<=self.toLine\
+            and other.fromColumn<=self.toColumn\
+            and other.fromLine>=self.fromLine\
+            and other.fromColumn>=self.fromColumn:
+            return True
+        if other.toLine<=self.toLine\
+            and other.toColumn<=self.toColumn\
+            and other.toLine>=self.fromLine\
+            and other.toColumn>=self.fromColumn:
+            return True
         # or if other completely contains this
         return other.contains(self)
 
@@ -108,7 +113,7 @@ class LocationWithinFile:
     @line.setter
     def line(self,fromLine:typing.Optional[int]):
         self._fromLine=fromLine
-        
+
     @property
     def fromRow(self):
         """
@@ -201,7 +206,7 @@ class FileLocation(LocationWithinFile):
     Indicates a file with location (or start/end location)
 
     myfile.txt:1 # get line 1 from the file
-    myfile.txt:1:2 # get the entire line1 starting at character2 to the end of line
+    myfile.txt:1:2 # get the entire line1 from character2 to the end of line
     myfile.txt:1-2 # get lines 1 and 2
     myfile.txt:1:2-2:3 # get an oddly specific range
 
@@ -213,7 +218,8 @@ class FileLocation(LocationWithinFile):
         myfile.txt[1:-1]
     """
 
-    FILE_LOCATION_REGEX=re.compile(r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""")
+    FILE_LOCATION_REGEX=re.compile(
+        r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-long
 
     def __init__(self,
         url:paths.URLCompatible,
@@ -228,7 +234,7 @@ class FileLocation(LocationWithinFile):
         self._url:paths.URLCompatible=url
         if isinstance(url,str):
             self.assign(url,fromRow,fromColumn)
-        
+
     def __eq__(self, __o: object)->bool:
         """
         Compare to a filename, location, or url
@@ -253,7 +259,9 @@ class FileLocation(LocationWithinFile):
             return self==getattr(__o,'location')
         elif isinstance(__o,str):
             return self==FileLocation(__o)
-        elif isinstance(__o,paths.URL) or hasattr(__o,'url') or hasattr(__o,'filename'):
+        elif isinstance(__o,paths.URL)\
+            or hasattr(__o,'url')\
+            or hasattr(__o,'filename'):
             return self.url==paths.asURL(typing.cast(paths.URLCompatible,__o))
         return False
 
@@ -292,7 +300,11 @@ class FileLocation(LocationWithinFile):
         lines[-1]=lines[-1][0:v2a(self.toColumn,None)]
         return '\n'.join(lines)
 
-    def assign(self,fileLocation:str,row:typing.Optional[int]=0,col:typing.Optional[int]=0)->None:
+    def assign(self,
+        fileLocation:str,
+        row:typing.Optional[int]=0,
+        col:typing.Optional[int]=0
+        )->None:
         """
         assign the value of this file location
         """
@@ -323,23 +335,30 @@ class FileLocation(LocationWithinFile):
 
     @property
     def filename(self)->typing.Optional[str]:
+        """
+        returns the url as a filename
+        """
         return self.url.filePath
-    
+
     def html(self,hrefFormat,title=None):
         """
         Get this as an html tag.
-        
-        hrefFormat is a string with replacements, see help for the formatted() function
-        
-        :property title: title of the thing to click on.  If None, uses the filename as the title
+
+        hrefFormat is a string with replacements, see help for formatted()
+
+        :property title: title of the thing to click on.
+            If None, uses the filename as the title
         """
         if title is None:
             title=self.filename
         href=self.formatted(hrefFormat)
         urllib.parse.quote(href)
         return f'<a href="{href}">{title}</a>'
- 
-    def formatted(self,fmt,otherReplacements:typing.Optional[typing.Dict[str,typing.Any]]=None):
+
+    def formatted(self,
+        fmt,
+        otherReplacements:typing.Optional[typing.Dict[str,typing.Any]]=None
+        )->str:
         """
         fmt is a string with the optional replacement values
             {filename}
@@ -347,8 +366,10 @@ class FileLocation(LocationWithinFile):
             {col}
             {row?then this}
             {col?then this}
-        otherReplacements more stuff to replace just like {filename}, etc (without brackets)
-            These will be replaced first, and in order so you can do many interesting stunts.
+        otherReplacements more stuff to replace
+            just like {filename}, etc(without brackets)
+            These will be replaced first, and in order so you can do
+            many interesting stunts.
         """
         # first do all of the simple replacements
         if otherReplacements is not None:
@@ -375,10 +396,10 @@ class FileLocation(LocationWithinFile):
                 if len(section)>1:
                     conditionalResults.append(section[-1])
         return ''.join(conditionalResults)
-        
+
     def __repr__(self)->str:
         return self.formatted('{filename}{row?:{row}{col?:{col}}}')
-    
+
     def __old_repr__(self)->str:
         r"""
         Get this location as a string.  Eg:
@@ -400,7 +421,7 @@ class FileLocation(LocationWithinFile):
                     ret.append(str(url))
                     ret.append(':')
         except paths.MalformedURL:
-            # if there's an error, print what we've got so we can at least debug stuff
+            # if there's an error, print what we've got so we can debug
             ret.append(str(self._url))
             ret.append(':')
         ret.append(LocationWithinFile.__repr__(self))
@@ -409,6 +430,11 @@ FileLocationRange=FileLocation
 
 FileLocationCompatible=typing.Union[FileLocation,paths.URLCompatible]
 def asFileLocation(location:FileLocationCompatible)->FileLocation:
+    """
+    Always return a FileLocation, either
+    by creating one or by returning the
+    value passed in
+    """
     if isinstance(location,FileLocation):
         return location
     return FileLocation(location)
@@ -432,7 +458,8 @@ class MultiFileLocation(FileLocation):
     @property
     def fileLocations(self)->typing.Generator[FileLocation,None,None]:
         """
-        similar to self.locations, but returns full, standalone FileLocation objects (with url)
+        similar to self.locations, but returns full,
+        standalone FileLocation objects (with url)
         """
         for fl in self.locations:
             yield FileLocation(self.url,
@@ -535,7 +562,9 @@ class MultiFileLocation(FileLocation):
 class MessageLocation:
     """
     Common base class for a message that is tied to a particular
-    location in a file.  (For instance, a spellchecker that higlights a specific word)
+    location in a file.
+
+    For instance, a spellchecker that higlights a specific word
     """
     def __init__(self,msg:str,location:FileLocation):
         self.location:FileLocation=location

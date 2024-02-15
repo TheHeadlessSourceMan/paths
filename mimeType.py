@@ -19,7 +19,8 @@ class IsFileWithMimeType(typing.Protocol):
     mimeType:"MimeTypeCompatible"
 
 
-MimeTypeCompatible=typing.Union[str,"MimeType",IsFileWithMime,IsFileWithMimeType]
+MimeTypeCompatible=typing.Union[
+    str,"MimeType",IsFileWithMime,IsFileWithMimeType]
 
 
 def asMimeType(mime:MimeTypeCompatible)->"MimeType":

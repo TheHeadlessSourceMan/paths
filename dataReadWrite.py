@@ -55,12 +55,15 @@ class DataReadWrite:
     def mimeType(self)->typing.Optional[MimeType]:
         """
         If the mime type is known, return it.  Otherwise attempt to guess.
-        (this isn't the most sophisticated guessing in the world, but just enough to get by)
+        (this isn't the most sophisticated guessing in the world,
+        but just enough to get by)
+
         It may need to pre-read the data to determine this.
         When in doubt returns "application/octet-stream" or "text/plain".
         Only if the data cannot be retrieved will it return None.
 
-        NOTE: you can assign a mime type, which will be passed into HTTP accepts header.
+        NOTE: you can assign a mime type, which will be passed
+            into HTTP accepts header.
 
         SEE ALSO: https://en.wikipedia.org/wiki/List_of_file_signatures
         """
@@ -90,9 +93,11 @@ class DataReadWrite:
                             self._mimeType=MimeType('application/xml')
                     elif first500txt[0]=='{':
                         self._mimeType=MimeType('application/json')
-                    elif first500txt.startswith('---') and first500txt[3]!='-':
+                    elif first500txt.startswith('---')\
+                        and first500txt[3]!='-':
                         self._mimeType=MimeType('application/yaml')
-                    elif len(first500txt.split(',',4))>3 or len(first500txt.split('\t',4))>3:
+                    elif len(first500txt.split(',',4))>3\
+                        or len(first500txt.split('\t',4))>3:
                         self._mimeType=MimeType('text/csv')
                     else:
                         self._mimeType=MimeType('text/plain')
@@ -222,7 +227,7 @@ class DataReadWrite:
                     f.write(bytes(self._data))
                 f.close()
             else:
-                # TODO: read typical things python can read, such as http and ftp
+                # TODO: read typical things read, such as http and ftp
                 raise NotImplementedError()
 
     def seek(self,
@@ -232,11 +237,11 @@ class DataReadWrite:
         """
         file-like object seek method
         """
-        if fromWhere==0: # means your reference point is the beginning of the file
+        if fromWhere==0: # reference point is the beginning of the file
             self._idx=idx
-        elif fromWhere==1: # means your reference point is the current file position
+        elif fromWhere==1: # reference point is the current file position
             self._idx+=idx
-        elif fromWhere==2: # means your reference point is the end of the file
+        elif fromWhere==2: # reference point is the end of the file
             self._idx=len(self.data)-idx
 
     def tell(self)->int:

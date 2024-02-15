@@ -25,7 +25,7 @@ class Version:
         Version("1.0")==Version("1.0.5")
     but
         Version("1.0.0")!=Version("1.0.5")
-    This design was chosen so you can determine if a version is in the 1.0 branch.
+    This is so you can determine if a version is in the 1.0 branch.
 
     NOTE: handles:
         versions - "1.0"
@@ -49,7 +49,9 @@ class Version:
     def assign(self,
         value:VersionCompatible,
         experimental:typing.Optional[bool]=None):
-        """ """
+        """
+        Assign the value of this version
+        """
         if isinstance(value,Version):
             self._segments=value._segments
             self.experimental=value.experimental
@@ -72,24 +74,39 @@ class Version:
 
     @property
     def release(self)->bool:
+        """
+        Is this a release version
+        """
         return not self.experimental
     @property
     def preRelease(self)->bool:
+        """
+        Is this a pre-release version
+        """
         return self.experimental
     @property
     def releaseCandidate(self)->bool:
+        """
+        Is this a release candidate version
+        """
         for seg in self._segments:
             if seg=='rc':
                 return True
         return False
     @property
     def alpha(self)->bool:
+        """
+        Is this an alpha version
+        """
         for seg in self._segments:
             if seg in ('a','alpha'):
                 return True
         return False
     @property
     def beta(self)->bool:
+        """
+        Is this a beta version
+        """
         for seg in self._segments:
             if seg in ('b','beta'):
                 return True
@@ -97,7 +114,8 @@ class Version:
 
     def __seg_score__(self,seg:typing.Union[int,str])->float:
         """
-        scores an int segment as its value, pro-rates a text value as a partial float
+        scores an int segment as its value, pro-rates a text value
+        as a partial float
         """
         if isinstance(seg,int):
             return seg
@@ -109,7 +127,10 @@ class Version:
             return -0.75
         return -0.9 # unknown
 
-    def __seg_cmp__(self,seg1:typing.Union[int,str],seg2:typing.Union[int,str])->float:
+    def __seg_cmp__(self,
+        seg1:typing.Union[int,str],
+        seg2:typing.Union[int,str]
+        )->float:
         """
         scores two aligned version segments against eachother
 
@@ -216,7 +237,6 @@ def asVersion(ver:VersionCompatible)->Version:
     if isinstance(ver,Version):
         return ver
     return Version(ver)
-
 
 
 class VersioningScheme:

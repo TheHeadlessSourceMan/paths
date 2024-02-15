@@ -8,7 +8,7 @@ import re
 PathCleanupRe=re.compile(r"""((?<!:)//+)|(/[.]/)|(/[^/]+/[.][.]/)""")
 
 def cleanup(path:str,relativeTo:str)->str:
-    """
+    r"""
     A fairly simple way of cleaning up relative paths
 
     Basically just appends path to relativeTo and then

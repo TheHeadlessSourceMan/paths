@@ -29,21 +29,25 @@ class CleverUrls:
             typing.Union[str,None],
             int
             ]]=[]
-        self.addCleverUrlInterpreter('[a-zA-Z][-a-zA-Z0-9_]+:.*',None) # skip over regular urls
-        self.addCleverUrlInterpreter(r'[.]?[\/].*',None) # skip over file paths
-        self.addCleverUrlInterpreter(r'[a-zA-Z]{1,2}:.*',None) # skip over windows paths
         self.addCleverUrlInterpreter(
-            r'([a-zA-Z][a-zA-Z0-9-_.]*@[a-zA-Z][a-zA-z0-9-_]*[.][a-zA-Z]{2-3})',
+            '[a-zA-Z][-a-zA-Z0-9_]+:.*',None) # skip over regular urls
+        self.addCleverUrlInterpreter(
+            r'[.]?[\/].*',None) # skip over file paths
+        self.addCleverUrlInterpreter(
+            r'[a-zA-Z]{1,2}:.*',None) # skip over windows paths
+        self.addCleverUrlInterpreter(
+            r'([a-zA-Z][a-zA-Z0-9-_.]*@[a-zA-Z][a-zA-z0-9-_]*[.][a-zA-Z]{2-3})', # noqa: E501 # pylint: disable=line-too-long
             'mailto:$1') # email addresses - experimental
         self.addCleverUrlInterpreter(
-            r'([+]?[1-9])?\s*[-]?\s*[(]?\s*([0-9]{3})\s*[\)]?\s*([0-9]{3})[-]([0-9]{4})',
+            r'([+]?[1-9])?\s*[-]?\s*[(]?\s*([0-9]{3})\s*[\)]?\s*([0-9]{3})[-]([0-9]{4})', # noqa: E501 # pylint: disable=line-too-long
             'tel:$1$2$3$4') # phone numbers - experimental
 
     def addCleverUrlInterpreter(self,
         pattern:typing.Union[str,typing.Pattern],
         repl:typing.Optional[str],
         count:int=1,
-        flags:int=0):
+        flags:int=0
+        )->None:
         """
         What you add is the same thing you would pass to re.sub()
         """

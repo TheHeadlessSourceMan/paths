@@ -4,7 +4,8 @@ Handy way of adding loading/saving to any data type.
 Simply derive class MyClass(LoadAndSave) and then implement
 _encode(self)->data and _decode(self,data)
 
-This will let you load not only local files, but more advanced stuff like html and ftp.
+This will let you load not only local files, but also
+more advanced stuff like html and ftp.
 
 If ezFs is installed, it gets even more wild, allowing access into
 online file stores, compressed files, and more!
@@ -42,7 +43,7 @@ def defaultLoader(f:URLCompatible)->bytes:
         import urllib.request
         import urllib.error
         import urllib.parse
-        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers"
+        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
         request=urllib.request.Request(f.url,None,headers)
         response=urllib.request.urlopen(request)
         return response.read()
@@ -79,7 +80,7 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
         import urllib.request
         import urllib.error
         import urllib.parse
-        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers"
+        headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
         request=urllib.request.Request(f.url,data,headers,method='PUT')
         _=urllib.request.urlopen(request)
         return
@@ -96,21 +97,25 @@ class LoadAndSaveBytes:
 
     Simply derive class MyClass(LoadAndSave) and then implement
     _encode(self)->data and/or _decode(self,data)
-    (by not implementing one or the other, then LoadAndSave knows it cannot do that)
+    (by not implementing one or the other, then LoadAndSave
+    knows it cannot do that)
 
-    This will let you load not only local files, but more advanced stuff like html and ftp.
+    This will let you load not only local files, but more advanced stuff
+    like html and ftp.
 
-    If ezFs is installed, it gets even more wild, allowing access into online file
-    stores, compressed files, and more!
+    If ezFs is installed, it gets even more wild, allowing access into online
+    file stores, compressed files, and more!
     """
     if typing.TYPE_CHECKING:
         from paths import URL
 
     DefaultFilename:str='UNDEFINED.dat'
-    def _encodeBytes(self)->bytes: return bytes() # pylint: disable=multiple-statements
-    _encodeBytes=None # type: ignore
-    def _decodeBytes(self,data:bytes)->None: _=data # pylint: disable=multiple-statements
-    _decodeBytes=None # type: ignore
+    def _encodeBytes(self)->bytes:
+        return bytes()
+    _encodeBytes=None # noqa: F811 # type: ignore
+    def _decodeBytes(self,data:bytes)->None:
+        _=data
+    _decodeBytes=None # noqa: F811 # type: ignore
 
     def __init__(self,
         filename:typing.Optional[URLCompatible]=None,
@@ -265,7 +270,8 @@ class LoadAndSaveBytes:
             dropbox,google drive,zipped files,... you name it!
 
         if no filename, save over the current filename
-            (and if there is no current filename will save as self.DefaultFilename)
+            (and if there is no current filename will
+            save as self.DefaultFilename)
 
         :param filename: filename to save as, defaults to None
         :type filename: paths.URLCompatible, optional
@@ -306,23 +312,28 @@ class LoadAndSave(LoadAndSaveBytes):
 
     Simply derive class MyClass(LoadAndSave) and then implement
     _encode(self)->data and/or _decode(self,data)
-    (by not implementing one or the other, then LoadAndSave knows it cannot do that)
+    (by not implementing one or the other, then LoadAndSave
+    knows it cannot do that)
 
-    This will let you load not only local files, but more advanced stuff like html and ftp.
+    This will let you load not only local files, but more advanced stuff
+    like html and ftp.
 
     If ezFs is installed, it gets even more wild, allowing access into online
     file stores, compressed files, and more!
 
     RECOMMENDED:
-        Auto text decoding gets better if chardet and/or BeautifulSoup are installed
+        Auto text decoding gets better if chardet and/or
+        BeautifulSoup are installed
         pip install chardet bs4
     """
 
     DefaultFilename:str='UNDEFINED.txt'
-    def _encode(self)->str: return str() # pylint: disable=multiple-statements
-    _encode=None # type: ignore
-    def _decode(self,data:str)->None: _=data # pylint: disable=multiple-statements
-    _decode=None # type: ignore
+    def _encode(self)->str:
+        return str()
+    _encode=None # noqa: F811 # type: ignore
+    def _decode(self,data:str)->None:
+        _=data
+    _decode=None # noqa: F811 # type: ignore
 
     def __init__(self,
         filename:typing.Optional[URLCompatible]=None,
@@ -341,7 +352,8 @@ class LoadAndSave(LoadAndSaveBytes):
         detect the best encoding for a block of bytes
 
         RECOMMENDED:
-            Auto text decoding gets better if chardet and/or BeautifulSoup are installed
+            Auto text decoding gets better if chardet and/or
+            BeautifulSoup are installed
             pip install chardet bs4
 
         :param data: a block of bytes
@@ -509,7 +521,8 @@ class LoadAndSave(LoadAndSaveBytes):
             dropbox,google drive,zipped files,... you name it!
 
         if no filename, save over the current filename
-            (and if there is no current filename will save as self.DefaultFilename)
+            (and if there is no current filename will
+            save as self.DefaultFilename)
 
         :param filename: filename to save as, defaults to None
         :type filename: paths.URLCompatible, optional

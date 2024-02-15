@@ -25,7 +25,7 @@ class MacAddress:
 
         will run arpLookup() the first time to determine this
 
-        if you want the freshest possible value, run arpLookup() youself instead
+        if you want the freshest possible value, run arpLookup() youself
         """
         if self._ip is None:
             self.arpLookup()
@@ -46,6 +46,9 @@ class MacAddress:
         return self._ip
 
     def assign(self,addr:str)->None:
+        """
+        Assign the value of this mac address
+        """
         self._addr=addr.replace(' ','').replace(':','').replace('-','').upper()
 
     def __eq__(self,other:typing.Any)->bool:
@@ -57,7 +60,8 @@ class MacAddress:
         """
         :lowercase: whether hex digits are 0-9A-F or 0-9a-f
         """
-        ret=separator.join([self._addr[i:i+2] for i in range(0,len(self._addr),2)])
+        a=[self._addr[i:i+2] for i in range(0,len(self._addr),2)]
+        ret=separator.join(a)
         if lowercase:
             return ret.lower()
         return ret

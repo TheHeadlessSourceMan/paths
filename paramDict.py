@@ -15,10 +15,12 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
     Manages cgi-like url parameters and acts like a dict
     """
 
-    def __init__(self,otherDict:typing.Union[ # type: ignore
-        None,
-        "ParamDict",
-        typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]=None):
+    def __init__(self,
+        otherDict:typing.Union[
+            None,
+            "ParamDict",
+            typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]
+            ]=None):
         """
         """
         self._params:typing.Dict[str,PARAM_VAL_TYPE]={}
@@ -31,7 +33,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         return len(self._params)
 
-    def __iter__(self)->typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]: # type: ignore
+    def __iter__(self)->typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]:
         """
         access like a list
 
@@ -40,11 +42,13 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         return self._params.items().__iter__()
 
     def set(self,k:str,v:typing.Any)->None:
+        """
+        Set a parameter's value
+        """
         if isinstance(v,Iterable) and not isinstance(v,str):
             self._params[k]=[str(vv) for vv in v]
         else:
             self._params[k]=str(v)
-        self._hash=None
     def __setitem__(self,k:str,v:typing.Any)->None:
         """
         access like a dict
@@ -75,7 +79,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
     def update(self,otherDict:typing.Union[ # type: ignore
         "ParamDict",
         typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]
-        )->None: 
+        )->None:
         """
         access like a dict
         """
@@ -140,13 +144,14 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
     @property
     def queryString(self)->str:
         """
-        possibly better than self.query        
+        possibly better than self.query
         """
         vals=[]
         for k,v in self._params.items():
             if isinstance(v,Iterable) and not isinstance(v,str):
                 for vv in v:
-                    vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}')
+                    s=f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}'
+                    vals.append(s)
             else:
                 vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(v)}')
         if vals:

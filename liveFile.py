@@ -1,6 +1,10 @@
+"""
+a file with advanced, but easily configurable,
+caching/watching/polling
+"""
 import typing
 import datetime
-from paths import URLCompatible,URL,asURL
+from paths import URLCompatible,URL
 
 
 class CacheEntry:
@@ -24,6 +28,9 @@ class LiveFilePool:
         self.data:typing.Dict[URL,CacheEntry]={}
 
     def getCacheEntry(self,url:URLCompatible)->CacheEntry:
+        """
+        Get the entry in the cache
+        """
         url=URL(url)
         data=self.data.get(url)
         if data is None:
@@ -32,6 +39,9 @@ class LiveFilePool:
         return data
 
     def getData(self,url:URLCompatible)->str:
+        """
+        Get the file data
+        """
         return self.getCacheEntry(url).data
 
     def __getitem__(self,idx:URLCompatible)->str:
@@ -41,22 +51,26 @@ class LiveFilePool:
         """
         return self.getData(idx)
 
+
 class LiveFile:
     """
     a file with advanced, but easily configurable,
     caching/watching/polling
     """
-    
+
     POOL=LiveFilePool()
-    
+
     def __init__(self,url:URLCompatible):
         self.url=URL(url)
         self.watchChanges=True # only works on certain filesystems
         self.pollingInterval=90 # only used if polling is needed
-        self.garbageCollectAfter=1200 # free up memory after this long of inactivity
-        self.preload=False # load the data immediateley rather than waiting until it is needed
-        self.callOnChange:typing.List[typing.Callable]=[] # whenever external data change is detected, call these functions
-        
+        self.garbageCollectAfter=1200 # free up memory after this long of inactivity # noqa: E501 # pylint: disable=line-too-long
+        self.preload=False # load the data immediateley rather than waiting until it is needed # noqa: E501 # pylint: disable=line-too-long
+        self.callOnChange:typing.List[typing.Callable]=[] # whenever external data change is detected, call these functions # noqa: E501 # pylint: disable=line-too-long
+
     @property
-    def data(self):
-        return self.POOL.getData(self.filename)
+    def data(self)->str:
+        """
+        Get the file data
+        """
+        return self.POOL.getData(self.url)

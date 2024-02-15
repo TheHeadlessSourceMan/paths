@@ -43,12 +43,14 @@ def encodeFilePath(
     By default, this will also call self.enquoteFilePath() when done.
 
     enquote: whether to call enquoteFilePath() default=True
-    illegalChars: a string of illegal filename characters - if None, use os alone
+    illegalChars: a string of illegal filename characters
+        if None, use os alone
     osName: os type to obtain illegalChars from (compatible with sys.name)
         if not specified, use just illegalChars
         if neither is specified, use os=sys.name
     errors: works similarly to str.encode("",errors="ignore")
-        can be "ignore" or "exception"(default) or something else to replace the chars with
+        can be "ignore" or "exception"(default)
+        or something else to replace the chars with
     """
     if illegalChars is None:
         illegalChars=illegalCharsForOs(osName)

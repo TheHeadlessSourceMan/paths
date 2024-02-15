@@ -23,9 +23,11 @@ def urlAssign(self:paths.URL,
 
     NOTE: unlike many things like asURL(), relativeTo has no default
         (which means file://[current directory]).
-        This is because in most cases you probably want to be relative to the current location
+        This is because in most cases you probably want to be
+        relative to the current location
             eg myUrl.assign(url,myUrl)
-        Removing the default was intended to force the caller to be specific in their intent.
+        Removing the default was intended to force the caller
+        to be specific in their intent.
 
     :param url: Can be:
         * another URL object
@@ -37,8 +39,10 @@ def urlAssign(self:paths.URL,
         * a system path+file where the path exists
     :type url: URLCompatible
     :param relativeTo: the url parameter is relative to this.
-        eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-        if relativeTo is a simple string ending in ":" it suffices as a default protocol
+        eg asUrl('about.htm','http://fooblatz.com')
+            gives "http://fooblatz.com/about.htm"
+        if relativeTo is a simple string ending in ":"
+            it suffices as a default protocol
             eg asURL('bob@mailbox.com','mailto:')
         if NONE, relativeTo is treated as "file:///[current directory]"
             eg asUrl("readme.txt") gives "file:///./readme.txt"
@@ -62,13 +66,16 @@ def urlAssign(self:paths.URL,
     # make it ALWAYS a simple url string for processing
     url=self._getUrlString(url) # pylint: disable=protected-access
     # check for possibly malformed file://
-    #    technically file://foo/bar means foo=host, though most people assume foo is directory
-    #    the "correct" way of foo as a directory is file:///foo/bar
-    #    this section attemts to guess what they really meant and correct as necessary
+    #    technically file://foo/bar means foo=host, though most people assume
+    #    foo is directory the "correct" way of foo as a directory
+    #    is file:///foo/bar
+    #    this section  guesses what they really meant and correct as necessary
     #    the algorithm used to determine to treat foo is a local file:
     #        * if self.filesUrlPreferLocal is True
-    #        * if there is no more to the path assume they meant file://file not file://host
-    #        * if first dir ends with a :, assume they meant file://c: not host named c
+    #        * if there is no more to the path assume they meant
+    #          file://file not file://host
+    #        * if first dir ends with a :, assume they meant
+    #          file://c: not host named c
     #    result of this stage is url is modified with triple slash if necessary
     if url.startswith('file://') and not url.startswith('file:///'):
         if os.sep!='/':
@@ -79,7 +86,8 @@ def urlAssign(self:paths.URL,
             url='/'.join(parts)
     # check for UNC paths
     if url.startswith('\\\\'):
-        # the format is different than url, so it makes more sense to do this manually
+        # the format is different than url, so it makes
+        # more sense to do this manually
         self.isUNC=True
         s=url.split('\\')
         self.scheme='file'
@@ -90,7 +98,8 @@ def urlAssign(self:paths.URL,
             self.filename=s[-1]
         return
     if url.startswith('file://///'):
-        # the format is different than url, so it makes more sense to do this manually
+        # the format is different than url, so it makes
+        # more sense to do this manually
         self.isUNC=True
         s=url.split('/')[3:]
         self.host=s[2]
@@ -117,7 +126,8 @@ def urlAssign(self:paths.URL,
         rTo=paths.URL(None)
         rTo.assign(relativeTo,None,False)
         if rTo is None:
-            raise paths.MalformedURL(str(relativeTo),"Unable to parse url for relativeTo")
+            raise paths.MalformedURL(
+                str(relativeTo),"Unable to parse url for relativeTo")
         else:
             relativeTo=rTo
     # let the standard parser have a go at it
@@ -132,7 +142,7 @@ def urlAssign(self:paths.URL,
     ret.port=parsed.port
     path=parsed.path
     if isWindowsAbsolutePath:
-        path.replace('%3A',self.windowsDriveSeparator,1) # url decode where they encoded the ':'
+        path.replace('%3A',self.windowsDriveSeparator,1) # url decode where they encoded the ':' # noqa: E501 # pylint: disable=line-too-long
         ret.scheme='file'
     if path.startswith('/'):
         path=path[1:]
@@ -149,11 +159,11 @@ def urlAssign(self:paths.URL,
     if ret.protocol is None and _useRelTo:
         r2=relativeTo.getRelativeUrl(ret) # type: ignore
         if r2 is None:
-            paths.MalformedURL(url,'relative url broke')
+            raise paths.MalformedURL(url,'relative url broke')
         else:
             ret=r2
     if ret.host is None and ret.protocol!='file':
-        paths.MalformedURL(url,'missing host')
+        raise paths.MalformedURL(url,'missing host')
     if self.protocol!='file' and self.path is not None:
         # remove any leading / from path
         if path.startswith('/'):

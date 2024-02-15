@@ -26,6 +26,9 @@ class PathStep:
 
     @property
     def name(self)->str:
+        """
+        the name of the path step
+        """
         return self._name
     @name.setter
     def name(self,name:str)->None:
@@ -53,7 +56,8 @@ class PathStep:
                     existing=self.params.get(kv[0])
                     if existing is None:
                         self.params[kv[0]]=kv[1]
-                    elif isinstance(existing,Iterable) and not isinstance(existing,str):
+                    elif isinstance(existing,Iterable)\
+                        and not isinstance(existing,str):
                         existing.append(kv[1])
                     else:
                         self.params[kv[0]]=[existing,kv[1]]
@@ -92,6 +96,7 @@ class PathStep:
     def __repr__(self)->str:
         return f'{urllib.parse.quote(self._name)}{self.params.queryString}'
 
+
 class Path:
     r"""
     A simple general-purpose path which could be applied to anything
@@ -110,7 +115,8 @@ class Path:
         p=Path("../clams",relativeTo="/home/~rthomas/crustations/oysters/").reduced()
         print(p) => "/home/~rthomas/crustations/clams"
     And this can be easily done with the + operator
-        Path(r"c:\directory\wrongdir")+r"..\file.txt" => "c:\directory\file.txt"
+        Path(r"c:\directory\wrongdir")+r"..\file.txt"
+        returns "c:\directory\file.txt"
 
     Change separators:
         p=Path("this|is|the|path",separators=('|'))
@@ -136,9 +142,9 @@ class Path:
         """
         :separators: all separators that can denote a path break
             the first separator is used as the join
-        
+
         :inheritChanges: if True, changes to this will result in changes to the
-            derived path.  If False (default) the returned path is its own new thing.
+            derived path.  If False (default) the returned path is new.
         """
         self._pathSteps:typing.List[PathStep]=[]
         self.separators:typing.Sequence[str]=separators
@@ -152,6 +158,9 @@ class Path:
 
     @property
     def params(self)->ParamDict:
+        """
+        The params oart of the url
+        """
         return self._pathSteps[-1].params
 
     def assign(self,
@@ -161,7 +170,9 @@ class Path:
         Assign the value of this path
         """
         # munch on relativeTo first, in case they passed in self
-        if relativeTo is not None and (not isinstance(relativeTo,Path) or id(relativeTo)==id(self)):
+        if relativeTo is not None and (
+            not isinstance(relativeTo,Path)\
+            or id(relativeTo)==id(self)):
             relativeTo=Path(relativeTo)
         # make path always a string
         if not isinstance(path,str):
@@ -192,7 +203,9 @@ class Path:
         This is defined as starting with either
         '/' or 'something:/' or 'x|/'
         """
-        return (not first) or first.endswith(':') or (len(first)==2 and first[1]=='|')
+        return (not first)\
+            or first.endswith(':')\
+            or (len(first)==2 and first[1]=='|')
 
     @property
     def isAbsolute(self)->bool:
@@ -207,7 +220,7 @@ class Path:
         This is defined as not starting with either
         '/' or 'something:/' or 'x|/'
         """
-        return self.isAbsolute==False
+        return self.isAbsolute is False
 
     def copy(self)->"Path":
         """
@@ -215,19 +228,23 @@ class Path:
         """
         return Path(self,separators=self.separators)
 
-    def getRelative(self,relative:"PathCompatible",inheritChanges=False)->'Path':
+    def getRelative(self,
+        relative:"PathCompatible",
+        inheritChanges=False
+        )->'Path':
         """
         Get a path relative to this one
 
         :inheritChanges: if True, changes to this will result in changes to the
-            derived path.  If False (default) the returned path is its own new thing.
+            derived path. If False(default) the returned path is a new object.
 
         NOTE: given existing path x, these are equivilent:
             1) y=Path(relativePath,x)
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self,separators=self.separators,inheritChanges=inheritChanges)
+        return Path(relative,self,separators=self.separators,
+            inheritChanges=inheritChanges)
     get=getRelative
 
     def __add__(self,relative:"PathCompatible")->'Path':
@@ -282,31 +299,33 @@ class Path:
         yield from self._pathSteps
 
     @typing.overload
-    def __getitem__(self,idx:slice)->typing.Iterable[PathStep]: ...
+    def __getitem__(self,idx:slice)->typing.Iterable[PathStep]:
+        ...
     @typing.overload
-    def __getitem__(self,idx:typing.Union[int,str])->PathStep: ...
-    def __getitem__(self,idx:typing.Union[int,str,slice])->typing.Union[PathStep,typing.Iterable[PathStep]]:
+    def __getitem__(self,idx:typing.Union[int,str])->PathStep:
+        ...
+    def __getitem__(self,idx:typing.Union[int,str,slice]
+        )->typing.Union[PathStep,typing.Iterable[PathStep]]:
         """access like [str] or dict"""
         if isinstance(idx,str):
             return getattr(self,idx)
         if self._boundParentPath is not None:
-            l=len(self._boundParentPath)
+            parentLen=len(self._boundParentPath)
             if isinstance(idx,int):
-                if idx<l:
+                if idx<parentLen:
                     return self._boundParentPath[idx]
-                return self._pathSteps[idx-l]
-            elif idx.stop<l:
+                return self._pathSteps[idx-parentLen]
+            elif idx.stop<parentLen:
                 # slice is entirely in the bound parent
                 return self._boundParentPath[idx]
-            elif idx.start>l:
+            elif idx.start>parentLen:
                 # slice is entirely within our data
-                return self._pathSteps[idx.start-l:idx.stop-l]
+                return self._pathSteps[idx.start-parentLen:idx.stop-parentLen]
             ret=self._pathSteps[idx.start:]
-            ret.extend(self._pathSteps[0:idx.stop-l])
+            ret.extend(self._pathSteps[0:idx.stop-parentLen])
             return ret
         # the simple condition, we have no bound parent to worry about
         return self._pathSteps[idx]
-    typing.SupportsIndex
 
     def __len__(self)->int:
         """access like [str]"""
@@ -366,7 +385,7 @@ class Path:
         """
         Reverse the path
 
-        (this will break the link for any 
+        (this will break the link for any
         inherited changes)
         """
         self.stopInheritingChanges()
@@ -398,7 +417,9 @@ class Path:
         """
         subPath=asPath(subPath)
         if subPath and len(subPath)<=len(self)-atPosition:
-            for ours,theirs in zip(subPath,self[atPosition:atPosition+len(subPath)]):
+            for ours,theirs in zip(
+                subPath,
+                self[atPosition:atPosition+len(subPath)]):
                 if ours!=theirs:
                     return False
             return True
@@ -422,12 +443,22 @@ class Path:
 
 PathCompatible=typing.Union[str,Path,typing.Iterable[str]]
 def asPath(path:PathCompatible)->Path:
+    """
+    Always return a Path
+    if path is already a Path, simply return it
+    otherwise create a Path from it
+    """
     if not isinstance(path,Path):
         path=Path(path)
     return path
 
 class HasMatchesPath(typing.Protocol):
+    """
+    Any class that has a matchesPath() function
+    """
     def matchesPath(self,path:PathCompatible)->bool:
-        ...
+        """
+        Determine if this object matches the given path
+        """
 
 TreePath=Path
