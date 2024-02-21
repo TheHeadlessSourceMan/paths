@@ -7,7 +7,9 @@ is not intended for public consumption.
 """
 import typing
 from abc import abstractmethod
-from .urlTyping import URLCompatible,URL
+from paths.urlTyping import URLCompatible
+if typing.TYPE_CHECKING:
+    from paths import URL
 
 
 class UrlNavigation:
