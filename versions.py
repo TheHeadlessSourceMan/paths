@@ -53,7 +53,7 @@ class Version:
         Assign the value of this version
         """
         if isinstance(value,Version):
-            self._segments=value._segments
+            self._segments=value._segments # pylint: disable=protected-access
             self.experimental=value.experimental
         else:
             self._segments=[]
@@ -189,7 +189,11 @@ class Version:
         if not isinstance(other,(str,Version,float)):
             return False
         other=asVersion(other)
-        for us,them in zip_longest(self._segments,other._segments,fillvalue=0):
+        for us,them in zip_longest(
+            self._segments,
+            other._segments, # pylint: disable=protected-access
+            fillvalue=0):
+            #
             if us==them:
                 continue
             if self.__seg_cmp__(us,them)>0:

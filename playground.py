@@ -37,7 +37,21 @@ class UrlNew:
         resource=r"""(/((?P<path>[-a-z0-9_./]*?)(?P<resource>/[-a-z0-9_.])?)(\#(?P<part>.*))?(\?(?P<cgi>.*)))"""
         regex=r"""(?P<url>"""+proto+login+r"""?"""+location+resource+r"""?)"""
         return re.compile(regex,re.IGNORECASE)
-    def _assignUrl(self,url,proto,host,port=None,username=None,password=None,path='',resource='',part=None,cgi={}):
+    def _assignUrl(self,
+        url:str,
+        proto:str,
+        host:str,
+        port:typing.Optional[str]=None,
+        username:typing.Optional[str]=None,
+        password:typing.Optional[str]=None,
+        path:str='',
+        resource:str='',
+        part:typing.Optional[str]=None,
+        cgi:typing.Dict[str,str]={}
+        )->None:
+        """
+        specific assignment
+        """
         self.filePath=None
         self.url=url
         self.proto=proto
@@ -189,12 +203,19 @@ class UrlNew:
         assign(**vals)
 
     def printMembers(self,indent='\t'):
+        """
+        print values of the individual members to stdout
+        """
         for k,v in self.__dict__.items():
             print(f'{indent}{k} = {v}')
 
 # -----
 
 def validate():
+    """
+    Test validation on a known series
+    of valid urls/filenames
+    """
     tests=[
         r"c:\windows\thing",
         r"c:/windows/thing",
@@ -222,12 +243,17 @@ def validate():
         u.printMembers()
 
 def speedcompare():
+    """
+    test to compare the speeds of runUnitTestsOn()
+    """
     from paths import Url
     class S:
+        """ test class """
         def __init__(self,s:str):
             self.s=''
             self.assign(s)
         def assign(self,s:str):
+            """ value assignement """
             self.s=s
     tests=[
         r"c:\windows\thing",
