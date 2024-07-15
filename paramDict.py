@@ -148,6 +148,8 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         vals=[]
         for k,v in self._params.items():
+            if not k:
+                continue
             if isinstance(v,Iterable) and not isinstance(v,str):
                 for vv in v:
                     s=f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}'

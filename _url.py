@@ -7,7 +7,6 @@ import typing
 import os
 import urllib.parse
 from ._uri import URI
-from .path import Path
 from .urlTyping import URLCompatible, isURLCompatible, asURL
 from .loadAndSave import LoadAndSave
 from .urlNavigation import UrlNavigation
@@ -38,7 +37,8 @@ class URL(
         * does handle technically malformed paths
             (file://filename should actually be file:///filename)
 
-    This is directly compatible with urllib3 and backwards-compatible to urllib.
+    This is directly compatible with urllib3
+    and backwards-compatible to urllib.
 
     You can do things like:
         u=Url('http://www.mysite.com/path/search?q=something&page=1')
@@ -50,7 +50,7 @@ class URL(
         # prints "http://www.mysite.com/path/search?q=this%26that&page=2"
         u=Url('http://www.mysite.com/path/search?q=this%26that&page=2')
         print(u['q'])
-        # prints "this&that" (meaning the url encode/decode is fully automatic!)
+        # prints "this&that" (meaning, url encode/decode is fully automatic!)
         u2=u.relative('/images/1.jpg')
         print(u2)
         # prints "http://www.mysite.com/path/images/1.jpg"
@@ -67,7 +67,8 @@ class URL(
     """
 
     # object members that could likely contain a url. order is important
-    URL_LIKE_MEMBERS=('url','URL','Url','filename','path','href','src','location','rel')
+    URL_LIKE_MEMBERS=('url','URL','Url','filename',
+        'path','href','src','location','rel')
 
     DefaultFilename:str='Untitled.url'
 
@@ -87,18 +88,21 @@ class URL(
             * a system path+file where the path exists
         :type url: URLCompatible
         :param relativeTo: the url parameter is relative to this.
-            eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-            if relativeTo is a simple string ending in ":" it suffices as a default protocol
+            eg asUrl('about.htm','http://fooblatz.com')
+            gives "http://fooblatz.com/about.htm"
+            if relativeTo is a simple string ending in ":"
+            it suffices as a default protocol
                 eg asURL('bob@mailbox.com','mailto:')
             if NONE, relativeTo is treated as "file://[current directory]"
                 eg asUrl("readme.txt") gives "file://./readme.txt"
         :type relativeTo: str, optional
         """
+        LoadAndSave.__init__(self)
         DataReadWrite.__init__(self)
         UrlNavigation.__init__(self)
         CleverUrls.__init__(self)
         self.cgi:ParamDict=ParamDict()
-        self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/
+        self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/ # noqa: E501 # pylint: disable=line-too-long
         self.scheme:str=''
         self.username:typing.Optional[str]=None
         self.password:typing.Optional[str]=None
@@ -110,10 +114,10 @@ class URL(
         self.isUNC:bool=False
         self.cache:bool=True
         self.persist:bool=True
-        self.ignoreAlreadyEncoded=True # do not attempt to re-encode % signs (eg no http://x.com/space%20bar => http://x.com/space%2520bar)
-        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo is local
-        # as opposed to a host named foo
-        # basically False is more standards-compliant, but True is more used in practice
+        self.ignoreAlreadyEncoded=True # do not attempt to re-encode % signs (eg no http://x.com/space%20bar => http://x.com/space%2520bar) # noqa: E501 # pylint: disable=line-too-long
+        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo
+        # is local as opposed to a host named foo. Basically, False is more
+        # standards-compliant, but True is more used in practice
         self._isDirectory:typing.Optional[bool]=None
         if url is not None:
             self.assign(url,relativeTo)
@@ -131,9 +135,15 @@ class URL(
         return ''
     @property
     def ext(self)->str:
+        """
+        File extension
+        """
         return self.extension
     @property
     def fileExtension(self)->str:
+        """
+        File extension
+        """
         return self.extension
 
     @property
@@ -167,7 +177,8 @@ class URL(
         """
         Open this url in the system browser
 
-        Preferred can be whatever python's built-in webbrowser module supports, for instance:
+        Preferred can be whatever python's built-in webbrowser module supports
+        For instance:
             'mozilla'
             'firefox'
             'netscape'
@@ -207,10 +218,12 @@ class URL(
         """
         Url.filename is ambigiuous.  Use: Url.resource instead
         """
-        raise NotImplementedError("Url.filename is ambigiuous.  Use: Url.resource instead")
+        raise NotImplementedError(
+            "Url.filename is ambigiuous.  Use: Url.resource instead")
     @filename.setter
     def filename(self,filename:typing.Any):
-        raise NotImplementedError("Url.filename is ambigiuous.  Use: Url.resource instead")
+        raise NotImplementedError(
+            "Url.filename is ambigiuous.  Use: Url.resource instead")
 
     def clear(self)->None:
         """
@@ -232,14 +245,19 @@ class URL(
         """
         return Url(self)
 
-    def replace(self,replaceThis:typing.Union[str,typing.Pattern],withThis:typing.Union[str,typing.Any])->"Url":
+    def replace(self,
+        replaceThis:typing.Union[str,typing.Pattern],
+        withThis:typing.Union[str,typing.Any]
+        )->"Url":
         """
-        Does everything that str.replace() does, so url.replace(x,y) is exactly the same as Url(str(url).replace(x,y))
-        Also, if you pass in a compiled regex for replaceThis, it is smart enough to use the regex.sub() instead
+        Does everything that str.replace() does, so url.replace(x,y)
+        is exactly the same as Url(str(url).replace(x,y))
+        Also, if you pass in a compiled regex for replaceThis, it is
+        smart enough to use the regex.sub() instead
 
         NOTE: if you are trying to replace something with path separators,
         always use "/"
-        NOTE: if your replacement makes this an un-parseble Url(), that's on you!
+        NOTE: if your replacement makes an un-parseble Url(), that's on you!
         """
         s=str(self)
         if not isinstance(withThis,str):
@@ -252,7 +270,8 @@ class URL(
 
     def call(self,**kwds)->str:
         """
-        If URL.read() is not advanced enough, you can use this to pass cgi parameters.
+        If URL.read() is not advanced enough, you can use this
+        to pass cgi parameters.
 
         You can pass in cgi arguments also!
         Thus:
@@ -265,7 +284,7 @@ class URL(
         """
         if kwds is not None:
             url=self.copy()
-            url.cgi.update(kwds)
+            url.cgi.update(kwds) # type: ignore
             return url.read()
         return self.read()
     __call__=call
@@ -275,7 +294,8 @@ class URL(
         """
         full authentication section of the url
 
-        NOTE: it may be easier for you to set username and password individually
+        NOTE: it may be easier for you
+        to set username and password individually
         """
         if self.username is None or not self.username:
             return ''
@@ -317,9 +337,11 @@ class URL(
         (Other url schemes will return None!)
 
         enquote: whether to call enquoteFilePath() default=True
-        illegalChars: a string of illegal filename characters - if None, use os alone
+        illegalChars: a string of illegal filename characters
+            if None, use os alone
         errors: works similarly to str.encode("",errors="ignore")
-            can be "ignore" or "exception"(default) or something else to replace the chars with
+            can be "ignore" or "exception"(default)
+            or something else to replace the chars with
         """
         osForPath:str='posix'
         if self.scheme!='file' or not (self.isUNC or self.isLocalhost()):
@@ -351,7 +373,8 @@ class URL(
         NOTE: reading this is the same as calling
             self.getFilePath(enquote=False,illegalChars=None,errors='exception')
         """
-        return self.getFilePath(enquote=False,illegalChars=None,errors='exception')
+        return self.getFilePath(
+            enquote=False,illegalChars=None,errors='exception')
     @filePath.setter
     def filePath(self,filepath:str):
         self.assign(filepath)
@@ -398,7 +421,9 @@ class URL(
                 if len(ret)==1 and ret[0].endswith(':'):
                     # like c:
                     raise Exception('Path navigates up past root:\n   %s'%path)
-                if len(ret)==2 and not ret[0] and (not ret[1] or ret[1].endswith(':')):
+                if len(ret)==2 \
+                    and not ret[0] \
+                    and (not ret[1] or ret[1].endswith(':')):
                     # like / or /c:
                     raise Exception('Path navigates up past root:\n   %s'%path)
                 ret.pop()
@@ -454,13 +479,13 @@ class URL(
     domainMatches=sameDomain
 
     @classmethod
-    def urlencode(self,s:str)->str:
+    def urlencode(cls,s:str)->str:
         """
         General-purpose url encode tool
         """
         return urllib.parse.quote(s)
     @classmethod
-    def urldecode(self,s:str)->str:
+    def urldecode(cls,s:str)->str:
         """
         General-purpose url decode tool
         """
@@ -504,8 +529,8 @@ class URL(
                 else:
                     p=urllib.parse.quote(p)
                 if allowColons:
-                    # special case: when there's a colon in the first path segment
-                    #   such as windows files
+                    # special case: when there's a colon in the first path
+                    #   segment such as windows files
                     px.append(p.replace('%3A',self.windowsDriveSeparator))
                 else:
                     px.append(p)
@@ -579,6 +604,9 @@ class URL(
         return f'<a href="{href}">{caption}</a>'
     @property
     def html(self)->str:
+        """
+        Get the url as an html hyperlink
+        """
         return self.hyperlink()
 
     @property
@@ -614,7 +642,8 @@ class URL(
                 self.domain=host
                 self.subdomain=None
             elif len(ss)>2:
-                # split off subdomain like www.fooblatz.com into www and fooblatz.com
+                # split off subdomain like www.fooblatz.com
+                # into www and fooblatz.com
                 self.subdomain='.'.join(ss[0:len(ss)-2])
                 self.domain='.'.join(ss[-2:])
             else:
@@ -647,7 +676,9 @@ class URL(
                         # in case the member was a URL obj
                         return url.url
                     break
-            if (not foundSomething) and hasattr(url,'read') and hasattr(url,'name'):
+            if (not foundSomething) \
+                and hasattr(url,'read') \
+                and hasattr(url,'name'):
                 # for file-like objects "name" can be considered a filename
                 foundSomething=True
                 url=getattr(url,'name')
@@ -657,7 +688,8 @@ class URL(
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
-                        url=typing.cast(typing.Dict[str,typing.Any],url)[memberName]
+                        url=typing.cast(typing.Dict[str,typing.Any],url)[
+                            memberName]
                         if callable(url):
                             url=url()
                         if isinstance(url,URL):
@@ -667,7 +699,8 @@ class URL(
             if not isinstance(url,str):
                 # couldn't figure out how that object translates into a URL
                 typename=url.__class__.__name__
-                raise MalformedURL(str(url),'incompatible type %s for assigning'%typename)
+                raise MalformedURL(
+                    str(url),'incompatible type %s for assigning'%typename)
         if isinstance(url,bytes):
             url=url.decode('utf-8','ignore')
         return self._getCleverURL(url)
@@ -723,9 +756,11 @@ class URL(
 
         NOTE: unlike many things like asURL(), relativeTo has no default
             (which means file://[current directory]).
-            This is because in most cases you probably want to be relative to the current location
+            This is because in most cases you probably want to be
+            relative to the current location
                 eg myUrl.assign(url,myUrl)
-            Removing the default was intended to force the caller to be specific in their intent.
+            Removing the default was intended to force the caller to
+            be specific in their intent.
 
         :param url: Can be:
             * another URL object
@@ -737,8 +772,10 @@ class URL(
             * a system path+file where the path exists
         :type url: URLCompatible
         :param relativeTo: the url parameter is relative to this.
-            eg asUrl('about.htm','http://fooblatz.com') gives "http://fooblatz.com/about.htm"
-            if relativeTo is a simple string ending in ":" it suffices as a default protocol
+            eg asUrl('about.htm','http://fooblatz.com')
+            gives "http://fooblatz.com/about.htm"
+            if relativeTo is a simple string ending in ":"
+                it suffices as a default protocol
                 eg asURL('bob@mailbox.com','mailto:')
             if NONE, relativeTo is treated as "file:///[current directory]"
                 eg asUrl("readme.txt") gives "file:///./readme.txt"
@@ -752,7 +789,10 @@ class URL(
         """
         You can use the + operator to create a new relative url
 
-        Url("c:\\something")+"something_else" == Url("c:\\something\\something_else")
+        Eg
+            Url("c:\\something")+"something_else"
+        is the same as
+            Url("c:\\something\\something_else")
         """
         return Url(other,self)
 
