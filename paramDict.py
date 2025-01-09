@@ -33,7 +33,8 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         return len(self._params)
 
-    def __iter__(self)->typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]:
+    def __iter__(self
+        )->typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]: # type: ignore
         """
         access like a list
 
