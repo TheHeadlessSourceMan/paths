@@ -97,7 +97,7 @@ class PathStep:
         return f'{urllib.parse.quote(self._name)}{self.params.queryString}'
 
 
-class Path:
+class PathLike:
     r"""
     A simple general-purpose path which could be applied to anything
     (filenames, tree location, url, html dom, etc...)
@@ -148,9 +148,9 @@ class Path:
         """
         self._pathSteps:typing.List[PathStep]=[]
         self.separators:typing.Sequence[str]=separators
-        self._boundParentPath:typing.Optional["Path"]=None
+        self._boundParentPath:typing.Optional["PathLike"]=None
         if path is not None:
-            if isinstance(relativeTo,Path) and inheritChanges:
+            if isinstance(relativeTo,PathLike) and inheritChanges:
                 self._boundParentPath=relativeTo
                 self.assign(path)
             else:
@@ -171,12 +171,12 @@ class Path:
         """
         # munch on relativeTo first, in case they passed in self
         if relativeTo is not None and (
-            not isinstance(relativeTo,Path)\
+            not isinstance(relativeTo,PathLike)\
             or id(relativeTo)==id(self)):
-            relativeTo=Path(relativeTo)
+            relativeTo=PathLike(relativeTo)
         # make path always a string
         if not isinstance(path,str):
-            if isinstance(path,Path):
+            if isinstance(path,PathLike):
                 path=str(path)
             elif isinstance(path,Iterable):
                 path=self.separators[0].join([str(ps) for ps in path])
@@ -222,16 +222,16 @@ class Path:
         """
         return self.isAbsolute is False
 
-    def copy(self)->"Path":
+    def copy(self)->"PathLike":
         """
         Create a copy of this path
         """
-        return Path(self,separators=self.separators)
+        return PathLike(self,separators=self.separators)
 
     def getRelative(self,
         relative:"PathCompatible",
         inheritChanges=False
-        )->'Path':
+        )->'PathLike':
         """
         Get a path relative to this one
 
@@ -243,11 +243,11 @@ class Path:
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self,separators=self.separators,
+        return PathLike(relative,self,separators=self.separators,
             inheritChanges=inheritChanges)
     get=getRelative
 
-    def __add__(self,relative:"PathCompatible")->'Path':
+    def __add__(self,relative:"PathCompatible")->'PathLike':
         """
         Get a new path relative to this one
 
@@ -256,7 +256,7 @@ class Path:
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
         """
-        return Path(relative,self,separators=self.separators)
+        return PathLike(relative,self,separators=self.separators)
 
     def append(self,path:"PathCompatible")->None:
         """
@@ -285,7 +285,7 @@ class Path:
                     ret.append(ps)
         self._pathSteps=ret
 
-    def reduced(self)->"Path":
+    def reduced(self)->"PathLike":
         """
         get a reduced copy of this path
         """
@@ -371,7 +371,7 @@ class Path:
                 return False
         return True
 
-    def reversed(self)->"Path":
+    def reversed(self)->"PathLike":
         """
         Get a reversed copy of the path
 
@@ -441,15 +441,15 @@ class Path:
         return self.separators[0].join([str(step) for step in iter(self)])
 
 
-PathCompatible=typing.Union[str,Path,typing.Iterable[str]]
-def asPath(path:PathCompatible)->Path:
+PathCompatible=typing.Union[str,PathLike,typing.Iterable[str]]
+def asPath(path:PathCompatible)->PathLike:
     """
     Always return a Path
     if path is already a Path, simply return it
     otherwise create a Path from it
     """
-    if not isinstance(path,Path):
-        path=Path(path)
+    if not isinstance(path,PathLike):
+        path=PathLike(path)
     return path
 
 class HasMatchesPath(typing.Protocol):
@@ -461,4 +461,4 @@ class HasMatchesPath(typing.Protocol):
         Determine if this object matches the given path
         """
 
-TreePath=Path
+TreePath=PathLike

@@ -20,9 +20,6 @@ class UrlNavigation:
     this is specific to the needs of URL object and
     is not intended for public consumption.
     """
-    if typing.TYPE_CHECKING:
-        from paths import URL
-
     def __init__(self):
         pass
 
@@ -154,7 +151,7 @@ class UrlNavigation:
         import paths
         if url is None:
             return self
-        if isinstance(url,URL):
+        if isinstance(url,paths.URL):
             # assume it is fully qualified, whatever it is
             return url
         if not isinstance(url,str):

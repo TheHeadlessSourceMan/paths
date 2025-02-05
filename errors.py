@@ -9,9 +9,11 @@ class DecodeError(Exception):
     General purpose error when attempting to decode some data
     """
     if typing.TYPE_CHECKING:
-        from paths import URL, FileLocation
+        from paths import URL,UrlWithFileLocation
 
-    def __init__(self,occouredIn:typing.Union[None,str,"FileLocation","URL"]):
+    def __init__(self,
+        occouredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
+        """ """
         self.occouredIn=occouredIn # save a copy to provide info to catchers
         if occouredIn is None:
             occouredIn=''
@@ -24,9 +26,11 @@ class EncodeError(Exception):
     General purpose error when attempting to encode some data
     """
     if typing.TYPE_CHECKING:
-        from paths import URL, FileLocation
+        from paths import URL,UrlWithFileLocation
 
-    def __init__(self,occouredIn:typing.Union[None,str,"FileLocation","URL"]):
+    def __init__(self,
+        occouredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
+        """ """
         self.occouredIn=occouredIn # save a copy to provide info to catchers
         if occouredIn is None:
             occouredIn=''

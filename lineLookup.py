@@ -9,7 +9,7 @@ per line.
 import typing
 import itertools
 import bisect
-from fileLocation import FileLocation
+from fileLocation import UrlWithFileLocation
 
 class LineLookup:
     """
@@ -56,7 +56,7 @@ class LineLookup:
         return self.getLines(idx)
 
     def rlookup(self,
-        row:typing.Union[int,FileLocation],
+        row:typing.Union[int,UrlWithFileLocation],
         col:typing.Optional[int]=None
         )->int:
         """
@@ -66,7 +66,7 @@ class LineLookup:
         :row: can either be a row number or
             a FileLocation (which has the row & col inside it)
         """
-        if isinstance(row,FileLocation):
+        if isinstance(row,UrlWithFileLocation):
             col=row.col
             row=row.row
             if row is None:
@@ -80,7 +80,7 @@ class LineLookup:
         return total
     position=rlookup
 
-    def lookup(self,pos:int)->FileLocation:
+    def lookup(self,pos:int)->UrlWithFileLocation:
         """
         given a file position, returns FileLocation
 
@@ -92,5 +92,5 @@ class LineLookup:
         col=pos
         if row>0:
             col=pos-self.totalBeforeLine[row-1]
-        return FileLocation(self.filename,row+1,col+1)
+        return UrlWithFileLocation(self.filename,row+1,col+1)
     location=lookup

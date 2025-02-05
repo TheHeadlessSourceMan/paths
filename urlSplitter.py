@@ -148,7 +148,7 @@ def urlAssign(self:paths.URL,
         path=path[1:]
     ret.fullPath=path
     ret.cgi.clear()
-    if parsed.query is not None:
+    if parsed.query is not None and parsed.query:
         cgi=parsed.query.split('&')
         for c in cgi:
             item=[urllib.parse.unquote(v) for v in c.split('=',1)]
@@ -156,7 +156,7 @@ def urlAssign(self:paths.URL,
                 ret.cgi[item[0]]=None
             else:
                 ret.cgi[item[0]]=item[1]
-    if ret.protocol is None and _useRelTo:
+    if not ret.protocol and _useRelTo:
         r2=relativeTo.getRelativeUrl(ret) # type: ignore
         if r2 is None:
             raise paths.MalformedURL(url,'relative url broke')

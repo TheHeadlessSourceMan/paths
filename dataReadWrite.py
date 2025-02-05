@@ -46,7 +46,7 @@ class DataReadWrite:
         """
         if self._data is None:
             self._readFile()
-        return typing.cast(bytes,self._data)
+        return self._data
     @data.setter
     def data(self,data:typing.Union[str,bytes]):
         self.write(data)
@@ -150,29 +150,36 @@ class DataReadWrite:
             self._idx+=len(ret)
         return ret
 
-    def read(self,
-        numBytes:typing.Optional[int]=None
+    def readString(self,
+        numBytes:typing.Optional[int]=None,
+        encoding:str='utf-8',
+        errors:str='ignore'
         )->str:
         """
         file-like object read method
 
         TODO: use the auto decoder trick from loadAndSave.py
         """
-        return self.readBytes(numBytes).decode('utf-8','ignore')
+        ret=self.readBytes(numBytes)
+        return ret.decode(encoding,errors=errors)
+    read=readString
 
     def readLines(self,
-        numLines:typing.Optional[int]=None
+        numLines:typing.Optional[int]=None,
+        encoding:str='utf-8',
+        errors:str='ignore'
         )->typing.Generator[str,None,None]:
         """
         file-like object read method
         """
         if numLines is not None:
-            for i,line in enumerate(self.read().split('\n')):
+            data=self.read(None,encoding,errors)
+            for i,line in enumerate(data.split('\n')):
                 if i>=numLines:
                     return
                 yield line
         else:
-            for line in self.read().split('\n'):
+            for line in self.read(None,encoding,errors).split('\n'):
                 yield line
 
     def _readFile(self)->None:
@@ -227,8 +234,8 @@ class DataReadWrite:
                     f.write(bytes(self._data))
                 f.close()
             else:
-                # TODO: read typical things read, such as http and ftp
-                raise NotImplementedError()
+                raise NotImplementedError(
+                    f'Unsupported protocol "{self.protocol}". It may help to install EzFs.') # noqa: E501 # pylint: disable=line-too-long
 
     def seek(self,
         idx:int,

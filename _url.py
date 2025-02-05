@@ -15,10 +15,12 @@ from .paramDict import ParamDict
 from .cleverUrls import CleverUrls
 from .filePathTools import encodeFilePath
 from .errors import MalformedURL
+from .pathLike import PathLike
+
 
 class URL(
     URI,
-    # Path, # TODO: use this for base functionality
+    PathLike,
     DataReadWrite,
     UrlNavigation,
     CleverUrls,
@@ -51,6 +53,8 @@ class URL(
         u=Url('http://www.mysite.com/path/search?q=this%26that&page=2')
         print(u['q'])
         # prints "this&that" (meaning, url encode/decode is fully automatic!)
+        # prints "this&that"
+        # (meaning the url encode/decode is fully automatic!)
         u2=u.relative('/images/1.jpg')
         print(u2)
         # prints "http://www.mysite.com/path/images/1.jpg"
@@ -101,6 +105,7 @@ class URL(
         DataReadWrite.__init__(self)
         UrlNavigation.__init__(self)
         CleverUrls.__init__(self)
+        PathLike.__init__(self,None)
         self.cgi:ParamDict=ParamDict()
         self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/ # noqa: E501 # pylint: disable=line-too-long
         self.scheme:str=''
@@ -115,9 +120,10 @@ class URL(
         self.cache:bool=True
         self.persist:bool=True
         self.ignoreAlreadyEncoded=True # do not attempt to re-encode % signs (eg no http://x.com/space%20bar => http://x.com/space%2520bar) # noqa: E501 # pylint: disable=line-too-long
-        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo
-        # is local as opposed to a host named foo. Basically, False is more
-        # standards-compliant, but True is more used in practice
+        self.filesUrlPreferLocal:bool=True # given file://foo/bar assume foo is local # noqa: E501 # pylint: disable=line-too-long
+        # as opposed to a host named foo
+        # basically False is more standards-compliant,
+        # but True is more used in practice
         self._isDirectory:typing.Optional[bool]=None
         if url is not None:
             self.assign(url,relativeTo)
@@ -136,13 +142,13 @@ class URL(
     @property
     def ext(self)->str:
         """
-        File extension
+        The file extension if there is one
         """
         return self.extension
     @property
     def fileExtension(self)->str:
         """
-        File extension
+        The file extension if there is one
         """
         return self.extension
 
@@ -252,12 +258,13 @@ class URL(
         """
         Does everything that str.replace() does, so url.replace(x,y)
         is exactly the same as Url(str(url).replace(x,y))
-        Also, if you pass in a compiled regex for replaceThis, it is
-        smart enough to use the regex.sub() instead
+        Also, if you pass in a compiled regex for replaceThis,
+        it is smart enough to use the regex.sub() instead
 
         NOTE: if you are trying to replace something with path separators,
         always use "/"
-        NOTE: if your replacement makes an un-parseble Url(), that's on you!
+        NOTE: if your replacement makes this an un-parseble Url(),
+        that's on you!
         """
         s=str(self)
         if not isinstance(withThis,str):
@@ -448,13 +455,13 @@ class URL(
         urlObj:URL=asURL(url)
         if urlObj is None:
             return False
-        return (self.protocol==urlObj.protocol and
-            self.username==urlObj.username and
-            self.password==urlObj.password and
-            self.host==urlObj.host and
-            self.port==urlObj.port and
-            self.path==urlObj.path and
-            self.resource==urlObj.resource and
+        return (self.protocol==urlObj.protocol and \
+            self.username==urlObj.username and \
+            self.password==urlObj.password and \
+            self.host==urlObj.host and \
+            self.port==urlObj.port and \
+            self.path==urlObj.path and \
+            self.resource==urlObj.resource and \
             self.cgi==urlObj.cgi)
 
     def __hash__(self)->int: # type: ignore
@@ -530,7 +537,7 @@ class URL(
                     p=urllib.parse.quote(p)
                 if allowColons:
                     # special case: when there's a colon in the first path
-                    #   segment such as windows files
+                    # segment such as windows files
                     px.append(p.replace('%3A',self.windowsDriveSeparator))
                 else:
                     px.append(p)
@@ -605,7 +612,7 @@ class URL(
     @property
     def html(self)->str:
         """
-        Get the url as an html hyperlink
+        Get this url as a hyperlink <a href="">caption</a>
         """
         return self.hyperlink()
 
@@ -688,8 +695,7 @@ class URL(
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
-                        url=typing.cast(typing.Dict[str,typing.Any],url)[
-                            memberName]
+                        url=url[memberName]
                         if callable(url):
                             url=url()
                         if isinstance(url,URL):
@@ -743,7 +749,7 @@ class URL(
     def isDirectory(self,isDirectory:bool):
         self._isDirectory=isDirectory
 
-    def assign(self,
+    def assign(self, # pylint: disable=arguments-renamed
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
         _useRelTo=True,
@@ -759,8 +765,8 @@ class URL(
             This is because in most cases you probably want to be
             relative to the current location
                 eg myUrl.assign(url,myUrl)
-            Removing the default was intended to force the caller to
-            be specific in their intent.
+            Removing the default was intended to force the caller
+            to be specific in their intent.
 
         :param url: Can be:
             * another URL object

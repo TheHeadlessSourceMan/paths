@@ -10,6 +10,7 @@ import typing
 import re
 import urllib.parse
 import paths
+from ._url import Url
 
 
 class LocationWithinFile:
@@ -49,7 +50,7 @@ class LocationWithinFile:
         elif hasattr(__o,'location'):
             return self==getattr(__o,'location')
         elif isinstance(__o,str):
-            return self==FileLocation(__o)
+            return self==UrlWithFileLocation(__o)
         return False
 
     def openEditor(self,editor:typing.Optional[str]=None):
@@ -201,9 +202,9 @@ class LocationWithinFile:
         return ''.join(ret)
 
 
-class FileLocation(LocationWithinFile):
+class UrlWithFileLocation(LocationWithinFile,Url):
     """
-    Indicates a file with location (or start/end location)
+    Indicates a url to a file with location (or start/end location)
 
     myfile.txt:1 # get line 1 from the file
     myfile.txt:1:2 # get the entire line1 from character2 to the end of line
@@ -225,21 +226,23 @@ class FileLocation(LocationWithinFile):
         url:paths.URLCompatible,
         fromRow:typing.Optional[int]=None,
         fromColumn:typing.Optional[int]=None,
-        toLine:typing.Optional[int]=None,
+        toRow:typing.Optional[int]=None,
         toColumn:typing.Optional[int]=None,
-        smartDecodeUrl=True):
+        smartDecodeUrl=True,
+        relativeTo:typing.Optional[paths.URLCompatible]=None):
         """ """
-        LocationWithinFile.__init__(self,fromRow,fromColumn,toLine,toColumn)
-        self.smartDecodeUrl=smartDecodeUrl
-        self._url:paths.URLCompatible=url
-        if isinstance(url,str):
-            self.assign(url,fromRow,fromColumn)
+        self.smartDecodeUrl:bool=smartDecodeUrl
+        LocationWithinFile.__init__(self)
+        Url.__init__(self,'')
+        self.assign(url,
+            fromRow,fromColumn,toRow,toColumn,
+            smartDecodeUrl,relativeTo)
 
     def __eq__(self, __o: object)->bool:
         """
         Compare to a filename, location, or url
         """
-        if isinstance(__o,FileLocation):
+        if isinstance(__o,UrlWithFileLocation):
             if __o.url!=self.url:
                 return False
             if __o.fromRow>1 and self.fromRow>1:
@@ -258,7 +261,7 @@ class FileLocation(LocationWithinFile):
         elif hasattr(__o,'location'):
             return self==getattr(__o,'location')
         elif isinstance(__o,str):
-            return self==FileLocation(__o)
+            return self==UrlWithFileLocation(__o)
         elif isinstance(__o,paths.URL)\
             or hasattr(__o,'url')\
             or hasattr(__o,'filename'):
@@ -269,7 +272,7 @@ class FileLocation(LocationWithinFile):
         """
         Does this entirely contain another location?
         """
-        if isinstance(other,FileLocation) and other.url!=self.url:
+        if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             return False
         return LocationWithinFile.contains(self,other)
 
@@ -277,7 +280,7 @@ class FileLocation(LocationWithinFile):
         """
         Does this contain or overlap another location?
         """
-        if isinstance(other,FileLocation) and other.url!=self.url:
+        if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             return False
         return LocationWithinFile.overlaps(self,other)
 
@@ -300,28 +303,57 @@ class FileLocation(LocationWithinFile):
         lines[-1]=lines[-1][0:v2a(self.toColumn,None)]
         return '\n'.join(lines)
 
-    def assign(self,
-        fileLocation:str,
-        row:typing.Optional[int]=0,
-        col:typing.Optional[int]=0
+    def assign(self, # pylint: disable=arguments-renamed
+        url:paths.URLCompatible,
+        fromRow:typing.Optional[int]=None,
+        fromColumn:typing.Optional[int]=None,
+        toRow:typing.Optional[int]=None,
+        toColumn:typing.Optional[int]=None,
+        smartDecodeUrl=True,
+        relativeTo:typing.Optional[paths.URLCompatible]=None
         )->None:
         """
         assign the value of this file location
+
+        If the given filename ends with : indices, then it attempts
+        to extract file locations. eg.
+            main.c:100
+            main.c:100:4
+            main.c:100,4
+            main.c:100,4 101,10
+            ... and similar
         """
-        fileLocationParts=fileLocation.replace('\\','/').split('/')
-        fileRowCol=fileLocationParts[-1].split(':')
-        if row is None:
-            row=0
+        self.smartDecodeUrl=smartDecodeUrl
+        Url.assign(self,url,relativeTo)
+        if fromRow is None:
+            fromRow=0
+        if fromColumn is None:
+            fromColumn=0
+        fileLocationParts=repr(Url).replace('\\','/').split('/')
+        fileRowCol=fileLocationParts[-1].split(':',1)
         if len(fileRowCol)>1:
-            if row==0:
-                row=int(fileRowCol[1])
-            if len(fileRowCol)>2 and col==0:
-                col=int(fileRowCol[2])
-            fileLocationParts[-1]=fileRowCol[0]
-            fileLocation='/'.join(fileLocationParts)
-        self._url=fileLocation
-        self.row=row
-        self.fromColumn=col
+            fileRowCol=fileRowCol[1]\
+                .replace(':',' ')\
+                .replace(',',' ')\
+                .replace('-',' ')\
+                .replace(';',' ')\
+                .split()
+            if fromRow==0:
+                fromRow=int(fileRowCol[1])
+            if len(fileRowCol)>2 and fromColumn==0:
+                fromColumn=int(fileRowCol[2])
+            if len(fileRowCol)>3 and toRow==0:
+                toRow=int(fileRowCol[3])
+            if len(fileRowCol)>4 and toColumn==0:
+                toColumn=int(fileRowCol[4])
+        self.fromRow=fromRow
+        self.fromColumn=fromColumn
+        if toRow is None:
+            toRow=fromRow
+        if toColumn is None:
+            toColumn=fromColumn
+        self.toRow=toRow
+        self.toColumn=toColumn
 
     @property
     def url(self)->paths.URL:
@@ -340,7 +372,10 @@ class FileLocation(LocationWithinFile):
         """
         return self.url.filePath
 
-    def html(self,hrefFormat,title=None):
+    def html(self, # pylint: disable=invalid-overridden-method
+        hrefFormat:str='',
+        title:typing.Optional[str]=None
+        )->str:
         """
         Get this as an html tag.
 
@@ -426,22 +461,25 @@ class FileLocation(LocationWithinFile):
             ret.append(':')
         ret.append(LocationWithinFile.__repr__(self))
         return ''.join(ret)
-FileLocationRange=FileLocation
+FileLocationRange=UrlWithFileLocation
+FileLocation=UrlWithFileLocation
 
-FileLocationCompatible=typing.Union[FileLocation,paths.URLCompatible]
-def asFileLocation(location:FileLocationCompatible)->FileLocation:
+UrlLocationCompatible=typing.Union[UrlWithFileLocation,paths.URLCompatible]
+FileLocationCompatible=UrlLocationCompatible
+def asUrlWithFileLocation(location:UrlLocationCompatible)->UrlWithFileLocation:
     """
-    Always return a FileLocation, either
+    Always return a UrlWithFileLocation, either
     by creating one or by returning the
     value passed in
     """
-    if isinstance(location,FileLocation):
+    if isinstance(location,UrlWithFileLocation):
         return location
-    return FileLocation(location)
+    return UrlWithFileLocation(location)
+asFileLocation=asUrlWithFileLocation
 
-class MultiFileLocation(FileLocation):
+class UrlWithFileLocations(UrlWithFileLocation):
     """
-    A FileLocation that occours in more than one spot.
+    A UrlWithFileLocation that occours in more than one spot.
 
     For instance a "Find All" list
 
@@ -452,17 +490,18 @@ class MultiFileLocation(FileLocation):
         fileLocations:typing.Iterable[LocationWithinFile],
         smartDecodeUrl:bool=True):
         """ """
-        FileLocation.__init__(self,url,smartDecodeUrl=smartDecodeUrl)
+        UrlWithFileLocation.__init__(self,url,smartDecodeUrl=smartDecodeUrl)
         self.locations:typing.List[LocationWithinFile]=list(fileLocations)
 
     @property
-    def fileLocations(self)->typing.Generator[FileLocation,None,None]:
+    def urlFileLocations(self
+        )->typing.Generator[UrlWithFileLocation,None,None]:
         """
         similar to self.locations, but returns full,
         standalone FileLocation objects (with url)
         """
         for fl in self.locations:
-            yield FileLocation(self.url,
+            yield UrlWithFileLocation(self.url,
                 fl.fromRow,fl.fromColumn,
                 fl.toRow,fl.toColumn,
                 self.smartDecodeUrl)
@@ -566,8 +605,8 @@ class MessageLocation:
 
     For instance, a spellchecker that higlights a specific word
     """
-    def __init__(self,msg:str,location:FileLocation):
-        self.location:FileLocation=location
+    def __init__(self,msg:str,location:UrlWithFileLocation):
+        self.location:UrlWithFileLocation=location
         self.msg:str=msg
 
     def __repr__(self):
@@ -581,6 +620,6 @@ class FileLocationError(MessageLocation,Exception):
 
     This is simply a MessageLocation object turned into an Exception
     """
-    def __init__(self,msg:str,location:FileLocation):
+    def __init__(self,msg:str,location:UrlWithFileLocation):
         MessageLocation.__init__(self,msg,location)
         Exception.__init__(self,str(self))
