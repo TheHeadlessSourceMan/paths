@@ -8,10 +8,17 @@ from pathlib import Path
 from .urlTyping import UrlCompatible,asUrl
 
 
-invalidWindowsFilenameCharactersRe=re.compile(r'[<>:"/\\|?*\x00-\x1F\x7F]')
+invalidWindowsFilenameCharactersRe=re.compile(
+    r'[<>:"/\\|?*\x00-\x1F\x7F]|_vti_')
+invalidWindowsFilenamesRe=re.compile(
+    r'CON|PRN|AUX|NUL|COM[0-9]+|LPT[0-9]+|\.lock')
 def sanitizeWindowsFilename(filename:str,replacement:str='_')->str:
     r"""
     Sanitize a windows filename
+
+    NOTE: this function is intended for just a single filename
+    or directory, so saying "/home/file.txt" will become "_home_file.txt"
+    If this is not what you want, you may need to split it before sending in.
 
     In Windows, certain characters are not permitted in filenames due
     to their special functions within the operating system.
@@ -33,14 +40,25 @@ def sanitizeWindowsFilename(filename:str,replacement:str='_')->str:
     See also:
     https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
     """
-    return invalidWindowsFilenameCharactersRe.sub(replacement,filename)
+    filename=invalidWindowsFilenameCharactersRe.sub(replacement,filename)
+    if filename.startswith('~$'):
+        filename=replacement+filename[2:]
+    m=invalidWindowsFilenamesRe.match(filename)
+    if m is not None:
+        filename='_'+filename
+    return filename
 
 
-invalidPosixFilenameCharactersRe=re.compile(r'[;&|<>(){}$"\`~#!^\\/\0]')
+invalidPosixFilenameCharactersRe=re.compile(
+    r'[;&|<>(){}$"\`~#!^\\/\0]')
 invalidLinuxFilenameCharactersRe=invalidPosixFilenameCharactersRe
 def sanitizePosixFilename(filename:str,replacement:str='_')->str:
     """
     Sanitize a posix (aka Linux) filename
+
+    NOTE: this function is intended for just a single filename
+    or directory, so saying "/home/file.txt" will become "_home_file.txt"
+    If this is not what you want, you may need to split it before sending in.
 
     NOTE: technically only the / character is disallowed,
     but this will also remove shell characters which could
@@ -57,6 +75,10 @@ sanitizeLinuxFilename=sanitizePosixFilename
 def sanitizeLocalFilename(filename:str,replacement:str='_')->str:
     """
     Sanitize a filename for the local operating system
+
+    NOTE: this function is intended for just a single filename
+    or directory, so saying "/home/file.txt" will become "_home_file.txt"
+    If this is not what you want, you may need to split it before sending in.
     """
     if os.name=='nt':
         return sanitizeWindowsFilename(filename,replacement)
