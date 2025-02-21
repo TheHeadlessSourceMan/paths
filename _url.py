@@ -78,7 +78,9 @@ class URL(
 
     def __init__(self,
         url:typing.Optional[URLCompatible],
-        relativeTo:typing.Optional[URLCompatible]=None):
+        relativeTo:typing.Optional[URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None):
         """
         Raises MalformedURL exception if url assignment doesn't work.
 
@@ -100,6 +102,10 @@ class URL(
             if NONE, relativeTo is treated as "file://[current directory]"
                 eg asUrl("readme.txt") gives "file://./readme.txt"
         :type relativeTo: str, optional
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
         """
         LoadAndSave.__init__(self)
         DataReadWrite.__init__(self)
@@ -126,7 +132,7 @@ class URL(
         # but True is more used in practice
         self._isDirectory:typing.Optional[bool]=None
         if url is not None:
-            self.assign(url,relativeTo)
+            self.assign(url,relativeTo,maxParentLevels,maxChildLevels)
 
     @property
     def extension(self)->str:
@@ -752,6 +758,8 @@ class URL(
     def assign(self, # pylint: disable=arguments-renamed
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None,
         _useRelTo=True,
         _isDirectory=None
         )->None:
@@ -786,9 +794,15 @@ class URL(
             if NONE, relativeTo is treated as "file:///[current directory]"
                 eg asUrl("readme.txt") gives "file:///./readme.txt"
         :type relativeTo: URLCompatible
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
         """
         from .urlSplitter import urlAssign
-        urlAssign(self,url,relativeTo,_useRelTo,_isDirectory)
+        urlAssign(self,url,
+            relativeTo,maxParentLevels,maxChildLevels,
+            _useRelTo,_isDirectory)
     setUrl=assign
 
     def __add__(self,other:URLCompatible)->"Url":

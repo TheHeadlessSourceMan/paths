@@ -66,16 +66,22 @@ isURLCompatible=isUrlCompatible # alias name
 
 @typing.overload
 def asURL(url:None,
-    relativeTo:typing.Optional[URLCompatible]=None
+    relativeTo:typing.Optional[URLCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None
     )->None:
     ...
 @typing.overload
 def asURL(url:URLCompatible,
-    relativeTo:typing.Optional[URLCompatible]=None
+    relativeTo:typing.Optional[URLCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None
     )->"URL":
     ...
 def asURL(url:typing.Optional[URLCompatible],
-    relativeTo:typing.Optional[URLCompatible]=None
+    relativeTo:typing.Optional[URLCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None
     )->typing.Optional["URL"]:
     r"""
     Gets the url always as a URL object or None if it is None or "".
@@ -101,7 +107,7 @@ def asURL(url:typing.Optional[URLCompatible],
         ^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?
         or something from https://regexpattern.com/
 
-    :param url: Can be:
+    :url: Can be:
         * another URL object
         * a properly-formatted URL string
         * any object with a (Url,url, or URL) data member
@@ -109,8 +115,7 @@ def asURL(url:typing.Optional[URLCompatible],
             or even (href,src,location,rel) like in html-ish objects
         * a file object with a .name member
         * a system path+file where the path exists
-    :type url: URLCompatible
-    :param relativeTo: the url parameter is relative to this.
+    :relativeTo: the url parameter is relative to this.
         eg asUrl('about.htm','http://fooblatz.com') gives
             "http://fooblatz.com/about.htm"
         if relativeTo is a simple string ending in ":"
@@ -118,7 +123,10 @@ def asURL(url:typing.Optional[URLCompatible],
             eg asURL('bob@mailbox.com','mailto:')
         if NONE, relativeTo is treated as "file://[current directory]"
             eg asUrl("readme.txt") gives "file://./readme.txt"
-    :type relativeTo: str, optional
+    :maxParentLevels: the maximum number of parent levels to allow
+        in a relative path - for security, recommend setting this to 0
+    :maxChildLevels: the maximum number of child levels to allow
+        in a relative path
     :return: A URL object of url
     :rtype: URL
     """
@@ -127,7 +135,7 @@ def asURL(url:typing.Optional[URLCompatible],
     import paths
     if isinstance(url,paths.URL):
         return url
-    return paths.URL(url,relativeTo)
+    return paths.URL(url,relativeTo,maxParentLevels,maxChildLevels)
 asUrl=asURL # alias name
 
 

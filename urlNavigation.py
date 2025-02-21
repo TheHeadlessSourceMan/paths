@@ -91,10 +91,17 @@ class UrlNavigation:
     getChild=subdir
 
     def getRelativeUrl(self,
-        url:typing.Optional[URLCompatible]
+        url:typing.Optional[URLCompatible],
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None
         )->"URL":
         """
         Turns a relative url (eg href="./about") to its full form.
+
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
 
         Example:
             u=Url("http://something.com/foo/bar/app?q=1")
@@ -110,6 +117,8 @@ class UrlNavigation:
         TODO: open up a browser and verify this gives the same answer
             (getRelativeUrl may need to be a switching mechanism
             between getSibling and getChild)
+
+        TODO: support maxParentLevels and minParentLevels
         """
         return self.getSibling(url)
     unRelativeUrl=getRelativeUrl

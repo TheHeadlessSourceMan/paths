@@ -13,6 +13,8 @@ import paths
 def urlAssign(self:paths.URL,
     url:typing.Optional[paths.URLCompatible],
     relativeTo:typing.Optional[paths.URLCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None,
     _useRelTo=True,
     _isDirectory=None
     )->None:
@@ -47,6 +49,10 @@ def urlAssign(self:paths.URL,
         if NONE, relativeTo is treated as "file:///[current directory]"
             eg asUrl("readme.txt") gives "file:///./readme.txt"
     :type relativeTo: URLCompatible
+    :maxParentLevels: the maximum number of parent levels to allow
+        in a relative path - for security, recommend setting this to 0
+    :maxChildLevels: the maximum number of child levels to allow
+        in a relative path
     """
     self.clear()
     self._isDirectory=_isDirectory # pylint: disable=protected-access
@@ -157,7 +163,7 @@ def urlAssign(self:paths.URL,
             else:
                 ret.cgi[item[0]]=item[1]
     if not ret.protocol and _useRelTo:
-        r2=relativeTo.getRelativeUrl(ret) # type: ignore
+        r2=relativeTo.getRelativeUrl(ret,maxParentLevels,maxChildLevels)
         if r2 is None:
             raise paths.MalformedURL(url,'relative url broke')
         else:

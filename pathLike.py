@@ -138,13 +138,19 @@ class PathLike:
         path:typing.Optional["PathCompatible"],
         relativeTo:typing.Optional["PathCompatible"]=None,
         separators:typing.Sequence[str]='/\\',
-        inheritChanges:bool=False):
+        inheritChanges:bool=False,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None
+        ):
         """
         :separators: all separators that can denote a path break
             the first separator is used as the join
-
         :inheritChanges: if True, changes to this will result in changes to the
             derived path.  If False (default) the returned path is new.
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
         """
         self._pathSteps:typing.List[PathStep]=[]
         self.separators:typing.Sequence[str]=separators
@@ -154,7 +160,7 @@ class PathLike:
                 self._boundParentPath=relativeTo
                 self.assign(path)
             else:
-                self.assign(path,relativeTo)
+                self.assign(path,relativeTo,maxParentLevels,maxChildLevels)
 
     @property
     def params(self)->ParamDict:
@@ -165,15 +171,23 @@ class PathLike:
 
     def assign(self,
         path:"PathCompatible",
-        relativeTo:typing.Optional["PathCompatible"]=None):
+        relativeTo:typing.Optional["PathCompatible"]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None):
         """
         Assign the value of this path
+
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
         """
         # munch on relativeTo first, in case they passed in self
         if relativeTo is not None and (
             not isinstance(relativeTo,PathLike)\
             or id(relativeTo)==id(self)):
-            relativeTo=PathLike(relativeTo)
+            relativeTo=PathLike(relativeTo,
+                maxParentLevels=maxParentLevels,maxChildLevels=maxChildLevels)
         # make path always a string
         if not isinstance(path,str):
             if isinstance(path,PathLike):
@@ -194,6 +208,7 @@ class PathLike:
             self._pathSteps=[PathStep(ps) for ps in pathParts]
         else:
             # add relativeTo first, then the path
+            # TODO: support maxParentLevels and maxChildLevels
             self._pathSteps=[ps for ps in relativeTo]
             self._pathSteps.extend([PathStep(ps) for ps in pathParts])
 
@@ -230,13 +245,19 @@ class PathLike:
 
     def getRelative(self,
         relative:"PathCompatible",
-        inheritChanges=False
+        inheritChanges=False,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None
         )->'PathLike':
         """
         Get a path relative to this one
 
         :inheritChanges: if True, changes to this will result in changes to the
             derived path. If False(default) the returned path is a new object.
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
 
         NOTE: given existing path x, these are equivilent:
             1) y=Path(relativePath,x)
@@ -244,7 +265,9 @@ class PathLike:
             3) y=x+relativePath
         """
         return PathLike(relative,self,separators=self.separators,
-            inheritChanges=inheritChanges)
+            inheritChanges=inheritChanges,
+            maxParentLevels=maxParentLevels,
+            maxChildLevels=maxChildLevels)
     get=getRelative
 
     def __add__(self,relative:"PathCompatible")->'PathLike':

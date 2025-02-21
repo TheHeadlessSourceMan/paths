@@ -229,14 +229,21 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         toRow:typing.Optional[int]=None,
         toColumn:typing.Optional[int]=None,
         smartDecodeUrl=True,
-        relativeTo:typing.Optional[paths.URLCompatible]=None):
-        """ """
+        relativeTo:typing.Optional[paths.URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None):
+        """
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
+        """
         self.smartDecodeUrl:bool=smartDecodeUrl
         LocationWithinFile.__init__(self)
         Url.__init__(self,'')
         self.assign(url,
             fromRow,fromColumn,toRow,toColumn,
-            smartDecodeUrl,relativeTo)
+            smartDecodeUrl,relativeTo,maxParentLevels,maxChildLevels)
 
     def __eq__(self, __o: object)->bool:
         """
@@ -310,7 +317,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         toRow:typing.Optional[int]=None,
         toColumn:typing.Optional[int]=None,
         smartDecodeUrl=True,
-        relativeTo:typing.Optional[paths.URLCompatible]=None
+        relativeTo:typing.Optional[paths.URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None
         )->None:
         """
         assign the value of this file location
@@ -322,9 +331,14 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             main.c:100,4
             main.c:100,4 101,10
             ... and similar
+
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
         """
         self.smartDecodeUrl=smartDecodeUrl
-        Url.assign(self,url,relativeTo)
+        Url.assign(self,url,relativeTo,maxParentLevels,maxChildLevels)
         if fromRow is None:
             fromRow=0
         if fromColumn is None:
