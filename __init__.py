@@ -13,3 +13,4 @@ from .loadAndSave import *
 from .fileLocation import *
 from .mimeType import *
 from .errors import *
+from .pathlibGlue import *
