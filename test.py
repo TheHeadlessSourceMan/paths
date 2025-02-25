@@ -6,10 +6,15 @@ Run unit tests
 See:
     http://pyunit.sourceforge.net/pyunit.html
 """
+import typing
 import unittest
 import os
 import paths
-from paths import URL, asUrl, MalformedURL
+from paths import (
+    URL,asUrl,MalformedURL,
+    filenameSymbolToName,
+    sanitizeWindowsFilename,sanitizePosixFilename,deSanitizeFilename,
+    sanitizePath,deSanitizePath)
 
 
 def assertMember(obj,valname,expected):
@@ -410,6 +415,63 @@ class Test(unittest.TestCase): # pylint: disable=no-member
             gotException=True
         assert not gotException
 
+    def testSanitizeFilename(self):
+        """
+        Test sanitizing of simple filenames
+        """
+        for delimiter in ('_','-'):
+            tests={
+                f"{delimiter}":f"{delimiter}{delimiter}",
+                f"{delimiter}{delimiter}":
+                    f"{delimiter}{delimiter}{delimiter}{delimiter}",
+                "_vti_":f"{delimiter}_vti_{delimiter}",
+                "CON":f"{delimiter}CON{delimiter}",
+                "PRN":f"{delimiter}PRN{delimiter}",
+                "AUX":f"{delimiter}AUX{delimiter}",
+                "NUL":f"{delimiter}NUL{delimiter}",
+                ".lock":f"{delimiter}DOTLOCK{delimiter}",
+                "COM3":f"{delimiter}COM3{delimiter}",
+                "LPT1":f"{delimiter}LPT1{delimiter}",
+                }
+            for invalidChar in '<>:"/\\|?*\x7F':
+                tests[invalidChar]=\
+                    delimiter+filenameSymbolToName[invalidChar]+delimiter
+            for path,result in tests.items():
+                sanitizedW=sanitizeWindowsFilename(path)
+                assert sanitizedW==result
+                desanitized=deSanitizeFilename(sanitizedW)
+                assert desanitized==path
+            tests={
+                f"{delimiter}":f"{delimiter}{delimiter}",
+                f"{delimiter}{delimiter}":
+                    f"{delimiter}{delimiter}{delimiter}{delimiter}",
+                }
+            for invalidChar in ';&|<>(){}$"`~#!^\\/\0':
+                tests[invalidChar]=\
+                    delimiter+filenameSymbolToName[invalidChar]+delimiter
+            for path,result in tests.items():
+                sanitizedP=sanitizePosixFilename(path)
+                assert sanitizedP==result
+                desanitized=deSanitizeFilename(sanitizedW)
+                assert desanitized==path
+
+    def testSanitizePath(self):
+        """
+        Test sanitizing of paths
+        """
+        for delimiter in ('_','-'):
+            for pathsep in ('/','\\'):
+                tests:typing.Dict[str,str]={}
+                for invalidChar in '<>': # don't need to be too extensive
+                    pth=''.join([pathsep,'home',pathsep,invalidChar,pathsep])
+                    real=''.join([pathsep,'home',pathsep,delimiter,
+                        filenameSymbolToName[invalidChar],delimiter,pathsep])
+                    tests[pth]=real
+                for path,result in tests.items():
+                    sanitized=str(sanitizePath(path))
+                    assert sanitized==result
+                    desanitized=pathsep.join(deSanitizePath(sanitized))
+                    assert desanitized==path
 
 def testSuite():
     """
@@ -429,6 +491,8 @@ def testSuite():
     testSuite.addTest(Test("testCommandLine"))
     testSuite.addTest(Test("testIpUrl"))
     testSuite.addTest(Test("testReadWrite"))
+    testSuite.addTest(Test("testSanitizeFilename"))
+    testSuite.addTest(Test("testSanitizePath"))
     return testSuite
 
 
