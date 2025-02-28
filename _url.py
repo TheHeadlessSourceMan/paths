@@ -80,7 +80,8 @@ class URL(
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
-        maxChildLevels:typing.Optional[int]=None):
+        maxChildLevels:typing.Optional[int]=None,
+        _useRelTo:bool=True):
         """
         Raises MalformedURL exception if url assignment doesn't work.
 
@@ -131,8 +132,9 @@ class URL(
         # basically False is more standards-compliant,
         # but True is more used in practice
         self._isDirectory:typing.Optional[bool]=None
-        if url is not None:
-            self.assign(url,relativeTo,maxParentLevels,maxChildLevels)
+        if url is not None and (not isinstance(url,str) or url):
+            self.assign(
+                url,relativeTo,maxParentLevels,maxChildLevels,_useRelTo)
 
     @property
     def extension(self)->str:
@@ -677,6 +679,10 @@ class URL(
         if isinstance(url,URL):
             return str(url)
         if not isinstance(url,(str,bytes)):
+            # if it's blank, treat it the same as None
+            url=url.lstrip()
+            if not url:
+                return None
             # check its members for something url-like
             foundSomething=False
             for memberName in self.URL_LIKE_MEMBERS:
