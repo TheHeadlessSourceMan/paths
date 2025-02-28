@@ -360,6 +360,8 @@ class PathLike:
         """
         where possible, access like an object member
         """
+        if not self._pathSteps:
+            return ''
         return getattr(self._pathSteps,__name)
 
     def matchesPath(self,path:'PathCompatible')->bool:

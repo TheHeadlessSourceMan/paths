@@ -10,7 +10,7 @@ import typing
 import re
 import urllib.parse
 import paths
-from ._url import Url
+from paths._url import Url
 
 
 class LocationWithinFile:
@@ -22,12 +22,15 @@ class LocationWithinFile:
     """
 
     def __init__(self,
-        fromRow:typing.Optional[int]=None,fromColumn:typing.Optional[int]=None,
-        toRow:typing.Optional[int]=None,toColumn:typing.Optional[int]=None):
-        self._fromLine:typing.Optional[int]=fromRow
-        self._fromColumn:typing.Optional[int]=fromColumn
-        self._toLine:typing.Optional[int]=toRow
-        self._toColumn:typing.Optional[int]=toColumn
+        fromRow:typing.Optional[int]=None,
+        fromColumn:typing.Optional[int]=None,
+        toRow:typing.Optional[int]=None,
+        toColumn:typing.Optional[int]=None):
+        """ """
+        self.fromRow:typing.Optional[int]=fromRow
+        self.fromColumn:typing.Optional[int]=fromColumn
+        self.toRow:typing.Optional[int]=toRow
+        self.toColumn:typing.Optional[int]=toColumn
 
     def __eq__(self, __o: object)->bool:
         """
@@ -101,69 +104,70 @@ class LocationWithinFile:
         """
         same as fromRow
         """
-        return self._fromLine
+        return self.fromRow
     @fromLine.setter
     def fromLine(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
+        self.fromRow=fromLine
     @property
     def line(self):
         """
         same as fromRow
         """
-        return self._fromLine
+        return self.fromRow
     @line.setter
     def line(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
-
-    @property
-    def fromRow(self):
-        """
-        same as fromRow
-        """
-        return self._fromLine
-    @fromRow.setter
-    def fromRow(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
+        self.fromRow=fromLine
     @property
     def row(self):
         """
         same as fromRow
         """
-        return self._fromLine
+        return self.fromRow
     @row.setter
-    def row(self,fromLine:typing.Optional[int]):
-        self._fromLine=fromLine
+    def row(self,row:typing.Optional[int]):
+        self.fromRow=row
 
     @property
     def toLine(self):
         """
         same as toRow
         """
-        return self._toLine
+        return self.toRow
     @toLine.setter
     def toLine(self,toLine:typing.Optional[int]):
-        self._toLine=toLine
-    @property
-    def toRow(self):
-        """
-        same as toRow
-        """
-        return self.toLine
-    @toRow.setter
-    def toRow(self,toRow:typing.Optional[int]):
-        self.toLine=toRow
+        self.toRow=toLine
 
     @property
-    def fromColumn(self):
+    def numRows(self):
+        """
+        numnber of rows
+        """
+        return self.toRow-self.fromRow+1
+    @numRows.setter
+    def numRows(self,numRows:typing.Optional[int]):
+        self.toColumn=None
+        if numRows is None or numRows<=0:
+            numRows=1
+        self.toRow=self.fromRow+numRows-1
+    @property
+    def numLines(self):
+        """
+        same as numRows
+        """
+        return self.numLines
+    @numLines.setter
+    def numLines(self,numLines:typing.Optional[int]):
+        self.numRows=numLines
+
+    @property
+    def fromCol(self):
         """
         starting column/character for the given row in the file
         """
-        return self._fromColumn
-    @fromColumn.setter
-    def fromColumn(self,fromColumn:typing.Optional[int]):
-        if fromColumn is None:
-            fromColumn=0
-        self._fromColumn=fromColumn
+        return self.fromColumn
+    @fromCol.setter
+    def fromCol(self,fromCol:typing.Optional[int]):
+        self.fromColumn=fromCol
     @property
     def col(self):
         """
@@ -173,18 +177,25 @@ class LocationWithinFile:
     @col.setter
     def col(self,fromColumn:typing.Optional[int]):
         self.fromColumn=fromColumn
+    @property
+    def column(self):
+        """
+        starting column/character for the given row in the file
+        """
+        return self.fromColumn
+    @column.setter
+    def column(self,column:typing.Optional[int]):
+        self.fromColumn=column
 
     @property
-    def toColumn(self):
+    def toCol(self):
         """
         ending column/character for the given row in the file
         """
-        return self._toColumn
-    @toColumn.setter
-    def toColumn(self,toColumn:typing.Optional[int]):
-        if toColumn is None:
-            toColumn=-1
-        self._toColumn=toColumn
+        return self.toColumn
+    @toCol.setter
+    def toCol(self,toCol:typing.Optional[int]):
+        self.toColumn=toCol
 
     def __repr__(self)->str:
         """
@@ -217,6 +228,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     * how does this work with proper urls?
     * should slicing [] notation also be a valid url notation?
         myfile.txt[1:-1]
+
+    NOTE: behind the scenes this is also a URL of the form specified in RFC-5147
+    https://datatracker.ietf.org/doc/html/rfc5147
     """
 
     FILE_LOCATION_REGEX=re.compile(
@@ -339,35 +353,70 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         """
         self.smartDecodeUrl=smartDecodeUrl
         Url.assign(self,url,relativeTo,maxParentLevels,maxChildLevels)
-        if fromRow is None:
-            fromRow=0
-        if fromColumn is None:
-            fromColumn=0
-        fileLocationParts=repr(Url).replace('\\','/').split('/')
-        fileRowCol=fileLocationParts[-1].split(':',1)
-        if len(fileRowCol)>1:
-            fileRowCol=fileRowCol[1]\
-                .replace(':',' ')\
-                .replace(',',' ')\
-                .replace('-',' ')\
-                .replace(';',' ')\
-                .split()
-            if fromRow==0:
-                fromRow=int(fileRowCol[1])
-            if len(fileRowCol)>2 and fromColumn==0:
-                fromColumn=int(fileRowCol[2])
-            if len(fileRowCol)>3 and toRow==0:
-                toRow=int(fileRowCol[3])
-            if len(fileRowCol)>4 and toColumn==0:
-                toColumn=int(fileRowCol[4])
-        self.fromRow=fromRow
-        self.fromColumn=fromColumn
-        if toRow is None:
-            toRow=fromRow
-        if toColumn is None:
-            toColumn=fromColumn
-        self.toRow=toRow
-        self.toColumn=toColumn
+        if fromRow is not None:
+            self.fromRow=fromRow
+        if fromColumn is not None:
+            self.fromColumn=fromColumn
+        if toRow is not None:
+            self.toRow=toRow
+        if toColumn is not None:
+            self.toColumn=toColumn
+
+    @property
+    def fromRow(self)->int:
+        """
+        starting row of this file location
+        """
+        parts=self.fragments.get('line','0').split(',')
+        return int(parts[0])
+    @fromRow.setter
+    def fromRow(self,fromRow:int):
+        parts=list(self.fragments.get('line','0').split(','))
+        parts[0]=str(fromRow)
+        self.fragments.set('line',','.join(parts))
+    @property
+    def toRow(self)->int:
+        """
+        ending row of this file location
+        """
+        parts=self.fragments.get('line','0').split(',')
+        return int(parts[-1])
+    @toRow.setter
+    def toRow(self,toRow:int):
+        parts=list(self.fragments.get('line','0').split(','))
+        if len(parts)>1:
+            parts[1]=str(toRow)
+        else:
+            parts.append(str(toRow))
+        self.fragments.set('line',','.join(parts))
+
+    @property
+    def fromColumn(self)->int:
+        """
+        starting Column of this file location
+        """
+        parts=self.fragments.get('char','0').split(',')
+        return int(parts[0])
+    @fromColumn.setter
+    def toColmn(self,fromColumn:int):
+        parts=list(self.fragments.get('char','0').split(','))
+        parts[0]=str(fromColumn)
+        self.fragments.set('char',','.join(parts))
+    @property
+    def toColumn(self)->int:
+        """
+        ending Column of this file location
+        """
+        parts=self.fragments.get('char','0').split(',')
+        return int(parts[-1])
+    @toColumn.setter
+    def toColumn(self,toColumn:int):
+        parts=list(self.fragments.get('char','0').split(','))
+        if len(parts)>1:
+            parts[1]=str(toColumn)
+        else:
+            parts.append(str(toColumn))
+        self.fragments.set('char',','.join(parts))
 
     @property
     def url(self)->paths.URL:
@@ -424,7 +473,10 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         if otherReplacements is not None:
             for k,v in otherReplacements.items():
                 fmt=fmt.replace('{%s}'%k,str(v))
-        replacements={'filename':self.filename,'row':self.row,'col':self.col}
+        replacements={
+            'filename':self.fullPath,
+            'row':self.row,
+            'col':self.col}
         for k,v in replacements.items():
             fmt=fmt.replace('{%s}'%k,str(v))
         # now solve all conditionals
@@ -449,32 +501,6 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     def __repr__(self)->str:
         return self.formatted('{filename}{row?:{row}{col?:{col}}}')
 
-    def __old_repr__(self)->str:
-        r"""
-        Get this location as a string.  Eg:
-            /home/tjones/file.txt:3
-
-        If there is no associated file/url then will simply say
-            Line 3
-        """
-        ret:typing.List[str]=[]
-        try:
-            url=self.url
-            if url is None:
-                if self.line is not None:
-                    ret.append('Line ')
-                elif url.protocol=='file' and url.filePath is not None:
-                    ret.append(url.filePath)
-                    ret.append(':')
-                else:
-                    ret.append(str(url))
-                    ret.append(':')
-        except paths.MalformedURL:
-            # if there's an error, print what we've got so we can debug
-            ret.append(str(self._url))
-            ret.append(':')
-        ret.append(LocationWithinFile.__repr__(self))
-        return ''.join(ret)
 FileLocationRange=UrlWithFileLocation
 FileLocation=UrlWithFileLocation
 

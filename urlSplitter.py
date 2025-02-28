@@ -10,7 +10,8 @@ import urllib
 import paths
 
 
-def urlAssign(self:paths.URL,
+def urlAssign(
+    self:paths.URL,
     url:typing.Optional[paths.URLCompatible],
     relativeTo:typing.Optional[paths.URLCompatible]=None,
     maxParentLevels:typing.Optional[int]=None,
@@ -67,10 +68,13 @@ def urlAssign(self:paths.URL,
         self.path=url.path
         self.isUNC=url.isUNC
         self.resource=url.resource
+        self.fragment=url.fragment
         self.cgi=url.cgi.copy()
         return
     # make it ALWAYS a simple url string for processing
     url=self._getUrlString(url) # pylint: disable=protected-access
+    if url is None:
+        return # it was already cleared above
     # check for possibly malformed file://
     #    technically file://foo/bar means foo=host, though most people assume
     #    foo is directory the "correct" way of foo as a directory
@@ -120,17 +124,33 @@ def urlAssign(self:paths.URL,
     if len(url)<2 or url[1]==':':
         # windows-like filename (eg c:\something)
         isWindowsAbsolutePath=True
-        relativeTo='file:///./' # no real need as c:\ is an absolute path
-        url='/'+url.replace('\\','/')
+        url='file:///'+url.replace('\\','/')
     elif os.sep!='/':
         url=url.replace(os.sep,'/')
     # url is always using '/' as the separator from here on out
+    isAbsolutePath=url[0]=='/' or isWindowsAbsolutePath
+    # check for things that should be transformed to fragments, specifically,
+    # file.txt:10-11 should be handled by RFC-5147
+    # https://datatracker.ietf.org/doc/html/rfc5147
+    resourceAndFrag=url.rsplit('/',1)[-1].split(':',1)
+    if len(resourceAndFrag)>1:
+        fileFrag=resourceAndFrag[-1]\
+            .replace(',',' ')\
+            .replace(':',' ')\
+            .replace(';',' ')\
+            .split()
+        urlFrag=[]
+        if len(fileFrag)>0:
+            urlFrag.append(f"line={fileFrag[0].replace('-',',')}")
+            if len(fileFrag)>1:
+                urlFrag.append(f"char={fileFrag[1].replace('-',',')}")
+        frag=';'.join(urlFrag)
+        url=f"{url.rsplit('/',1)[0]}/{resourceAndFrag[0]}#{frag}"
     # make sure relativeTo is ready for use
-    if _useRelTo:
+    if not isAbsolutePath and _useRelTo:
         if relativeTo is None:
             relativeTo='file:///./'
-        rTo=paths.URL(None)
-        rTo.assign(relativeTo,None,False)
+        rTo=paths.URL(relativeTo,_useRelTo=False)
         if rTo is None:
             raise paths.MalformedURL(
                 str(relativeTo),"Unable to parse url for relativeTo")
@@ -153,6 +173,7 @@ def urlAssign(self:paths.URL,
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path
+    ret.fragment=parsed.fragment
     ret.cgi.clear()
     if parsed.query is not None and parsed.query:
         cgi=parsed.query.split('&')
@@ -162,7 +183,7 @@ def urlAssign(self:paths.URL,
                 ret.cgi[item[0]]=None
             else:
                 ret.cgi[item[0]]=item[1]
-    if not ret.protocol and _useRelTo:
+    if (not ret.protocol) and _useRelTo:
         r2=relativeTo.getRelativeUrl(ret,maxParentLevels,maxChildLevels)
         if r2 is None:
             raise paths.MalformedURL(url,'relative url broke')
@@ -170,7 +191,7 @@ def urlAssign(self:paths.URL,
             ret=r2
     if ret.host is None and ret.protocol!='file':
         raise paths.MalformedURL(url,'missing host')
-    if self.protocol!='file' and self.path is not None:
+    if ret.protocol!='file' and ret.path is not None:
         # remove any leading / from path
         if path.startswith('/'):
             path=path[1:]
