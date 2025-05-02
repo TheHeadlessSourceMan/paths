@@ -254,8 +254,8 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             in a relative path
         """
         self.smartDecodeUrl:bool=smartDecodeUrl
-        LocationWithinFile.__init__(self)
         Url.__init__(self,'')
+        LocationWithinFile.__init__(self)
         self.assign(url,
             fromRow,fromColumn,toRow,toColumn,
             smartDecodeUrl,relativeTo,maxParentLevels,maxChildLevels)
@@ -374,7 +374,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     def fromRow(self,fromRow:int):
         parts=list(self.fragments.get('line','0').split(','))
         parts[0]=str(fromRow)
-        self.fragments.set('line',','.join(parts))
+        self.fragments['line']=','.join(parts)
     @property
     def toRow(self)->int:
         """
@@ -664,3 +664,6 @@ class FileLocationError(MessageLocation,Exception):
     def __init__(self,msg:str,location:UrlWithFileLocation):
         MessageLocation.__init__(self,msg,location)
         Exception.__init__(self,str(self))
+
+def junk(x):
+    return x+1

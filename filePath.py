@@ -9,6 +9,7 @@ import pathlib
 import datetime
 from _url import URL
 from urlTyping import UrlCompatible
+from search import findFilenamesOfType
 
 
 FilePathCompatible=typing.Union[pathlib.Path,"FilePath",UrlCompatible]
@@ -33,11 +34,34 @@ class FilePath(pathlib.Path,URL):
         pathlib.Path.__init__(self,location)
         URL.__init__(self,location)
 
+    def findFilenamesOfType(
+        self,
+        extensions:typing.Union[None,str,typing.Iterable[str]]=None,
+        recursive:bool=True
+        )->typing.Generator["FilePath",None,None]:
+        """
+        Depth-first file search.
+
+        Yields only files, never directories.
+
+        :extensions: limit results to one or more extensions
+            (extensions must include the dot, for instance [".c",".cpp"])
+        :recursive: default=true
+        """
+        for f in findFilenamesOfType(extensions,self,recursive):
+            yield FilePath(f)
+
     @property
     def extension(self)->str:
+        """
+        File extension
+        """
         return self.suffix
     @property
     def ext(self)->str:
+        """
+        File extension
+        """
         return self.suffix
 
     def makedirs(self,inclusive:bool):

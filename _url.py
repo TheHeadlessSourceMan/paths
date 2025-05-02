@@ -122,7 +122,8 @@ class URL(
         self.subdomain:typing.Optional[str]=None
         self.port:typing.Optional[int]=None
         self._path:typing.Optional[str]=None
-        self.fragment:typing.Optional[str]=None
+        self._fragment:typing.Optional[str]=None
+        self.fragments:typing.Dict[str,str]={}
         self.isUNC:bool=False
         self.cache:bool=True
         self.persist:bool=True
@@ -135,6 +136,22 @@ class URL(
         if url is not None and (not isinstance(url,str) or url):
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels,_useRelTo)
+
+    @property
+    def fragment(self)->str:
+        """
+        get/set the fragment portion of the url
+        """
+        return self._fragment
+    @fragment.setter
+    def fragment(self,fragment:str):
+        print("TODO: setting of fragment is experimental")
+        self._fragment=fragment
+        kv=fragment.split(':',1)
+        if len(kv)<2:
+            self.fragments[kv[0]]='true'
+        else:
+            self.fragments[kv[0]]=kv[1]
 
     @property
     def extension(self)->str:
