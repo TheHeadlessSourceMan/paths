@@ -6,7 +6,7 @@ it made sense to give it its own module.
 """
 import typing
 import os
-import urllib
+import urllib.parse
 import paths
 
 
@@ -16,8 +16,8 @@ def urlAssign(
     relativeTo:typing.Optional[paths.URLCompatible]=None,
     maxParentLevels:typing.Optional[int]=None,
     maxChildLevels:typing.Optional[int]=None,
-    _useRelTo=True,
-    _isDirectory=None
+    _useRelTo:bool=True,
+    _isDirectory:typing.Optional[bool]=None
     )->None:
     """
     Assign this url to something

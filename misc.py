@@ -1,10 +1,11 @@
 """
-Miscelaneous functions for working with paths
+Miscellaneous functions for working with paths
 """
 import typing
 
 
-def skipEmptyines(lines:typing.Union[str,typing.Iterable[str]]
+def skipEmptyLines(
+    lines:typing.Union[str,typing.Iterable[str]]
     )->typing.Generator[str,None,None]:
     """
     Iterate over a series of lines, skipping empty ones
@@ -27,8 +28,8 @@ class StrWithFileLocation:
         self.s=s
 
     def split(self,
-        splitters=None,
-        maxSplit=None
+        splitters:typing.Optional[typing.Iterable[str]]=None,
+        maxSplit:typing.Optional[int]=None
         )->typing.List["StrWithFileLocation"]:
         """
         Implement the standard string split() function
@@ -36,7 +37,7 @@ class StrWithFileLocation:
         return [
             StrWithFileLocation(x,filename=self.filename,lineNo=self.lineNo)
             for x in self.s.split(splitters,maxSplit)]
-    def __eq__(self,other):
+    def __eq__(self,other:typing.Any):
         return self.s==str(other)
     def __hash__(self):
         return hash(self.s)

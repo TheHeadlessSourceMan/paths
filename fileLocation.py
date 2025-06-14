@@ -32,23 +32,35 @@ class LocationWithinFile:
         self.toRow:typing.Optional[int]=toRow
         self.toColumn:typing.Optional[int]=toColumn
 
-    def __eq__(self, __o: object)->bool:
+    def __eq__(self,__o: object)->bool:
         """
         Compare to another location
         """
         if isinstance(__o,LocationWithinFile):
-            if __o.fromRow>1 and self.fromRow>1:
+            if __o.fromRow is None or self.fromRow is None:
+                if __o.fromRow is not self.fromRow:
+                    return False
+            elif __o.fromRow>1 and self.fromRow>1:
                 if __o.fromRow!=self.fromRow:
                     return False
-                if __o.fromColumn>1 and self.fromColumn>1:
-                    if __o.fromColumn!=self.fromColumn:
-                        return False
-                    if __o.toRow>1 and self.toRow>1:
-                        if __o.toRow!=self.toRow:
-                            return False
-                        if __o.toColumn>1 and self.toColumn>1:
-                            if __o.toColumn!=self.toColumn:
-                                return False
+            if __o.fromColumn is None or self.fromColumn is None:
+                if __o.fromColumn is not self.fromColumn:
+                    return False
+            elif __o.fromColumn>1 and self.fromColumn>1:
+                if __o.fromColumn!=self.fromColumn:
+                    return False
+            if __o.toRow is None or self.toRow is None:
+                if __o.toRow is not self.toRow:
+                    return False
+            elif __o.toRow>1 and self.toRow>1:
+                if __o.toRow!=self.toRow:
+                    return False
+            if __o.toColumn is None or self.toColumn is None:
+                if __o.toColumn is not self.toColumn:
+                    return False
+            elif __o.toColumn>1 and self.toColumn>1:
+                if __o.toColumn!=self.toColumn:
+                    return False
             return True
         elif hasattr(__o,'location'):
             return self==getattr(__o,'location')
@@ -243,7 +255,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Optional[int]=None,
         toColumn:typing.Optional[int]=None,
-        smartDecodeUrl=True,
+        smartDecodeUrl:bool=True,
         relativeTo:typing.Optional[paths.URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None):
@@ -389,7 +401,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             parts[1]=str(toRow)
         else:
             parts.append(str(toRow))
-        self.fragments.set('line',','.join(parts))
+        self.fragments['line']=','.join(parts)
 
     @property
     def fromColumn(self)->int:
@@ -399,7 +411,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         parts=self.fragments.get('char','0').split(',')
         return int(parts[0])
     @fromColumn.setter
-    def toColmn(self,fromColumn:int):
+    def toColumn(self,fromColumn:int):
         parts=list(self.fragments.get('char','0').split(','))
         parts[0]=str(fromColumn)
         self.fragments.set('char',','.join(parts))
@@ -520,7 +532,7 @@ asFileLocation=asUrlWithFileLocation
 
 class UrlWithFileLocations(UrlWithFileLocation):
     """
-    A UrlWithFileLocation that occours in more than one spot.
+    A UrlWithFileLocation that occurs in more than one spot.
 
     For instance a "Find All" list
 

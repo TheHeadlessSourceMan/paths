@@ -3,8 +3,7 @@ A simple general-purpose path which could be applied to anything
 (filenames, tree location, url, html dom, etc...)
 """
 import typing
-from collections.abc import Iterable
-import urllib
+import urllib.parse
 from .paramDict import ParamDict
 
 
@@ -53,10 +52,11 @@ class PathStep:
                 if len(kv)<2:
                     kv.append('True')
                 if kv[0] in self.params:
-                    existing=self.params.get(kv[0])
+                    existing:typing.Union[None,str,typing.List[str]]=\
+                        self.params.get(kv[0])
                     if existing is None:
                         self.params[kv[0]]=kv[1]
-                    elif isinstance(existing,Iterable)\
+                    elif hasattr(existing,'__iter__')\
                         and not isinstance(existing,str):
                         existing.append(kv[1])
                     else:
@@ -69,10 +69,10 @@ class PathStep:
         get an order-independent hash of this item
         """
         if self._hash is None:
-            hashstr=[self._name]
+            hashStr=[self._name]
             for k,v in sorted(self.params.items()):
-                hashstr.append(f'{k}={v}')
-            self._hash=hash('&'.join(hashstr))
+                hashStr.append(f'{k}={v}')
+            self._hash=hash('&'.join(hashStr))
         return self._hash
 
     def __eq__(self,other:typing.Any)->bool:
@@ -112,10 +112,10 @@ class PathLike:
         print(p) => "/a/B/c"
 
     Can be relative to another path:
-        p=Path("../clams",relativeTo="/home/~rthomas/crustations/oysters/").reduced()
-        print(p) => "/home/~rthomas/crustations/clams"
+        p=Path("../clams",relativeTo="/home/~rthomas/crustaceans/oysters/").reduced()
+        print(p) => "/home/~rthomas/crustaceans/clams"
     And this can be easily done with the + operator
-        Path(r"c:\directory\wrongdir")+r"..\file.txt"
+        Path(r"c:\directory\wrong_dir")+r"..\file.txt"
         returns "c:\directory\file.txt"
 
     Change separators:
@@ -165,7 +165,7 @@ class PathLike:
     @property
     def params(self)->ParamDict:
         """
-        The params oart of the url
+        The params part of the url
         """
         return self._pathSteps[-1].params
 
@@ -192,7 +192,7 @@ class PathLike:
         if not isinstance(path,str):
             if isinstance(path,PathLike):
                 path=str(path)
-            elif isinstance(path,Iterable):
+            elif hasattr(path,'__iter__'):
                 path=self.separators[0].join([str(ps) for ps in path])
             else:
                 path=str(path)
@@ -245,7 +245,7 @@ class PathLike:
 
     def getRelative(self,
         relative:"PathCompatible",
-        inheritChanges=False,
+        inheritChanges:bool=False,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None
         )->'PathLike':
@@ -259,7 +259,7 @@ class PathLike:
         :maxChildLevels: the maximum number of child levels to allow
             in a relative path
 
-        NOTE: given existing path x, these are equivilent:
+        NOTE: given existing path x, these are equivalent:
             1) y=Path(relativePath,x)
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
@@ -274,7 +274,7 @@ class PathLike:
         """
         Get a new path relative to this one
 
-        NOTE: given existing path x, these are equivilent:
+        NOTE: given existing path x, these are equivalent:
             1) y=Path(relativePath,x)
             2) y=x.getRelative(relativePath)
             3) y=x+relativePath
@@ -485,5 +485,6 @@ class HasMatchesPath(typing.Protocol):
         """
         Determine if this object matches the given path
         """
+        return True
 
 TreePath=PathLike

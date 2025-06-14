@@ -12,12 +12,12 @@ class DecodeError(Exception):
         from paths import URL,UrlWithFileLocation
 
     def __init__(self,
-        occouredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
+        occurredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
         """ """
-        self.occouredIn=occouredIn # save a copy to provide info to catchers
-        if occouredIn is None:
-            occouredIn=''
-        msg=f'Error while attempting to decode {occouredIn}'
+        self.occurredIn=occurredIn # save a copy to provide info to catchers
+        if occurredIn is None:
+            occurredIn=''
+        msg=f'Error while attempting to decode {occurredIn}'
         Exception.__init__(self,msg)
 
 
@@ -29,12 +29,12 @@ class EncodeError(Exception):
         from paths import URL,UrlWithFileLocation
 
     def __init__(self,
-        occouredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
+        occurredIn:typing.Union[None,str,"UrlWithFileLocation","URL"]):
         """ """
-        self.occouredIn=occouredIn # save a copy to provide info to catchers
-        if occouredIn is None:
-            occouredIn=''
-        msg=f'Error while attempting to encode {occouredIn}'
+        self.occurredIn=occurredIn # save a copy to provide info to catchers
+        if occurredIn is None:
+            occurredIn=''
+        msg=f'Error while attempting to encode {occurredIn}'
         Exception.__init__(self,msg)
 
 

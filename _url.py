@@ -204,7 +204,8 @@ class URL(
         preferred:typing.Optional[str]=None,
         newWindow:bool=False,
         newTab:bool=False,
-        autoraise:bool=True)->typing.Any:
+        autoRaise:bool=True
+        )->typing.Any:
         """
         Open this url in the system browser
 
@@ -241,20 +242,20 @@ class URL(
         elif newTab:
             new=2
         browser=webbrowser.get(preferred)
-        browser.open(str(self),new,autoraise)
+        browser.open(str(self),new,autoRaise)
         return browser
 
     @property
     def filename(self)->typing.Any:
         """
-        Url.filename is ambigiuous.  Use: Url.resource instead
+        Url.filename is ambiguous.  Use: Url.resource instead
         """
         raise NotImplementedError(
-            "Url.filename is ambigiuous.  Use: Url.resource instead")
+            "Url.filename is ambiguous.  Use: Url.resource instead")
     @filename.setter
     def filename(self,filename:typing.Any):
         raise NotImplementedError(
-            "Url.filename is ambigiuous.  Use: Url.resource instead")
+            "Url.filename is ambiguous.  Use: Url.resource instead")
 
     def clear(self)->None:
         """
@@ -735,7 +736,7 @@ class URL(
                 # couldn't figure out how that object translates into a URL
                 typename=url.__class__.__name__
                 raise MalformedURL(
-                    str(url),'incompatible type %s for assigning'%typename)
+                    str(url),f'incompatible type {typename} for assigning')
         if isinstance(url,bytes):
             url=url.decode('utf-8','ignore')
         return self._getCleverURL(url)
@@ -848,20 +849,20 @@ def cmdline(args:typing.Iterable[str])->int:
 
     :param args: command line arguments (WITHOUT the filename)
     """
-    printhelp=False
+    printHelp=False
     if not args:
-        printhelp=True
+        printHelp=True
     else:
         for arg in args:
             if arg.startswith('-'):
                 av=[a.strip() for a in arg.split('=',1)]
                 if av[0] in ['-h','--help']:
-                    printhelp=True
+                    printHelp=True
                 else:
                     print('ERR: unknown argument "'+av[0]+'"')
             else:
                 print('ERR: unknown argument "'+arg+'"')
-    if printhelp:
+    if printHelp:
         print('Usage:')
         print('  URL.py [options]')
         print('Options:')

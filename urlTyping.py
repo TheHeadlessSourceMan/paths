@@ -18,7 +18,7 @@ class DictLike(typing.Protocol):
     """
     Duck typing for a dict-like object
     """
-    def keys(self)->str:
+    def keys(self)->typing.Iterable[str]:
         """
         get keys
         """
@@ -92,7 +92,7 @@ def asURL(url:typing.Optional[URLCompatible],
 
     Raises MalformedURL exception if it doesn't work.
 
-    NOTE: This can be a good efficiency boost, but also can lead to mutablily
+    NOTE: This can be a good efficiency boost, but also can lead to mutability
         troubles when sharing the same URL.  For instance, if
         somebody else changes it!
 
@@ -148,7 +148,7 @@ def toURLList(urls:URLListCompatible
     """
     Create a list of URL's from one or more URLCompatible items
 
-    :param urls: one or more URLCompatible items (if None, retuns empt list)
+    :param urls: one or more URLCompatible items (if None, returns empty list)
     :type urls: typing.Union[None,URLCompatible,typing.Iterable[URLCompatible]]
     :return: the urls
     :rtype: typing.List[URL]
