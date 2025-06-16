@@ -22,6 +22,7 @@ class DictLike(typing.Protocol):
         """
         get keys
         """
+        return []
     def __getitem__(self,idx:str)->typing.Any:
         ...
 

@@ -104,7 +104,7 @@ def sanitizeWindowsFilename(
             # first need to handle some special cases that don't lend
             # themselves well to a dict structure
             if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found[0])
+                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
             else:
                 ret.append(filenameSymbolToName[found])
         if lastPos<len(found)-1:
@@ -174,6 +174,7 @@ def sanitizePosixFilename(
         filename=filename.replace(delimiter,delimiter+delimiter)
         # replace all tokens anywhere in the string
         ret:typing.List[str]=[]
+        found=''
         lastPos=0
         for m in invalidWindowsFilenameCharactersRe.finditer(filename):
             if lastPos!=m.start():
@@ -182,7 +183,7 @@ def sanitizePosixFilename(
             # first need to handle some special cases that don't lend
             # themselves well to a dict structure
             if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found[0])
+                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
             else:
                 ret.append(filenameSymbolToName[found])
         if lastPos<len(found)-1:
@@ -227,6 +228,7 @@ def sanitizePath(
 
     Always returns an absolute path that could exist on the system
     """
+    elements:typing.Iterable[str]
     if not isinstance(path,str) and hasattr(path,"__iter__"):
         elements=path
     else:
@@ -326,7 +328,10 @@ escapeLocalFilename=sanitizeLocalFilename
 escapeFilename=sanitizeLocalFilename
 
 
-def deSanitizeLocalFilename(filename:str,delimiter:str='_')->str:
+def deSanitizeLocalFilename(
+    filename:str,
+    delimiter:typing.Optional[str]=None
+    )->str:
     """
     Reverse the operation of a sanitizeFilename by delimiter.
     Used as a pair, these functions can be useful for
@@ -344,9 +349,11 @@ def deSanitizeLocalFilename(filename:str,delimiter:str='_')->str:
     NOTE: deSanitize is portable so filenames sanitized on one os
     can be deSanitized on another
     """
+    if delimiter is None:
+        delimiter='_'
     # first check to see if the whole thing is a special filename
     if filename.startswith(delimiter) and filename.endswith(delimiter):
-        wholeFilename=filename[len(delimiter),-len(delimiter)]
+        wholeFilename=filename[len(delimiter):-len(delimiter)]
         if invalidWindowsFilenamesRe.match(wholeFilename) is not None:
             return wholeFilename
     # now split apart by delimiter

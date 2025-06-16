@@ -52,6 +52,9 @@ class LiveFilePool:
         return self.getData(idx)
 
 
+LiveFileCallback=typing.Callable[["LiveFile"],None]
+
+
 class LiveFile:
     """
     a file with advanced, but easily configurable,
@@ -59,8 +62,6 @@ class LiveFile:
     """
 
     POOL=LiveFilePool()
-
-    LiveFileCallback=typing.Callable[["LiveFile"],None]
 
     def __init__(self,url:URLCompatible):
         self.url=URL(url)

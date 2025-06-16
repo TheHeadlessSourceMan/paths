@@ -28,12 +28,14 @@ class StrWithFileLocation:
         self.s=s
 
     def split(self,
-        splitters:typing.Optional[typing.Iterable[str]]=None,
+        splitters:typing.Optional[str]=None,
         maxSplit:typing.Optional[int]=None
         )->typing.List["StrWithFileLocation"]:
         """
         Implement the standard string split() function
         """
+        if maxSplit is None:
+            maxSplit=-1
         return [
             StrWithFileLocation(x,filename=self.filename,lineNo=self.lineNo)
             for x in self.s.split(splitters,maxSplit)]

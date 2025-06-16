@@ -142,6 +142,8 @@ class URL(
         """
         get/set the fragment portion of the url
         """
+        if self._fragment is None:
+            return ''
         return self._fragment
     @fragment.setter
     def fragment(self,fragment:str):
@@ -188,8 +190,8 @@ class URL(
         or in other words
             dirpath+'/'+filename is usually self.path
         """
-        ret=None
-        if self.path is not None:
+        ret=''
+        if self.path:
             if self.path.endswith('/'):
                 ret=self.path[0:-1]
             else:
@@ -246,14 +248,15 @@ class URL(
         return browser
 
     @property
-    def filename(self)->typing.Any:
+    def filename(self)->str: # type: ignore
         """
         Url.filename is ambiguous.  Use: Url.resource instead
         """
         raise NotImplementedError(
             "Url.filename is ambiguous.  Use: Url.resource instead")
     @filename.setter
-    def filename(self,filename:typing.Any):
+    def filename(self,filename:str): # type: ignore
+        _=filename
         raise NotImplementedError(
             "Url.filename is ambiguous.  Use: Url.resource instead")
 
@@ -268,19 +271,19 @@ class URL(
         self.path=''
         self.isUNC=False
         self.cgi.clear()
-        self.fragment=None
+        self._fragment=None
         self._isDirectory=None
 
     def copy(self)->"URL":
         """
         create an identical copy
         """
-        return Url(self)
+        return URL(self)
 
     def replace(self,
-        replaceThis:typing.Union[str,typing.Pattern],
+        replaceThis:typing.Union[str,typing.Pattern], # type: ignore
         withThis:typing.Union[str,typing.Any]
-        )->"Url":
+        )->"URL":
         """
         Does everything that str.replace() does, so url.replace(x,y)
         is exactly the same as Url(str(url).replace(x,y))
@@ -289,7 +292,7 @@ class URL(
 
         NOTE: if you are trying to replace something with path separators,
         always use "/"
-        NOTE: if your replacement makes this an un-parseble Url(),
+        NOTE: if your replacement makes this an un-parsable Url(),
         that's on you!
         """
         s=str(self)
@@ -299,9 +302,9 @@ class URL(
             s=replaceThis.replace(s,withThis)
         else:
             s=replaceThis.sub(withThis,s)
-        return Url(s)
+        return URL(s)
 
-    def call(self,**kwds)->str:
+    def call(self,**kwargs:typing.ParamSpecKwargs)->str:
         """
         If URL.read() is not advanced enough, you can use this
         to pass cgi parameters.
@@ -309,15 +312,15 @@ class URL(
         You can pass in cgi arguments also!
         Thus:
             u=URL('https://fooblatz.com/something.cgi')
-            u.call(name="fred flinstone")
+            u.call(name="fred flintstone")
         Constructs and fetches:
-            'https://fooblatz.com/something.cgi?name=fred+flinstone')
+            'https://fooblatz.com/something.cgi?name=fred+flintstone')
         NOTE: this is also how you can call the class like a function
-            u(name="fred flinstone")
+            u(name="fred flintstone")
         """
-        if kwds is not None:
+        if kwargs:
             url=self.copy()
-            url.cgi.update(kwds) # type: ignore
+            url.cgi.update(kwargs) # type: ignore
             return url.read()
         return self.read()
     __call__=call
@@ -337,7 +340,7 @@ class URL(
         return '%s:%s'%(self.username,self.password)
     @auth.setter
     def auth(self,auth:str):
-        if auth is None or not auth:
+        if not auth:
             self.username=None
             self.password=None
         else:
@@ -439,7 +442,7 @@ class URL(
             returns
                 /x
         """
-        if path is None or not path:
+        if not path:
             self._path=None
             return
         ret:typing.List[str]=[]
@@ -470,25 +473,17 @@ class URL(
             ret.append('')
         self._path=('/'.join(ret)).replace('//','/').replace('//','/')
 
-    def __eq__(self,
-        url:typing.Any
+    def __eq__(self, # type: ignore
+        url:typing.Optional[URLCompatible]
         )->bool:
         """
         compare this url with another
         """
         if not isURLCompatible(url):
             return False
-        urlObj:URL=asURL(url)
-        if urlObj is None:
+        if url is None:
             return False
-        return (self.protocol==urlObj.protocol and \
-            self.username==urlObj.username and \
-            self.password==urlObj.password and \
-            self.host==urlObj.host and \
-            self.port==urlObj.port and \
-            self.path==urlObj.path and \
-            self.resource==urlObj.resource and \
-            self.cgi==urlObj.cgi)
+        return str(self)==str(asURL(url))
 
     def __hash__(self)->int: # type: ignore
         """
@@ -496,17 +491,19 @@ class URL(
         """
         return self.url.__hash__()
 
-    def sameDomain(self,other:URLCompatible)->bool:
+    def sameDomain(self,
+        other:typing.Optional[URLCompatible]
+        )->bool:
         """
         returns true if the given urls are of the same domain
             (disregarding the domain prefix)
         """
-        otherUrl=asURL(other)
-        if otherUrl is None:
+        if other is None:
             return False
-        if self.domain is None:
+        otherUrl=asURL(other)
+        if not self.domain:
             return self.domain==otherUrl.domain
-        if otherUrl.domain is None:
+        if not otherUrl.domain:
             return False
         return self.domain.lower()==otherUrl.domain.lower()
     domainMatches=sameDomain
@@ -524,8 +521,8 @@ class URL(
         """
         return urllib.parse.unquote(s)
 
-    @property # type: ignore
-    def url(self)->str:
+    @property
+    def url(self)->str: # type: ignore
         """
         the url in plain old string form
         """
@@ -548,11 +545,11 @@ class URL(
             if self.port is not None:
                 ret.append(':')
                 ret.append(str(self.port))
-        if self.path is not None:
+        if self.path:
             if self.host is not None:
                 ret.append('/')
             allowColons=self.protocol=='file'
-            px=[]
+            px:typing.List[str]=[]
             for p in self.path.split('/'):
                 p=urllib.parse.quote(p)
                 if self.ignoreAlreadyEncoded:
@@ -568,7 +565,7 @@ class URL(
                 else:
                     px.append(p)
             ret.append('/'.join(px))
-        if self.path is not None or self.host is not None:
+        if (not self.path) or (self.host is not None):
             ret.append('/')
         if self.resource is not None:
             ret.append(urllib.parse.quote(self.resource))
@@ -605,7 +602,7 @@ class URL(
         """
         path, including the resource
         """
-        if self.path is None:
+        if not self.path:
             if self.resource is None:
                 return None
             return self.resource
@@ -658,7 +655,7 @@ class URL(
         NOTE: that is self.host = self.subdomain + self.domain
             eg "www.fooblatz.com"="www"+"."+"fooblatz.com"
         """
-        if self.domain is None:
+        if not self.domain:
             return None
         if self.subdomain is not None:
             return '%s.%s'%(self.subdomain,self.domain)
@@ -684,7 +681,9 @@ class URL(
                 self.domain=host
                 self.subdomain=None
 
-    def _getUrlString(self,url:URLCompatible)->str:
+    def _getUrlString(self,
+        url:typing.Optional[URLCompatible]
+        )->typing.Optional[str]:
         """
         get the best(tm) possible url string from an object
 
@@ -696,7 +695,7 @@ class URL(
             return None
         if isinstance(url,URL):
             return str(url)
-        if not isinstance(url,(str,bytes)):
+        if isinstance(url,(str,bytes)):
             # if it's blank, treat it the same as None
             url=url.lstrip()
             if not url:
@@ -711,7 +710,7 @@ class URL(
                         url=url()
                     if isinstance(url,URL):
                         # in case the member was a URL obj
-                        return url.url
+                        return str(url.url)
                     break
             if (not foundSomething) \
                 and hasattr(url,'read') \
@@ -721,7 +720,7 @@ class URL(
                 url=getattr(url,'name')
             if (not foundSomething) and hasattr(url,'keys'):
                 # it's a dict-like, so we can check that too
-                keys=typing.cast(typing.Dict[str,typing.Any],url).keys()
+                keys:typing.Iterable[str]=url.keys()
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
@@ -779,13 +778,13 @@ class URL(
     def isDirectory(self,isDirectory:bool):
         self._isDirectory=isDirectory
 
-    def assign(self, # pylint: disable=arguments-renamed
+    def assign(self, # type: ignore # pylint: disable=arguments-renamed
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        _useRelTo=True,
-        _isDirectory=None
+        _useRelTo:bool=True,
+        _isDirectory:typing.Optional[bool]=None
         )->None:
         """
         Assign this url to something
@@ -829,7 +828,7 @@ class URL(
             _useRelTo,_isDirectory)
     setUrl=assign
 
-    def __add__(self,other:URLCompatible)->"Url":
+    def __add__(self,other:URLCompatible)->"Url": # type: ignore
         """
         You can use the + operator to create a new relative url
 

@@ -68,9 +68,9 @@ class LineLookup:
         """
         if isinstance(row,UrlWithFileLocation):
             col=row.col
-            row=row.row
-            if row is None:
-                row=1
+            row2=row.row
+            if row2 is None:
+                row2=1
         if col is None:
             col=1
         total=0
