@@ -389,7 +389,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             parts[1]=str(toRow)
         else:
             parts.append(str(toRow))
-        self.fragments.set('line',','.join(parts))
+        self.fragments['line']=','.join(parts)
 
     @property
     def fromColumn(self)->int:
@@ -402,7 +402,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     def toColmn(self,fromColumn:int):
         parts=list(self.fragments.get('char','0').split(','))
         parts[0]=str(fromColumn)
-        self.fragments.set('char',','.join(parts))
+        self.fragments['char']=','.join(parts)
     @property
     def toColumn(self)->int:
         """
@@ -417,7 +417,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             parts[1]=str(toColumn)
         else:
             parts.append(str(toColumn))
-        self.fragments.set('char',','.join(parts))
+        self.fragments['char']=','.join(parts)
 
     @property
     def url(self)->paths.URL:
@@ -664,6 +664,3 @@ class FileLocationError(MessageLocation,Exception):
     def __init__(self,msg:str,location:UrlWithFileLocation):
         MessageLocation.__init__(self,msg,location)
         Exception.__init__(self,str(self))
-
-def junk(x):
-    return x+1

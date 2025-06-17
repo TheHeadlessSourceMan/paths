@@ -161,3 +161,5 @@ def toURLList(urls:URLListCompatible
     return [paths.URL(url)
         for url in typing.cast(typing.Iterable[URLCompatible],urls)]
 toUrlList=toURLList
+asURLList=toURLList
+asUrlList=toURLList

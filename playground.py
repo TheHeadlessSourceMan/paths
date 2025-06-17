@@ -179,6 +179,9 @@ class UrlNew:
         return _URL_REGEXES
 
     def assign(self,s:str)->None:
+        """
+        Assign the value of this object
+        """
         kinds:typing.List[typing.Tuple[str,typing.Callable]]=[ # (kindName, typeAssign())
             ('dosFilePath',self._assignDosFilePath),
             ('uncPath',self._assignUncPath),
