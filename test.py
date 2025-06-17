@@ -17,20 +17,24 @@ from paths import (
     sanitizePath,deSanitizePath)
 
 
-def assertMember(obj,valname,expected):
+def assertMember(
+    obj:typing.Any,
+    valName:typing.Any,
+    expected:typing.Any
+    )->None:
     """
     Utility to assert that a member is what we expect
     """
-    result=getattr(obj,valname)
+    result=getattr(obj,valName)
     if result!=expected:
-        raise Exception('%s="%s" NOT "%s"'%(valname,result,expected))
+        raise Exception(f'{valName}="{result}" NOT "{expected}"')
 
 
-def hr(s):
+def hr(s:typing.Any)->None:
     """
     Print a horizontal rule
     """
-    print('------- %s -------'%s)
+    print(f'------- {s} -------')
 
 
 __HERE__=os.path.abspath(__file__).rsplit(os.sep,1)[0]+os.sep
@@ -121,14 +125,14 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         """
         Round-trip test of a filename
 
-        test won't work on nonwindows
+        test won't work on non-windows
         """
         path=r'c:/the/path/file.txt'
         hr(path)
         u=URL(path)
         assertMember(u,'url','file:///%s'%path)
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             path2=r'c:\the\path\file.txt'
             u2=URL(path2)
             if u!=u2:
@@ -146,7 +150,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test conversion of url to filename
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             url='file://c:/the/path/file.txt'
             hr(url)
             u=URL(url)
@@ -178,7 +182,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test conversion of url to file with pipe character
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             url='file://c|/the/path/file.txt'
             hr(url)
             u=URL(url)
@@ -210,7 +214,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test conversion of a filename to a url
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             path=r'c:\the\path\file.txt'
             hr(path)
             u=URL(path)
@@ -242,7 +246,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test relative filenames working with urls
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             path=r'.\\test.py'
             shouldBe=os.path.curdir.replace(os.sep,'/')
             hr(path)
@@ -265,7 +269,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test root file path functionality
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             path=None
             hr(str(path))
             u=URL(path)
@@ -297,7 +301,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Test windows drive letter functionality
         """
         if os.name=='nt':
-            # test won't work on nonwindows
+            # test won't work on non-windows
             path='c:\\'
             hr(str(path))
             u=URL(path)
@@ -338,13 +342,13 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         paths.cmdline(['--help'])
         paths.cmdline([])
 
-    def testReadWrite(self):
+    def testReadWrite(self)->None:
         """
         test whether file-like access like url.read() and url.write() will work
         """
         relpath=os.sep.join(['test','testdata.txt'])
         hr('testReadWrite %s'%relpath)
-        teststring:str='My word is my passport. Verify me.'
+        testString:str='My word is my passport. Verify me.'
         manualTarget=os.path.abspath(relpath)
         try:
             os.remove(manualTarget)
@@ -353,25 +357,25 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         u=asUrl(manualTarget)
         print(u)
         assertMember(u,'filePath',manualTarget)
-        u.write(teststring)
+        u.write(testString)
         u.flush()
         u=u.copy()
         u.seek(0)
-        print('"%s" + "%s" == "%s"'%(u.read(2),u.read(3),teststring[0:5]))
-        print('%s%s\n%s'%(u.read(2),u.read(3),teststring[0:5]))
-        assert u.read(2)+u.read(3)==teststring[0:5]
+        print('"%s" + "%s" == "%s"'%(u.read(2),u.read(3),testString[0:5]))
+        print('%s%s\n%s'%(u.read(2),u.read(3),testString[0:5]))
+        assert u.read(2)+u.read(3)==testString[0:5]
         assert u.tell()==5
         u.seek(0) # reset and read all
-        assert u.data==teststring
+        assert u.data==testString
         u.seek(2,0) # relative to start of file
         assert u.tell()==2
-        assert u.read(2)==teststring[11:13]
+        assert u.read(2)==testString[11:13]
         u.seek(-4,1) # relative to current pos
         assert u.tell()==4
-        assert u.read(2)==teststring[7:9]
+        assert u.read(2)==testString[7:9]
         u.seek(-3,2) # relative to end of str
-        assert u.tell()==len(teststring)-3
-        assert u.read(3)==teststring[-3:]
+        assert u.tell()==len(testString)-3
+        assert u.read(3)==testString[-3:]
 
     def testUncPaths(self):
         """
@@ -394,19 +398,19 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         """
         test relative paths
         """
-        base=r"file://topdir/parentdir/childdir/"
+        base=r"file://top_dir/parent_dir/child_dir/"
         u=URL(base)
-        assertMember(u,'fullPath','topdir/parentdir/childdir/')
+        assertMember(u,'fullPath','top_dir/parent_dir/child_dir/')
         u2=u.relative('childchild/')
-        assertMember(u2,'fullPath','topdir/parentdir/childdir/childchild/')
+        assertMember(u2,'fullPath','top_dir/parent_dir/child_dir/childchild/')
         u2=u.relative('./')
-        assertMember(u2,'fullPath','topdir/parentdir/childdir/')
+        assertMember(u2,'fullPath','top_dir/parent_dir/child_dir/')
         u2=u.relative('.//.') # more complex ways of going nowhere
-        assertMember(u2,'fullPath','topdir/parentdir/childdir/')
+        assertMember(u2,'fullPath','top_dir/parent_dir/child_dir/')
         u2=u.relative('../')
-        assertMember(u2,'fullPath','topdir/parentdir/')
+        assertMember(u2,'fullPath','top_dir/parent_dir/')
         u2=u.relative('../../')
-        assertMember(u2,'fullPath','topdir/')
+        assertMember(u2,'fullPath','top_dir/')
         # --- make sure we get an exception if we try to navigate past root
         gotException=False
         try:
@@ -429,7 +433,7 @@ class Test(unittest.TestCase): # pylint: disable=no-member
                 "PRN":f"{delimiter}PRN{delimiter}",
                 "AUX":f"{delimiter}AUX{delimiter}",
                 "NUL":f"{delimiter}NUL{delimiter}",
-                ".lock":f"{delimiter}DOTLOCK{delimiter}",
+                ".lock":f"{delimiter}DOT_LOCK{delimiter}",
                 "COM3":f"{delimiter}COM3{delimiter}",
                 "LPT1":f"{delimiter}LPT1{delimiter}",
                 }
@@ -439,8 +443,8 @@ class Test(unittest.TestCase): # pylint: disable=no-member
             for path,result in tests.items():
                 sanitizedW=sanitizeWindowsFilename(path)
                 assert sanitizedW==result
-                desanitized=deSanitizeFilename(sanitizedW)
-                assert desanitized==path
+                deSanitized=deSanitizeFilename(sanitizedW)
+                assert deSanitized==path
             tests={
                 f"{delimiter}":f"{delimiter}{delimiter}",
                 f"{delimiter}{delimiter}":
@@ -452,10 +456,10 @@ class Test(unittest.TestCase): # pylint: disable=no-member
             for path,result in tests.items():
                 sanitizedP=sanitizePosixFilename(path)
                 assert sanitizedP==result
-                desanitized=deSanitizeFilename(sanitizedW)
-                assert desanitized==path
+                deSanitized=deSanitizeFilename(sanitizedW)
+                assert deSanitized==path
 
-    def testSanitizePath(self):
+    def testSanitizePath(self)->None:
         """
         Test sanitizing of paths
         """
@@ -470,8 +474,8 @@ class Test(unittest.TestCase): # pylint: disable=no-member
                 for path,result in tests.items():
                     sanitized=str(sanitizePath(path))
                     assert sanitized==result
-                    desanitized=pathsep.join(deSanitizePath(sanitized))
-                    assert desanitized==path
+                    deSanitized=pathsep.join(deSanitizePath(sanitized))
+                    assert deSanitized==path
 
 def testSuite():
     """
@@ -496,16 +500,17 @@ def testSuite():
     return testSuite
 
 
-def cmdline(args):
+def cmdline(args:typing.Iterable[str])->int:
     """
     Run the command line
 
     :param args: command line arguments (WITHOUT the filename)
     """
     # Run all the test suites in the standard way.
-    unittest.main(args) # pylint: disable=no-member
+    tp=unittest.main(args) # pylint: disable=no-member
+    return tp.result
 
 
 if __name__=='__main__':
     import sys
-    cmdline(sys.argv[1:])
+    sys.exit(cmdline(sys.argv[1:]))

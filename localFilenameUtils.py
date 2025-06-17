@@ -10,29 +10,29 @@ from .urlTyping import UrlCompatible,asUrl
 
 filenameSymbolToName={
     ';':'SEMICOLON',
-    '&':'AMPRESAND',
-    '(':'OPENPAREN',
-    ')':'CLOSEPAREN',
-    '{':'OPENBRACKET',
-    '}':'CLOSEBRACKET',
-    '$':'DOLLARSIGN',
+    '&':'AMPERSAND',
+    '(':'OPEN_PAREN',
+    ')':'CLOSE_PAREN',
+    '{':'OPEN_BRACKET',
+    '}':'CLOSE_BRACKET',
+    '$':'DOLLAR_SIGN',
     '`':'TICK',
     '~':'TILDE',
     '#':'POUND',
-    '!':'EXCLAMATIONPOINT',
+    '!':'EXCLAMATION_POINT',
     '^':'CARET',
-    '<':'LESSTHAN',
-    '>':'GREATERTHAN',
+    '<':'LESS_THAN',
+    '>':'GREATER_THAN',
     ':':'COLON',
     '"':'QUOTE',
-    '/':'FORWARDSLASH',
+    '/':'FORWARD_SLASH',
     '\\':'BACKSLASH',
     '|':'PIPE',
-    '?':'QUESTIONMARK',
+    '?':'QUESTION_MARK',
     '*':'ASTERISK',
     '.':'DOT',
     '\x7F':'Ox7F',
-    '_vti_':'UNDERSCOREVTI'
+    '_vti_':'UNDERSCORE_VTI'
 }
 filenameNameToSymbol=dict([(v,k) for k,v in filenameSymbolToName.items()])
 
@@ -51,13 +51,13 @@ def sanitizeWindowsFilename(
     Sanitize a windows filename
 
     :delimiter: if specified, use this string as a delimiter, such that
-        1) exsisting delimiters in string are replaced with
+        1) existing delimiters in string are replaced with
             delimiter*2
         2) delimited characters in string are replaced with
             delimiter+CODE+delimiter
-        NOTE: replacing by delimiter is reversable, but replacing by
+        NOTE: replacing by delimiter is reversible, but replacing by
         replacement is not
-        NOTE: If neihter replacement nor delimiter is specified,
+        NOTE: If neither replacement nor delimiter is specified,
         assumes delimiter='_'
     :replacement: instead of a full delimiter, perform a simple replacement
 
@@ -94,20 +94,21 @@ def sanitizeWindowsFilename(
         # replace the delimiter character by doubling it up
         filename=filename.replace(delimiter,delimiter+delimiter)
         # replace all tokens anywhere in the string
-        ret=[]
-        lastpos=0
+        ret:typing.List[str]=[]
+        lastPos=0
+        found=''
         for m in invalidWindowsFilenameCharactersRe.finditer(filename):
-            if lastpos!=m.start():
-                ret.append(filename[lastpos:m.start()])
+            if lastPos!=m.start():
+                ret.append(filename[lastPos:m.start()])
             found=m.group(0)
             # first need to handle some special cases that don't lend
             # themselves well to a dict structure
             if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found.decode('ascii',errors='ignore')[0])
+                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
             else:
                 ret.append(filenameSymbolToName[found])
-        if lastpos<len(found)-1:
-            ret.append(filename[lastpos:])
+        if lastPos<len(found)-1:
+            ret.append(filename[lastPos:])
         filename=''.join(ret)
         # replace a ~$ thing at the beginning of the string
         if filename.startswith('~$'):
@@ -141,13 +142,13 @@ def sanitizePosixFilename(
     Sanitize a posix (aka Linux) filename
 
     :delimiter: if specified, use this string as a delimiter, such that
-        1) exsisting delimiters in string are replaced with
+        1) existing delimiters in string are replaced with
             delimiter*2
         2) delimited characters in string are replaced with
             delimiter+CODE+delimiter
-        NOTE: replacing by delimiter is reversable, but replacing by
+        NOTE: replacing by delimiter is reversible, but replacing by
         replacement is not
-        NOTE: If neihter replacement nor delimiter is specified,
+        NOTE: If neither replacement nor delimiter is specified,
         assumes delimiter='_'
     :replacement: instead of a full delimiter, perform a simple replacement
 
@@ -172,20 +173,21 @@ def sanitizePosixFilename(
         # replace the delimiter character by doubling it up
         filename=filename.replace(delimiter,delimiter+delimiter)
         # replace all tokens anywhere in the string
-        ret=[]
-        lastpos=0
+        ret:typing.List[str]=[]
+        found=''
+        lastPos=0
         for m in invalidWindowsFilenameCharactersRe.finditer(filename):
-            if lastpos!=m.start():
-                ret.append(filename[lastpos:m.start()])
+            if lastPos!=m.start():
+                ret.append(filename[lastPos:m.start()])
             found=m.group(0)
             # first need to handle some special cases that don't lend
             # themselves well to a dict structure
             if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found.decode('ascii',errors='ignore')[0])
+                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
             else:
                 ret.append(filenameSymbolToName[found])
-        if lastpos<len(found)-1:
-            ret.append(filename[lastpos:])
+        if lastPos<len(found)-1:
+            ret.append(filename[lastPos:])
         filename=''.join(ret)
     else: # we are doing a simple replacement
         # just use simple regex replacement
@@ -208,13 +210,13 @@ def sanitizePath(
     Sanitize every step in a path
 
     :delimiter: if specified, use this string as a delimiter, such that
-        1) exsisting delimiters in string are replaced with
+        1) existing delimiters in string are replaced with
             delimiter*2
         2) delimited characters in string are replaced with
             delimiter+CODE+delimiter
-        NOTE: replacing by delimiter is reversable, but replacing by
+        NOTE: replacing by delimiter is reversible, but replacing by
         replacement is not
-        NOTE: If neihter replacement nor delimiter is specified,
+        NOTE: If neither replacement nor delimiter is specified,
         assumes delimiter='_'
     :replacement: instead of a full delimiter, perform a simple replacement
     :useForwardSlashSeparator: when decoding string, use / as the separator
@@ -226,6 +228,7 @@ def sanitizePath(
 
     Always returns an absolute path that could exist on the system
     """
+    elements:typing.Iterable[str]
     if not isinstance(path,str) and hasattr(path,"__iter__"):
         elements=path
     else:
@@ -243,7 +246,7 @@ def sanitizePath(
     elements=[
         sanitizeFilename(element,delimiter,replacement,expandEnvironment=False)
         for element in elements]
-    return Path(os.sep.join(elements)).absolute
+    return Path(os.sep.join(elements)).absolute()
 sanitizeWindowsPath=sanitizePath
 sanitizePosixPath=sanitizePath
 sanitizeLinuxPath=sanitizePath
@@ -298,13 +301,13 @@ def sanitizeLocalFilename(
     Sanitize a filename for the local operating system.
 
     :delimiter: if specified, use this string as a delimiter, such that
-        1) exsisting delimiters in string are replaced with
+        1) existing delimiters in string are replaced with
             delimiter*2
         2) delimited characters in string are replaced with
             delimiter+CODE+delimiter
-        NOTE: replacing by delimiter is reversable, but replacing by
+        NOTE: replacing by delimiter is reversible, but replacing by
         replacement is not
-        NOTE: If neihter replacement nor delimiter is specified,
+        NOTE: If neither replacement nor delimiter is specified,
         assumes delimiter='_'
     :replacement: instead of a full delimiter, perform a simple replacement
 
@@ -325,9 +328,12 @@ escapeLocalFilename=sanitizeLocalFilename
 escapeFilename=sanitizeLocalFilename
 
 
-def deSanitizeLocalFilename(filename:str,delimiter:str='_')->str:
+def deSanitizeLocalFilename(
+    filename:str,
+    delimiter:typing.Optional[str]=None
+    )->str:
     """
-    Reverse the operation of a sanatizeFilename by delimiter.
+    Reverse the operation of a sanitizeFilename by delimiter.
     Used as a pair, these functions can be useful for
     encoding/decoding any string as a filename
 
@@ -343,16 +349,18 @@ def deSanitizeLocalFilename(filename:str,delimiter:str='_')->str:
     NOTE: deSanitize is portable so filenames sanitized on one os
     can be deSanitized on another
     """
+    if delimiter is None:
+        delimiter='_'
     # first check to see if the whole thing is a special filename
     if filename.startswith(delimiter) and filename.endswith(delimiter):
-        wholeFilename=filename[len(delimiter),-len(delimiter)]
+        wholeFilename=filename[len(delimiter):-len(delimiter)]
         if invalidWindowsFilenamesRe.match(wholeFilename) is not None:
             return wholeFilename
     # now split apart by delimiter
     done=False
     lastIdx=0
     isInsideDelimiter=False
-    ret=[]
+    ret:typing.List[str]=[]
     while not done:
         idx=filename.find(delimiter,lastIdx)
         if idx<0:

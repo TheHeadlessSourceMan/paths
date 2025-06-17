@@ -13,12 +13,12 @@ import win32file # type: ignore
 
 class FileChangeType(Enum):
     """
-    What type of change occoured on a file
+    What type of change occurred on a file
     """
-    CREATE:int=0
-    READ:int=1
-    UPDATE:int=2
-    DELETE:int=3
+    CREATE=0
+    READ=1
+    UPDATE=2
+    DELETE=3
 
 
 class FileChange:
@@ -107,7 +107,7 @@ def waitForFileChange(
         )
         for action,actionFilename in results:
             if watchingWholeDirectory or filename.name==actionFilename:
-                changeTarget=str(directoryToWatch/actionFilename)
+                changeTarget:Path=directoryToWatch/actionFilename
                 if onChange is None:
                     _changeWatcherContext.keepGoing=False
                 elif action==3:
@@ -134,7 +134,7 @@ def watchForFileChange(
     """
     Watch a file or directory for changes.
     This will not block, but will kick off a thread
-    and watch until onChange() reuturns True.
+    and watch until onChange() returns True.
 
     :filename:
         if this is a file, will call onChange
@@ -144,7 +144,7 @@ def watchForFileChange(
     :onChange: if this returns True, it means the function
         found what it was looking for and we should exit
         If there is no onChange, simply exits on the first change
-    :return: tthe new thread that is watching for changes
+    :return: the new thread that is watching for changes
         (You can simply call stop() on when you want to stop watching)
 
     NOTE: Windows only.
@@ -173,7 +173,7 @@ def cmdline(args:typing.Iterable[str])->int:
     import time
     exitOnChange=False
     printHelp=False
-    filenames=[]
+    filenames:typing.List[str]=[]
     for arg in args:
         if arg.startswith('-'):
             kw=arg.split('=',1)

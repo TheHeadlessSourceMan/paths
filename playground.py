@@ -1,10 +1,13 @@
+"""
+Experimental features I am playing around with
+"""
 from cProfile import run
 from timeit import timeit
 import os
 import typing
 import re
 
-_URL_REGEXES:typing.Optional[typing.Tuple[typing.Pattern]]=None
+_URL_REGEXES:typing.Optional[typing.List[typing.Pattern]]=None
 
 class UrlNew:
     """
@@ -175,7 +178,7 @@ class UrlNew:
                 self._urlRegex,
                 )
             #master_regex=re.compile('|'.join([qq.pattern for qq in q]),re.IGNORECASE)
-            _URL_REGEXES=q#tuple([master_regex])
+            _URL_REGEXES=q#list([master_regex])
         return _URL_REGEXES
 
     def assign(self,s:str)->None:

@@ -25,7 +25,7 @@ class MacAddress:
 
         will run arpLookup() the first time to determine this
 
-        if you want the freshest possible value, run arpLookup() youself
+        if you want the freshest possible value, run arpLookup() yourself
         """
         if self._ip is None:
             self.arpLookup()

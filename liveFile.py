@@ -24,7 +24,7 @@ class LiveFilePool:
     Global object shared between LiveFile objects
     to support communal buffering
     """
-    def __init__(self):
+    def __init__(self)->None:
         self.data:typing.Dict[URL,CacheEntry]={}
 
     def getCacheEntry(self,url:URLCompatible)->CacheEntry:
@@ -52,6 +52,9 @@ class LiveFilePool:
         return self.getData(idx)
 
 
+LiveFileCallback=typing.Callable[["LiveFile"],None]
+
+
 class LiveFile:
     """
     a file with advanced, but easily configurable,
@@ -65,8 +68,8 @@ class LiveFile:
         self.watchChanges=True # only works on certain filesystems
         self.pollingInterval=90 # only used if polling is needed
         self.garbageCollectAfter=1200 # free up memory after this long of inactivity # noqa: E501 # pylint: disable=line-too-long
-        self.preload=False # load the data immediateley rather than waiting until it is needed # noqa: E501 # pylint: disable=line-too-long
-        self.callOnChange:typing.List[typing.Callable]=[] # whenever external data change is detected, call these functions # noqa: E501 # pylint: disable=line-too-long
+        self.preload=False # load the data immediately rather than waiting until it is needed # noqa: E501 # pylint: disable=line-too-long
+        self.callOnChange:typing.List[LiveFileCallback]=[] # whenever external data change is detected, call these functions # noqa: E501 # pylint: disable=line-too-long
 
     @property
     def data(self)->str:

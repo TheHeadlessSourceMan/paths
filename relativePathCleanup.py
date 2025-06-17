@@ -75,7 +75,7 @@ def cleanupOsPath(
 if __name__=='__main__':
     import sys
     if len(sys.argv)<2:
-        print("Useage: relativePathCleanup path [relativeTo]")
+        print("Usage: relativePathCleanup path [relativeTo]")
     else:
         relativeTo=''
         path=sys.argv[1]

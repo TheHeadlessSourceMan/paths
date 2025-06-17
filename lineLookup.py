@@ -32,7 +32,7 @@ class LineLookup:
     @property
     def totalBeforeLine(self)->typing.List[int]:
         """
-        Total number if characters befire each line
+        Total number if characters before each line
         """
         if self._totalBeforeLine is None:
             a=[len(x)+1 for x in self.data.split('\n')]
@@ -55,7 +55,7 @@ class LineLookup:
             return self.getLines(idx[0],idx[1])
         return self.getLines(idx)
 
-    def rlookup(self,
+    def reverseLookup(self,
         row:typing.Union[int,UrlWithFileLocation],
         col:typing.Optional[int]=None
         )->int:
@@ -68,9 +68,9 @@ class LineLookup:
         """
         if isinstance(row,UrlWithFileLocation):
             col=row.col
-            row=row.row
-            if row is None:
-                row=1
+            row2=row.row
+            if row2 is None:
+                row2=1
         if col is None:
             col=1
         total=0
@@ -78,7 +78,8 @@ class LineLookup:
             total+=self.totalBeforeLine[typing.cast(int,row)-1]
         total+=col
         return total
-    position=rlookup
+    position=reverseLookup
+    rlookup=reverseLookup
 
     def lookup(self,pos:int)->UrlWithFileLocation:
         """

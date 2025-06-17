@@ -2,5 +2,21 @@
     "python.linting.flake8Enabled": false,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false
+    "python.linting.pylintEnabled": false,
+    "cSpell.words": [
+        "enquote",
+        "exitonchange",
+        "flintstone",
+        "fooblatz",
+        "grabbley",
+        "kfmclient",
+        "mkdirs",
+        "osrun",
+        "rlookup",
+        "rthomas",
+        "rtype",
+        "semprini",
+        "skipstone",
+        "urldecode"
+    ]
 }

@@ -5,8 +5,7 @@ this is specific to the needs of URL object and
 is not intended for public consumption.
 """
 import typing
-from collections.abc import Iterable
-import urllib
+import urllib.parse
 
 
 PARAM_VAL_TYPE=typing.Union[str,typing.List[str]]
@@ -33,7 +32,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         return len(self._params)
 
-    def __iter__(self
+    def __iter__(self # type: ignore
         )->typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]: # type: ignore
         """
         access like a list
@@ -46,7 +45,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         Set a parameter's value
         """
-        if isinstance(v,Iterable) and not isinstance(v,str):
+        if hasattr(v,'__iter__') and not isinstance(v,str):
             self._params[k]=[str(vv) for vv in v]
         else:
             self._params[k]=str(v)
@@ -147,16 +146,17 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         """
         possibly better than self.query
         """
-        vals=[]
+        vals:typing.List[str]=[]
         for k,v in self._params.items():
             if not k:
                 continue
-            if isinstance(v,Iterable) and not isinstance(v,str):
+            if isinstance(v,str) or not hasattr(v,'__iter__'):
+                s=f'{urllib.parse.quote(k)}={urllib.parse.quote(str(v))}'
+                vals.append(s)
+            else: # it's iterable
                 for vv in v:
                     s=f'{urllib.parse.quote(k)}={urllib.parse.quote(vv)}'
                     vals.append(s)
-            else:
-                vals.append(f'{urllib.parse.quote(k)}={urllib.parse.quote(v)}')
         if vals:
             return '?'+('&'.join(vals))
         return ''

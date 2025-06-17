@@ -75,7 +75,8 @@ def encodeFilePath(
 
 def filenameFixer(
     filename:str,
-    replaceWith='_',osName:typing.Optional[str]=None
+    replaceWith:str='_',
+    osName:typing.Optional[str]=None
     )->str:
     """
     Attempt to fix up a filename by removing illegal characters

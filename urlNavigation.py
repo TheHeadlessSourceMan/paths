@@ -149,7 +149,7 @@ class UrlNavigation:
         r"""
         Gets a sibling location in reference to this one
 
-        NOTE: this is different thatn getChild because
+        NOTE: this is different than getChild because
             "c:\this\that".getChild("x.htm") => "c:\this\that\x.htm"
             but
             "c:\this\that".getSibling("x.htm") => "c:\this\x.htm"

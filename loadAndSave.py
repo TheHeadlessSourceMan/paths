@@ -23,7 +23,7 @@ def defaultLoader(f:URLCompatible)->bytes:
         ** sftp://
         ** https://
 
-    if a file-like oject is passed in, will simply read it
+    if a file-like object is passed in, will simply read it
 
     If EzFs is installed, it can load any installed filesystem including
         dropbox,google drive,zipped files,... you name it!
@@ -38,11 +38,9 @@ def defaultLoader(f:URLCompatible)->bytes:
     #    return EzFs(f).read() # type: ignore
     #except ImportError:
     #    pass
-    f=typing.cast(paths.URL,paths.asURL(f))
+    f=paths.asURL(f)
     if f.protocol!='file':
         import urllib.request
-        import urllib.error
-        import urllib.parse
         headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
         request=urllib.request.Request(f.url,None,headers)
         response=urllib.request.urlopen(request)
@@ -59,7 +57,7 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
         ** sftp://
         ** https://
 
-    if a file-like oject is passed in, will simply write it
+    if a file-like object is passed in, will simply write it
 
     If EzFs is installed, it can save any installed filesystem including
         dropbox,google drive,zipped files,... you name it!
@@ -78,13 +76,10 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
     #    pass
     if f.protocol!='file':
         import urllib.request
-        import urllib.error
-        import urllib.parse
         headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
         request=urllib.request.Request(f.url,data,headers,method='PUT')
         _=urllib.request.urlopen(request)
         return
-    f=open(f.filePath,'wb') # type: ignore
     f.write(data)
 
 
@@ -110,12 +105,12 @@ class LoadAndSaveBytes:
         from paths import URL
 
     DefaultFilename:str='UNDEFINED.dat'
-    def _encodeBytes(self)->bytes:
+    def _encodeBytes(self)->bytes: # type: ignore
         return bytes()
-    _encodeBytes=None # noqa: F811 # type: ignore
-    def _decodeBytes(self,data:bytes)->None:
+    _encodeBytes:typing.Optional[typing.Callable[[],bytes]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
+    def _decodeBytes(self,data:bytes)->None: # type: ignore
         _=data
-    _decodeBytes=None # noqa: F811 # type: ignore
+    _decodeBytes:typing.Optional[typing.Callable[[bytes],None]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
 
     def __init__(self,
         filename:typing.Optional[URLCompatible]=None,
@@ -199,7 +194,7 @@ class LoadAndSaveBytes:
 
     def canSave(self)->bool:
         """
-        can this sace files?
+        can this save files?
         """
         return self._encodeBytes is not None
 
@@ -216,7 +211,7 @@ class LoadAndSaveBytes:
             ** sftp://
             ** https://
 
-        if a file-like oject is passed in, will simply read it
+        if a file-like object is passed in, will simply read it
 
         If EzFs is installed, it can load any installed filesystem including
             dropbox,google drive,zipped files,... you name it!
@@ -264,7 +259,7 @@ class LoadAndSaveBytes:
             ** sftp://
             ** https://
 
-        if a file-like oject is passed in, will simply write it
+        if a file-like object is passed in, will simply write it
 
         If EzFs is installed, it can save any installed filesystem including
             dropbox,google drive,zipped files,... you name it!
@@ -290,7 +285,7 @@ class LoadAndSaveBytes:
             else:
                 filename=self._filename
         else:
-            self._filename=typing.cast(paths.Url,paths.asURL(filename))
+            self._filename=paths.asURL(filename)
         if altEncoder is not None:
             if altEncoderParams is not None:
                 data=altEncoder(**altEncoderParams)
@@ -480,7 +475,7 @@ class LoadAndSave(LoadAndSaveBytes):
             ** sftp://
             ** https://
 
-        if a file-like oject is passed in, will simply read it
+        if a file-like object is passed in, will simply read it
 
         If EzFs is installed, it can load any installed filesystem including
             dropbox,google drive,zipped files,... you name it!
@@ -515,7 +510,7 @@ class LoadAndSave(LoadAndSaveBytes):
             ** sftp://
             ** https://
 
-        if a file-like oject is passed in, will simply write it
+        if a file-like object is passed in, will simply write it
 
         If EzFs is installed, it can save any installed filesystem including
             dropbox,google drive,zipped files,... you name it!
@@ -543,7 +538,7 @@ class LoadAndSave(LoadAndSaveBytes):
             else:
                 filename=self._filename
         else:
-            self._filename=typing.cast(paths.URL,paths.asURL(filename))
+            self._filename=paths.asURL(filename)
         if altEncoder is not None:
             if altEncoderParams is not None:
                 data=altEncoder(**altEncoderParams)

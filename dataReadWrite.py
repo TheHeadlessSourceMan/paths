@@ -18,7 +18,7 @@ class DataReadWrite:
     is not intended for public consumption.
     """
 
-    def __init__(self):
+    def __init__(self)->None:
         self._data:typing.Union[None,bytearray,bytes]=None
         self._mimeType:typing.Optional[MimeType]=None
         self._idx:int=0
@@ -46,7 +46,7 @@ class DataReadWrite:
         """
         if self._data is None:
             self._readFile()
-        return self._data
+        return self._data # type: ignore
     @data.setter
     def data(self,data:typing.Union[str,bytes]):
         self.write(data)
