@@ -15,3 +15,4 @@ from .fileLocation import *
 from .mimeType import *
 from .errors import *
 from .localFilenameUtils import *
+from .httpUrl import *
