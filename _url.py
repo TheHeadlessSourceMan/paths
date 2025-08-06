@@ -158,6 +158,9 @@ class URL(
     @property
     def extension(self)->str:
         """
+        The extension without the dot
+        that is, "png", not ".png"
+
         NOTE: extensions are ALWAYS lower case,
         even if that's not how the url had it
         """
@@ -720,6 +723,7 @@ class URL(
                 url=getattr(url,'name')
             if (not foundSomething) and hasattr(url,'keys'):
                 # it's a dict-like, so we can check that too
+                url=typing.cast(typing.Dict,url)
                 keys:typing.Iterable[str]=url.keys()
                 for memberName in self.URL_LIKE_MEMBERS:
                     if memberName in keys:

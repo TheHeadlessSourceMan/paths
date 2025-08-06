@@ -9,6 +9,7 @@ per line.
 import typing
 import itertools
 import bisect
+from pathlib import Path
 from fileLocation import UrlWithFileLocation
 
 class LineLookup:
@@ -20,8 +21,11 @@ class LineLookup:
     efficiencies by on-demand precalculating how many characters
     per line.
     """
-    def __init__(self,filename:str,data:typing.Optional[str]=None):
-        self.filename:str=filename
+    def __init__(self,
+        filename:typing.Union[str,Path],
+        data:typing.Optional[str]=None):
+        """ """
+        self.filename:Path=Path(filename)
         if data is None:
             data=''
             with open(filename,'r',encoding='utf-8',errors='ignore') as f:

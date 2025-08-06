@@ -658,11 +658,13 @@ class MessageLocation:
 
     For instance, a spellchecker that higlights a specific word
     """
-    def __init__(self,msg:str,location:UrlWithFileLocation):
-        self.location:UrlWithFileLocation=location
-        self.msg:str=msg
+    def __init__(self,msg:str,location:typing.Optional[UrlWithFileLocation]):
+        self.location=location
+        self.msg=msg
 
     def __repr__(self):
+        if self.location is None:
+            return f'[[UNKNOWN]] {self.msg}'
         return f'[{self.location}] {self.msg}'
 
 
@@ -673,6 +675,6 @@ class FileLocationError(MessageLocation,Exception):
 
     This is simply a MessageLocation object turned into an Exception
     """
-    def __init__(self,msg:str,location:UrlWithFileLocation):
+    def __init__(self,msg:str,location:typing.Optional[UrlWithFileLocation]):
         MessageLocation.__init__(self,msg,location)
         Exception.__init__(self,str(self))
