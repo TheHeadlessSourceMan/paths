@@ -7,6 +7,7 @@ as http methods and http header
 import typing
 import datetime
 from ._url import Url,URLCompatible
+from .httpMethod import HttpMethodCompatible,asHttpMethod
 
 
 def asHttpUrl(url:URLCompatible)->"HttpUrl":
@@ -34,12 +35,12 @@ class HttpRequest:
     """
     def __init__(self,
         httpUrl:URLCompatible,
-        method:str,
+        method:HttpMethodCompatible,
         content:typing.Optional[bytes],
         headers:typing.Optional[typing.Dict[str,typing.Any]]
         ):
         self.httpUrl=HttpUrl(httpUrl)
-        self.method=method
+        self.method=asHttpMethod(method)
         self.content=content
         self.headers=headers
 
@@ -55,11 +56,14 @@ class HttpRequest:
         Perform the request now and wait for response.
         """
         import requests
+        startTime=datetime.datetime.now()
         response=requests.get(str(self.httpUrl),timeout=5.0)
         return HttpResponse(
             response.status_code,
             response.content,
-            self)
+            self,
+            response.headers,
+            startTime)
     __call__=run
 
 
@@ -72,14 +76,57 @@ class HttpResponse:
         responseCode:int,
         content:bytes,
         originalRequest:typing.Optional[HttpRequest]=None,
-        timestamp:typing.Optional[datetime.datetime]=None):
+        headers:typing.Optional[typing.Dict[str,str]]=None,
+        startTime:typing.Optional[datetime.datetime]=None,
+        finishTime:typing.Optional[datetime.datetime]=None):
         """ """
         self.responseCode=responseCode
         self.content=content
         self.originalRequest=originalRequest
-        if timestamp is None:
-            timestamp=datetime.datetime.now()
-        self.timestamp=timestamp
+        if headers is None:
+            headers={}
+        self.headers=headers
+        if finishTime is None:
+            finishTime=datetime.datetime.now()
+        self.finishTime=finishTime
+        if startTime is None:
+            startTime=finishTime
+        self.startTime=startTime
+
+    @property
+    def timeDelta(self)->datetime.timedelta:
+        """
+        How long did the transaction take?
+        """
+        return self.finishTime-self.startTime
+
+    @property
+    def timeSeconds(self)->float:
+        """
+        How long did the transaction take in float seconds?
+        """
+        return self.timeDelta.total_seconds()
+
+    @property
+    def size(self)->int:
+        """
+        Payload size in bytes
+        """
+        return len(self.content)
+
+    @property
+    def dataRate(self)->float:
+        """
+        In bytes-per-second
+        """
+        return self.size/self.timeSeconds
+
+    @property
+    def mimeType(self)->str:
+        """
+        Get the mime type of the contents
+        """
+        return self.headers.get('Content-Type','')
 
     @property
     def success(self)->bool:
@@ -127,17 +174,18 @@ class HttpUrl(Url):
             raise NotHttpException(self)
 
     def createHttpRequest(self,
-        method:str,
+        method:HttpMethodCompatible,
         contents:typing.Optional[typing.Any],
         headers:typing.Optional[typing.Dict[str,typing.Any]]
         )->HttpRequest:
         """
         Create an http request but do not run it
         """
+        method=asHttpMethod(method)
         return HttpRequest(self,method,contents,headers)
 
     def performHttpRequest(self,
-        method:str,
+        method:HttpMethodCompatible,
         contents:typing.Optional[typing.Any],
         headers:typing.Optional[typing.Dict[str,typing.Any]]
         )->HttpResponse:

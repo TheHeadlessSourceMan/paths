@@ -5,6 +5,7 @@ Tools for working with paths(urls)
 from .urlTyping import *
 
 # exported goodies
+from .httpMethod import *
 from .search import *
 from .pathLike import *
 from ._uri import *
