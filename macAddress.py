@@ -35,9 +35,9 @@ class MacAddress:
         """
         look this up in the arp table to determine an ip address
         """
-        from k_runner import osrun
+        from k_runner.osrun import osrun
         fmt=self.formatted('-',True)
-        result=osrun.osrun('arp -a')
+        result=osrun('arp -a')
         for line in result.stdout.split('\n'):
             line=line.strip().split()
             if len(line)==3 and line[1]==fmt:
