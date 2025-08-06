@@ -16,3 +16,8 @@ from .mimeType import *
 from .errors import *
 from .localFilenameUtils import *
 from .httpUrl import *
+
+# register common URL class types
+URL.URL_PROTOCOL_OBJECT_TYPES['http']=HttpUrl
+URL.URL_PROTOCOL_OBJECT_TYPES['https']=HttpUrl
+#URL.URL_PROTOCOL_OBJECT_TYPES['file']=FileUrl

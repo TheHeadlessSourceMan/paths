@@ -74,7 +74,39 @@ class URL(
     URL_LIKE_MEMBERS=('url','URL','Url','filename',
         'path','href','src','location','rel')
 
+    # to associate a Url-derived class with a particular protocol,
+    # simply add it to this dict {protocolStr:UrlDerivedClass}
+    URL_PROTOCOL_OBJECT_TYPES:typing.Dict[str,typing.Type["Url"]]={}
+
     DefaultFilename:str='Untitled.url'
+
+    def __new__(cls,
+        url:typing.Optional[URLCompatible],
+        *args,**kwargs):
+        """
+        Intercepting this allows us the stupid pet trick
+        of creating derived types from one constructor,
+        for example, you would think:
+            type(Url('http://google.com'))
+        would be "Url", but it is actually "HttpUrl" !
+        """
+        protocol:typing.Optional[str]=None
+        if isinstance(url,Url):
+            protocol=url.protocol
+        else:
+            px=cls._getUrlString(url)
+            if px is None:
+                px=''
+            protoPath=px.split(':',1)
+            if len(protoPath)>1 \
+                and len(protoPath[0])>1 \
+                and protoPath[0].find('/')<1:
+                #
+                protocol=protoPath[0]
+            else:
+                protocol='file'
+        actualClass=cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,cls)
+        return super().__new__(actualClass)
 
     def __init__(self,
         url:typing.Optional[URLCompatible],
@@ -684,7 +716,8 @@ class URL(
                 self.domain=host
                 self.subdomain=None
 
-    def _getUrlString(self,
+    @classmethod
+    def _getUrlString(cls,
         url:typing.Optional[URLCompatible]
         )->typing.Optional[str]:
         """
@@ -698,14 +731,17 @@ class URL(
             return None
         if isinstance(url,URL):
             return str(url)
-        if isinstance(url,(str,bytes)):
+        if isinstance(url,bytes):
+            url=url.decode('utf-8','ignore')
+        if isinstance(url,str):
             # if it's blank, treat it the same as None
             url=url.lstrip()
             if not url:
                 return None
+        else:
             # check its members for something url-like
             foundSomething=False
-            for memberName in self.URL_LIKE_MEMBERS:
+            for memberName in cls.URL_LIKE_MEMBERS:
                 if hasattr(url,memberName):
                     foundSomething=True
                     url=getattr(url,memberName)
@@ -740,9 +776,7 @@ class URL(
                 typename=url.__class__.__name__
                 raise MalformedURL(
                     str(url),f'incompatible type {typename} for assigning')
-        if isinstance(url,bytes):
-            url=url.decode('utf-8','ignore')
-        return self._getCleverURL(url)
+        return cls._getCleverURL(url)
 
     @property
     def isFile(self)->bool:
