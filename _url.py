@@ -82,7 +82,7 @@ class URL(
 
     def __new__(cls,
         url:typing.Optional[URLCompatible],
-        *args,**kwargs):
+        *args:typing.ParamSpecArgs,**kwargs:typing.ParamSpecKwargs):
         """
         Intercepting this allows us the stupid pet trick
         of creating derived types from one constructor,
@@ -106,7 +106,7 @@ class URL(
             else:
                 protocol='file'
         actualClass=cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,cls)
-        return super().__new__(actualClass)
+        return super().__new__(actualClass) # type: ignore
 
     def __init__(self,
         url:typing.Optional[URLCompatible],

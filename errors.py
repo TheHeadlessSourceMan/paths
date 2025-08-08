@@ -43,5 +43,20 @@ class MalformedURL(Exception):
     This is thrown when a url is in bad form
     """
 
-    def __init__(self,url:str,reason:str):
-        Exception.__init__(self,f'Malformed URL "{url}"\n({reason})')
+    def __init__(self,url:str,reason:str,altMessage:typing.Optional[str]=None):
+        if altMessage:
+            Exception.__init__(self,altMessage)
+        else:
+            Exception.__init__(self,f'Malformed URL "{url}"\n({reason})')
+
+
+class MalformedFilename(MalformedURL):
+    """
+    This is thrown when a filename is in bad form
+    """
+
+    def __init__(self,filename:str,reason:str,altMessage:typing.Optional[str]=None):
+        if altMessage:
+            MalformedURL.__init__(self,'','',altMessage)
+        else:
+            MalformedURL.__init__(self,'','',f'Malformed Filename "{filename}"\n({reason})')

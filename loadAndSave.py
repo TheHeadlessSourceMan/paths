@@ -323,10 +323,10 @@ class LoadAndSave(LoadAndSaveBytes):
     """
 
     DefaultFilename:str='UNDEFINED.txt'
-    def _encode(self)->str:
-        return str()
+    def _encode(self)->bytes:
+        return bytes()
     _encode=None # noqa: F811 # type: ignore
-    def _decode(self,data:str)->None:
+    def _decode(self,data:bytes)->None:
         _=data
     _decode=None # noqa: F811 # type: ignore
 
@@ -359,12 +359,15 @@ class LoadAndSave(LoadAndSaveBytes):
         try:
             from bs4 import UnicodeDammit
             ud=UnicodeDammit(data) # also uses chardet if installed
-            return ud.original_encoding
+            if ud.original_encoding is not None:
+                return ud.original_encoding
         except ImportError:
             pass
         try:
             import chardet  # type: ignore
-            return chardet.detect(data)['encoding']
+            result=chardet.detect(data)
+            if result is not None and 'encoding' in result:
+                return result['encoding']
         except ImportError:
             pass
         return 'UTF-8'
