@@ -875,7 +875,19 @@ class URL(
         is the same as
             Url("c:\\something\\something_else")
         """
-        return Url(other,self)
+        return Url(other,relativeTo=self)
+
+    def __truediv__(self,other:URLCompatible)->"Url": # type: ignore
+        """
+        Implement the "/" operator like pathlib.Path has
+        """
+        return Url(other,relativeTo=self)
+
+    def __ltruediv__(self,other:URLCompatible)->"Url": # type: ignore
+        """
+        Implement the "/" operator like pathlib.Path has
+        """
+        return Url(self,relativeTo=other)
 
 Url=URL # same thing
 
