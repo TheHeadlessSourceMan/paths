@@ -82,7 +82,9 @@ class URL(
 
     def __new__(cls,
         url:typing.Optional[URLCompatible],
-        *args:typing.ParamSpecArgs,**kwargs:typing.ParamSpecKwargs):
+        relativeTo:typing.Optional[URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None):
         """
         Intercepting this allows us the stupid pet trick
         of creating derived types from one constructor,
@@ -112,8 +114,7 @@ class URL(
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
-        maxChildLevels:typing.Optional[int]=None,
-        _useRelTo:bool=True):
+        maxChildLevels:typing.Optional[int]=None):
         """
         Raises MalformedURL exception if url assignment doesn't work.
 
@@ -167,7 +168,7 @@ class URL(
         self._isDirectory:typing.Optional[bool]=None
         if url is not None and (not isinstance(url,str) or url):
             self.assign(
-                url,relativeTo,maxParentLevels,maxChildLevels,_useRelTo)
+                url,relativeTo,maxParentLevels,maxChildLevels)
 
     @property
     def fragment(self)->str:
@@ -316,7 +317,7 @@ class URL(
         return URL(self)
 
     def replace(self,
-        replaceThis:typing.Union[str,typing.Pattern], # type: ignore
+        replaceThis:typing.Union[str,typing.Pattern[str]],
         withThis:typing.Union[str,typing.Any]
         )->"URL":
         """
@@ -618,14 +619,14 @@ class URL(
         """
         return self.url
 
-    def _encode(self)->str:
+    def _encodeStr(self)->str:
         """
         Encode this to a string
         (used for saving .url files)
         """
         return self.url
 
-    def _decode(self,data:str)->None:
+    def _decodeStr(self,data:str)->None:
         """
         Decode this from a string
         (used for loading .url files)
@@ -821,7 +822,6 @@ class URL(
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        _useRelTo:bool=True,
         _isDirectory:typing.Optional[bool]=None
         )->None:
         """
@@ -862,8 +862,7 @@ class URL(
         """
         from .urlSplitter import urlAssign
         urlAssign(self,url,
-            relativeTo,maxParentLevels,maxChildLevels,
-            _useRelTo,_isDirectory)
+            relativeTo,maxParentLevels,maxChildLevels,_isDirectory)
     setUrl=assign
 
     def __add__(self,other:URLCompatible)->"Url": # type: ignore

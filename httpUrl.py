@@ -166,10 +166,9 @@ class HttpUrl(Url):
         url:typing.Optional[URLCompatible],
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
-        maxChildLevels:typing.Optional[int]=None,
-        _useRelTo:bool=True):
+        maxChildLevels:typing.Optional[int]=None):
         """ """
-        Url.__init__(self,url,relativeTo,maxParentLevels,maxChildLevels,_useRelTo)
+        Url.__init__(self,url,relativeTo,maxParentLevels,maxChildLevels)
         if self.protocol not in ('http','https'):
             raise NotHttpException(self)
 

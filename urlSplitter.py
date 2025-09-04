@@ -13,10 +13,9 @@ import paths
 def urlAssign(
     self:paths.URL,
     url:typing.Optional[paths.URLCompatible],
-    relativeTo:typing.Optional[paths.URLCompatible]=None,
+    relativeTo:typing.Optional[paths.URLCompatible]='file:///./',
     maxParentLevels:typing.Optional[int]=None,
     maxChildLevels:typing.Optional[int]=None,
-    _useRelTo:bool=True,
     _isDirectory:typing.Optional[bool]=None
     )->None:
     """
@@ -146,16 +145,6 @@ def urlAssign(
                 urlFrag.append(f"char={fileFrag[1].replace('-',',')}")
         frag=';'.join(urlFrag)
         url=f"{url.rsplit('/',1)[0]}/{resourceAndFrag[0]}#{frag}"
-    # make sure relativeTo is ready for use
-    if not isAbsolutePath and _useRelTo:
-        if relativeTo is None:
-            relativeTo='file:///./'
-        rTo=paths.URL(relativeTo,_useRelTo=False)
-        if rTo is None:
-            raise paths.MalformedURL(
-                str(relativeTo),"Unable to parse url for relativeTo")
-        else:
-            relativeTo=rTo
     # let the standard parser have a go at it
     parsed=urllib.parse.urlparse(url)
     ret=paths.URL(None)
@@ -183,7 +172,9 @@ def urlAssign(
                 ret.cgi[item[0]]=None
             else:
                 ret.cgi[item[0]]=item[1]
-    if (not ret.protocol) and _useRelTo:
+    if not ret.protocol and relativeTo is not None:
+        from .urlTyping import asUrl
+        relativeTo=asUrl(relativeTo,None)
         r2=relativeTo.getRelativeUrl(ret,maxParentLevels,maxChildLevels)
         if r2 is None:
             raise paths.MalformedURL(url,'relative url broke')

@@ -68,20 +68,20 @@ isURLCompatible=isUrlCompatible # alias name
 
 @typing.overload
 def asURL(url:None,
-    relativeTo:typing.Optional[URLCompatible]=None,
+    relativeTo:typing.Optional[URLCompatible]='file://./',
     maxParentLevels:typing.Optional[int]=None,
     maxChildLevels:typing.Optional[int]=None
     )->None:
     ...
 @typing.overload
 def asURL(url:URLCompatible,
-    relativeTo:typing.Optional[URLCompatible]=None,
+    relativeTo:typing.Optional[URLCompatible]='file://./',
     maxParentLevels:typing.Optional[int]=None,
     maxChildLevels:typing.Optional[int]=None
     )->"URL":
     ...
 def asURL(url:typing.Optional[URLCompatible],
-    relativeTo:typing.Optional[URLCompatible]=None,
+    relativeTo:typing.Optional[URLCompatible]='file://./',
     maxParentLevels:typing.Optional[int]=None,
     maxChildLevels:typing.Optional[int]=None
     )->typing.Optional["URL"]:

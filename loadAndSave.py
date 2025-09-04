@@ -112,6 +112,13 @@ class LoadAndSaveBytes:
         _=data
     _decodeBytes:typing.Optional[typing.Callable[[bytes],None]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
 
+    def _encodeStr(self)->str: # type: ignore
+        return ''
+    _encodeStr:typing.Optional[typing.Callable[[],str]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
+    def _decodeStr(self,data:bytes)->None: # type: ignore
+        _=data
+    _decodeStr:typing.Optional[typing.Callable[[str],None]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
+
     def __init__(self,
         filename:typing.Optional[URLCompatible]=None,
         data:typing.Optional[bytes]=None):
@@ -143,8 +150,11 @@ class LoadAndSaveBytes:
         :raises Exception: [description]
         """
         if self._decodeBytes is None:
-            raise Exception('Cannot load this kind of data')
-        self._decodeBytes(data) # pylint: disable=not-callable
+            if self._decodeStr is None:
+                raise Exception('Cannot load this kind of data')
+            self._decodeStr(data.decode('utf-8',errors='ignore'))
+        else:
+            self._decodeBytes(data) # pylint: disable=not-callable
 
     def encode(self)->bytes:
         """
@@ -164,7 +174,9 @@ class LoadAndSaveBytes:
         :raises Exception: [description]
         """
         if self._encodeBytes is None:
-            raise Exception('Cannot save this kind of data')
+            if self._encodeStr is None:
+                raise Exception('Cannot save this kind of data')
+            return self._encodeStr().encode('utf-8',errors='ignore') # pylint: disable=not-callable
         return self._encodeBytes() # pylint: disable=not-callable
 
     @property
