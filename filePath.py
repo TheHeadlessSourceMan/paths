@@ -19,7 +19,10 @@ FilePathCompatible=UrlCompatible
 
 def asFilePath(
     path:typing.Optional[FilePathCompatible],
-    makeAbsolute:bool=True,
+    relativeTo:typing.Optional[FilePathCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None,
+    makeAbsolute:bool=False,
     shellReplace:typing.Union[bool,typing.Dict[str,typing.Any]]=False
     )->"FilePath":
     """
@@ -35,7 +38,8 @@ def asFilePath(
         it with valid environment variables.
     """
     if not isinstance(path,FilePath):
-        return FilePath(path,makeAbsolute,shellReplace)
+        return FilePath(
+            path,relativeTo,maxParentLevels,maxChildLevels,makeAbsolute,shellReplace) # type: ignore
     if makeAbsolute and not path.isAbsolute:
         return path.absolute()
     return path
@@ -45,10 +49,13 @@ asFileUrl=asFilePath
 
 
 def asAbsoluteFilePath(
-        path:typing.Optional[FilePathCompatible],
-        makeAbsolute:bool=True,
-        shellReplace:typing.Union[bool,typing.Dict[str,typing.Any]]=False
-        )->"FilePath":
+    path:typing.Optional[FilePathCompatible],
+    relativeTo:typing.Optional[FilePathCompatible]=None,
+    maxParentLevels:typing.Optional[int]=None,
+    maxChildLevels:typing.Optional[int]=None,
+    makeAbsolute:bool=True,
+    shellReplace:typing.Union[bool,typing.Dict[str,typing.Any]]=False
+    )->"FilePath":
     """
     Force the path to be absolute
 
@@ -61,7 +68,8 @@ def asAbsoluteFilePath(
         For that reason, it is recommended to use shellReplace as a dict and only populate
         it with valid environment variables.
     """
-    return asFilePath(path,makeAbsolute,shellReplace)
+    return asFilePath(path,relativeTo,
+        maxParentLevels,maxChildLevels,makeAbsolute,shellReplace)
 asAbsoluteFilename=asAbsoluteFilePath
 asAbsoluteFileName=asAbsoluteFilePath
 asAbsoluteFileUrl=asAbsoluteFilePath
@@ -239,6 +247,9 @@ class FilePath(pathlib.Path,URL):
     """
     def __init__(self,
         location:typing.Optional[FilePathCompatible]=None,
+        relativeTo:typing.Optional[FilePathCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None,
         makeAbsolute:bool=False,
         shellReplace:typing.Union[bool,typing.Dict[str,typing.Any]]=False):
         """
@@ -253,7 +264,7 @@ class FilePath(pathlib.Path,URL):
         """
         fileLocation:str=asFileString(location,makeAbsolute,shellReplace)
         pathlib.Path.__init__(self,fileLocation) # type: ignore
-        URL.__init__(self,location)
+        URL.__init__(self,location,relativeTo,maxParentLevels,maxChildLevels)
 
     def findFilenamesOfType(
         self,
@@ -271,6 +282,27 @@ class FilePath(pathlib.Path,URL):
         """
         for f in findFilenamesOfType(extensions,self,recursive):
             yield FilePath(f)
+
+    def replace(self, # type: ignore # pylint: disable=arguments-differ
+        replaceThis:typing.Union[str,typing.Pattern[str]],
+        withThis:typing.Union[str,typing.Any]
+        )->"FilePath":
+        """
+        Does everything that str.replace() does, so url.replace(x,y)
+        is exactly the same as Url(str(url).replace(x,y))
+        Also, if you pass in a compiled regex for replaceThis,
+        it is smart enough to use the regex.sub() instead
+
+        NOTE: if you are trying to replace something with path separators,
+        always use "/"
+        NOTE: if your replacement makes this an un-parsable Url(),
+        that's on you!
+        """
+        url=URL.replace(self,replaceThis,withThis)
+        fp=url.filePath
+        if fp is None:
+            raise ValueError(str(url))
+        return FilePath(fp)
 
     def dir(
         self,
@@ -314,7 +346,41 @@ class FilePath(pathlib.Path,URL):
         """
         other=asFileString(other)
         return FilePath(pathlib.Path.__truediv__(self,other)) # type: ignore
-    __rteuediv__=__truediv__
+    def __rtruediv__(self, # type: ignore
+        other:FilePathCompatible)->"FilePath":
+        """
+        Capture the Path "/" operator so it returns a FilePath
+        """
+        other=asFileString(other)
+        return FilePath(pathlib.Path.__rtruediv__(self,other)) # type: ignore
+
+    @property
+    def parent(self)->"FilePath":
+        """
+        All of the child filenames
+        """
+        if pathlib.Path.parent is None:
+            raise FileNotFoundError(str(self)+'/..')
+        drv=self._drv
+        root=self._root
+        parts=self._parts
+        if len(parts)==1 and (drv or root):
+            raise FileNotFoundError(str(self)+'/..')
+        parentPath=self._from_parsed_parts(drv,root,parts[:-1])
+        return FilePath(parentPath)
+
+    @property
+    def root(self)->"FilePath": # type: ignore
+        """
+        All of the child filenames
+        """
+        if self._root is not None:
+            return FilePath(self._root)
+        if self._drv is not None:
+            return FilePath(self._drv)
+        if self._boundParentPath is not None:
+            return asFilePath(self._boundParentPath).root # type: ignore
+        return self
 
     @property
     def children(self)->typing.Iterator["FilePath"]:
@@ -323,12 +389,35 @@ class FilePath(pathlib.Path,URL):
         """
         for c in self.iterdir():
             yield FilePath(c)
+
     @property
     def files(self)->typing.Iterator["FilePath"]:
         """
-        All of the child filenames
+        All of the child files
         """
-        return self.children
+        for c in self.children:
+            if c.is_file():
+                yield c
+
+    @property
+    def directories(self)->typing.Iterator["FilePath"]:
+        """
+        All of the child directories
+        """
+        for c in self.children:
+            if c.is_dir():
+                yield c
+
+    @property
+    def isDirectory(self)->bool:
+        """
+        Is this a directory
+        """
+        return self.is_dir()
+    @isDirectory.setter
+    def isDirectory(self,isDirectory:bool):
+        _=isDirectory
+        raise NotImplementedError()
 
     def __len__(self)->int:
         """
@@ -559,6 +648,23 @@ class FilePath(pathlib.Path,URL):
         Short filename
         """
         return self.name
+    @filename.setter
+    def filename(self,filename:FilePathCompatible):
+        self.name=filename
+
+    @property
+    def name(self)->str:
+        """The final path component, if any."""
+        parts = self._parts
+        if len(parts) == (1 if (self._drv or self._root) else 0):
+            return ''
+        return parts[-1]
+    @name.setter
+    def name(self,name:FilePathCompatible):
+        # TODO: does this constitute a system rename?
+        if not isinstance(name,str):
+            name=asFilePath(name).name
+        self._parts[-1]=name
 
     @property
     def expandvars(self)->"FilePath":
