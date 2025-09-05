@@ -356,13 +356,13 @@ class PathLike:
             return len(self._pathSteps)
         return len(self._boundParentPath)+len(self._pathSteps)
 
-    def __getattr__(self,__name:str) -> typing.Any:
-        """
-        where possible, access like an object member
-        """
-        if not self._pathSteps:
-            return ''
-        return getattr(self._pathSteps,__name)
+    #def __getattr__(self,__name:str) -> typing.Any:
+    #    """
+    #    where possible, access like an object member
+    #    """
+    #    if __name in ('_pathSteps',) and not self._pathSteps:
+    #        return ''
+    #    return getattr(self._pathSteps,__name)
 
     def matchesPath(self,path:'PathCompatible')->bool:
         """

@@ -32,7 +32,7 @@ class UrlNavigation:
 
     @property
     @abstractmethod
-    def url(self)->str:
+    def urlString(self)->str:
         """
         The current url as a string
         """
@@ -83,7 +83,7 @@ class UrlNavigation:
         ret.path=f'{ret.path}/{ret.resource}'
         ret.resource=url
         ret.cgi.clear()
-        ret.fragment=None
+        ret.fragment=''
         return ret
     getSubUrl=subdir
     subDir=subdir
@@ -131,16 +131,16 @@ class UrlNavigation:
 
         Always contains trailing '/' for convenience
         """
-        url=self.url.split('?',1)[0] # no cgi
+        url=self.urlString.split('?',1)[0] # no cgi
         components=url.split('://',1)
-        components[-1]=components[-1].split('/')
+        componentsLast=components[-1].split('/')
         # trim off the file
-        if not components[-1]:
-            components[-1].append('')
+        if not componentsLast:
+            componentsLast.append('')
         else:
-            components[-1][-1]=''
+            componentsLast[-1]=''
         # put it back together
-        components[-1]='/'.join(components[-1])
+        components[-1]='/'.join(componentsLast)
         return '://'.join(components)
 
     def getSibling(self,

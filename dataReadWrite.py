@@ -76,6 +76,7 @@ class DataReadWrite:
                 try:
                     first500txt=first500.decode('utf-8')
                 except UnicodeDecodeError:
+                    first500txt=''
                     isBinary=True
                 if not isBinary:
                     if first500.startswith(b'MZ'):
@@ -104,21 +105,25 @@ class DataReadWrite:
         return self._mimeType
 
     def write(self,
-        data:typing.Union[str,bytes]
+        data:typing.Any
         )->None:
         """
         file-like object write method
         """
+        if not isinstance(data,(str,bytes)):
+            data=str(data)
         self._dirty=True
         if isinstance(data,str):
-            data=data.encode('utf-8')
+            data=data.encode('utf-8',errors='ignore')
         if self._data is None:
             self._data=bytearray(data)
         elif isinstance(self.data,bytes):
             self._data=bytearray(self._data)
             self._data.extend(data)
         else:
-            self._data.extend(data)
+            self._data.extend(data) # type: ignore
+    writeString=write
+    writeBytes=write
 
     def close(self)->None:
         """
@@ -195,8 +200,8 @@ class DataReadWrite:
             hasEzFs=False
         hasEzFs=False # TODO: it's busted again
         if hasEzFs:
-            ez=ezFs.EzFs()
-            f=ez.open(self.filePath,'rb')
+            ez=ezFs.EzFs() # type: ignore
+            f=ez.open(self.filePath,'rb') # type: ignore
             self._data=bytearray(f.read())
             f.close()
         else:
@@ -222,8 +227,8 @@ class DataReadWrite:
         except ImportError:
             hasEzFs=False
         if hasEzFs:
-            ez=ezFs.EzFs()
-            f=ez.open(self.filePath,'wb')
+            ez=ezFs.EzFs() # type: ignore
+            f=ez.open(self.filePath,'wb') # type: ignore
             if self._data is not None:
                 f.write(bytes(self._data))
             f.close()

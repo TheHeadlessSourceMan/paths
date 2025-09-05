@@ -38,8 +38,7 @@ def asFilePath(
         it with valid environment variables.
     """
     if not isinstance(path,FilePath):
-        return FilePath(
-            path,relativeTo,maxParentLevels,maxChildLevels,makeAbsolute,shellReplace) # type: ignore
+        return FilePath(path,relativeTo,maxParentLevels,maxChildLevels,makeAbsolute,shellReplace) # type: ignore # pylint: disable=too-many-function-args
     if makeAbsolute and not path.isAbsolute:
         return path.absolute()
     return path
@@ -189,7 +188,7 @@ def asFileString(
         it with valid environment variables.
     """
     fileLocation=location
-    if fileLocation is None or not fileLocation:
+    if fileLocation is None or (isinstance(fileLocation,str) and not fileLocation):
         fileLocation='.'
     isFileString:typing.Optional[bool]=None
     while not isinstance(fileLocation,str):
@@ -239,12 +238,17 @@ def asFileString(
     return fileLocation
 
 
-class FilePath(pathlib.Path,URL):
+class FilePath(URL,pathlib.Path):
     """
     This expands upon pathlib.Path object
     to make it compatible with paths.URL, and also
     to add some missing features
+
+    This is also more or less compatible with pathlib.Path
     """
+
+    scheme="file"
+
     def __init__(self,
         location:typing.Optional[FilePathCompatible]=None,
         relativeTo:typing.Optional[FilePathCompatible]=None,
@@ -262,8 +266,11 @@ class FilePath(pathlib.Path,URL):
             For that reason, it is recommended to use shellReplace as a dict and only populate
             it with valid environment variables.
         """
+        _=makeAbsolute,shellReplace # used in __new__
+        self.username=None
+        self.password=None
         fileLocation:str=asFileString(location,makeAbsolute,shellReplace)
-        pathlib.Path.__init__(self,fileLocation) # type: ignore
+        self._pathlibPath=pathlib.Path(fileLocation)
         URL.__init__(self,location,relativeTo,maxParentLevels,maxChildLevels)
 
     def findFilenamesOfType(
@@ -280,7 +287,7 @@ class FilePath(pathlib.Path,URL):
             (extensions must include the dot, for instance [".c",".cpp"])
         :recursive: default=true
         """
-        for f in findFilenamesOfType(extensions,self,recursive):
+        for f in findFilenamesOfType(extensions,self._pathlibPath,recursive):
             yield FilePath(f)
 
     def replace(self, # type: ignore # pylint: disable=arguments-differ
@@ -331,13 +338,13 @@ class FilePath(pathlib.Path,URL):
         """
         File extension
         """
-        return self.suffix
+        return self._pathlibPath.suffix
     @property
     def ext(self)->str:
         """
         File extension
         """
-        return self.suffix
+        return self._pathlibPath.suffix
 
     def __truediv__(self, # type: ignore
         other:FilePathCompatible)->"FilePath":
@@ -361,12 +368,12 @@ class FilePath(pathlib.Path,URL):
         """
         if pathlib.Path.parent is None:
             raise FileNotFoundError(str(self)+'/..')
-        drv=self._drv
-        root=self._root
-        parts=self._parts
+        drv=self._pathlibPath._drv # type: ignore # pylint: disable=protected-access
+        root=self._pathlibPath._root # type: ignore # pylint: disable=protected-access
+        parts=self._pathlibPath._parts # type: ignore # pylint: disable=protected-access
         if len(parts)==1 and (drv or root):
             raise FileNotFoundError(str(self)+'/..')
-        parentPath=self._from_parsed_parts(drv,root,parts[:-1])
+        parentPath=self._pathlibPath._from_parsed_parts(drv,root,parts[:-1]) # type: ignore # pylint: disable=protected-access
         return FilePath(parentPath)
 
     @property
@@ -374,10 +381,10 @@ class FilePath(pathlib.Path,URL):
         """
         All of the child filenames
         """
-        if self._root is not None:
-            return FilePath(self._root)
-        if self._drv is not None:
-            return FilePath(self._drv)
+        if self._pathlibPath._root is not None: # type: ignore # pylint: disable=protected-access
+            return FilePath(self._pathlibPath._root) # type: ignore # pylint: disable=protected-access
+        if self._pathlibPath._drv is not None: # type: ignore # pylint: disable=protected-access
+            return FilePath(self._pathlibPath._drv) # type: ignore # pylint: disable=protected-access
         if self._boundParentPath is not None:
             return asFilePath(self._boundParentPath).root # type: ignore
         return self
@@ -387,7 +394,7 @@ class FilePath(pathlib.Path,URL):
         """
         All of the child filenames
         """
-        for c in self.iterdir():
+        for c in self._pathlibPath.iterdir():
             yield FilePath(c)
 
     @property
@@ -396,7 +403,7 @@ class FilePath(pathlib.Path,URL):
         All of the child files
         """
         for c in self.children:
-            if c.is_file():
+            if self._pathlibPath.is_file():
                 yield c
 
     @property
@@ -405,7 +412,7 @@ class FilePath(pathlib.Path,URL):
         All of the child directories
         """
         for c in self.children:
-            if c.is_dir():
+            if self._pathlibPath.is_dir():
                 yield c
 
     @property
@@ -413,7 +420,7 @@ class FilePath(pathlib.Path,URL):
         """
         Is this a directory
         """
-        return self.is_dir()
+        return self._pathlibPath.is_dir()
     @isDirectory.setter
     def isDirectory(self,isDirectory:bool):
         _=isDirectory
@@ -508,8 +515,18 @@ class FilePath(pathlib.Path,URL):
         filename=self/filename
         self.ensureNotExists(filename,ifExists)
         if isinstance(contents,bytes):
-            filename.write_bytes(contents)
+            filename.pathlibPath.write_bytes(contents)
         return filename
+
+    @property
+    def pathlibPath(self)->pathlib.Path:
+        """
+        This path as a pathlib.Path object.
+        """
+        return pathlib.Path(self._pathlibPath)
+    @pathlibPath.setter
+    def pathlibPath(self,pathlibPath:FilePathCompatible):
+        self.assign(pathlibPath)
 
     def setFileShortcut(self,
         filename:FilePathCompatible,
@@ -599,8 +616,62 @@ class FilePath(pathlib.Path,URL):
             raise FileNotFoundError(f'Link target "{linkTo}" is missing')
         filename=self/filename
         self.ensureNotExists(filename,ifExists)
-        filename.symlink_to(str(linkTo),linkTo.is_dir())
+        filename.symlink_to(linkTo)
     addFileSymlink=setFileSymlink
+
+    def symlink_to(self, # type: ignore
+        linkTo:FilePathCompatible,
+        isDir:typing.Optional[bool]=None
+        )->None:
+        """
+        Same as pathlib.Path.symlink_to
+        """
+        linkTo=asFilePath(linkTo)
+        if isDir is None:
+            isDir=linkTo.isDirectory
+        self._pathlibPath.symlink_to(str(linkTo),isDir)
+
+    def is_dir(self)->bool:
+        """
+        Same as pathlib.Path.symlink_to
+        """
+        return self._pathlibPath.is_dir()
+
+    @property
+    def suffix(self)->str:
+        """
+        Same as pathlib.Path.suffix
+        """
+        return self._pathlibPath.suffix
+
+    def is_file(self)->bool:
+        """
+        Same as pathlib.Path.is_file
+        """
+        return self._pathlibPath.is_file()
+
+    def iterdir(self)->typing.Generator['FilePath',None,None]:
+        """
+        Same as pathlib.Path.iterdir
+        """
+        for pathlibPath in self._pathlibPath.iterdir():
+            yield FilePath(pathlibPath)
+
+    def read_text(self, # type: ignore
+        encoding:str='utf-8',errors:str='ignore')->str:
+        """
+        Same as pathlib.Path.read_text
+        """
+        return self._pathlibPath.read_text(encoding,errors)
+
+    def write_text(self, # type: ignore
+        text:typing.Any,encoding:str='utf-8',errors:str='ignore')->None:
+        """
+        Same as pathlib.Path.write_text
+        """
+        if not isinstance(text,str):
+            text=str(text)
+        self._pathlibPath.write_text(text,encoding,errors)
 
     def __eq__(self, # type: ignore
         other:FilePathCompatible
@@ -609,6 +680,12 @@ class FilePath(pathlib.Path,URL):
         Is this the same as another filename?
         """
         return self.absolute()==asFileString(other,True)
+
+    def exists(self)->bool:
+        """
+        Same as pathlib.Path.exists()
+        """
+        return self._pathlibPath.exists()
 
     @property
     def isCwd(self)->bool:
@@ -639,7 +716,7 @@ class FilePath(pathlib.Path,URL):
         pth=self.absolute()
         if not inclusive:
             pth=pth.parent
-        os.makedirs(pth)
+        os.makedirs(str(pth))
     mkdirs=makedirs
 
     @property
@@ -653,18 +730,23 @@ class FilePath(pathlib.Path,URL):
         self.name=filename
 
     @property
+    def parts(self # type: ignore
+        )->typing.List[str]:
+        """
+        Parts of the path
+        """
+        return self._pathlibPath._parts.copy() # type: ignore # pylint: disable=protected-access
+
+    @property
     def name(self)->str:
-        """The final path component, if any."""
-        parts = self._parts
-        if len(parts) == (1 if (self._drv or self._root) else 0):
-            return ''
-        return parts[-1]
+        """
+        The final path component, if any.
+        """
+        return self.parts[-1]
     @name.setter
     def name(self,name:FilePathCompatible):
         # TODO: does this constitute a system rename?
-        if not isinstance(name,str):
-            name=asFilePath(name).name
-        self._parts[-1]=name
+        raise NotImplementedError()
 
     @property
     def expandvars(self)->"FilePath":
@@ -679,11 +761,35 @@ class FilePath(pathlib.Path,URL):
         Get the file modification time
         """
         return datetime.datetime.fromtimestamp(
-            pathlib.Path.lstat(self).st_mtime,
+            self._pathlibPath.lstat().st_mtime,
             tz=datetime.timezone.utc)
 
+    def copy(self)->"FilePath":
+        """
+        Create a copy of this path
+        """
+        return super().copy() # type: ignore
+
+    @property
+    def isAbsolute(self)->bool:
+        """
+        Determine if this is an absolute path
+        """
+        return self._pathlibPath.is_absolute()
+
     def absolute(self)->"FilePath":
-        return FilePath(pathlib.Path.absolute(self))
+        """
+        Same as pathlib.Path.absolute()
+        """
+        if self.isAbsolute:
+            return self.copy()
+        return FilePath(self._pathlibPath.absolute())
+
+    def __hash__(self)->int:
+        """
+        Hashing function for adding to lookup dicts
+        """
+        return self.url.__hash__()
 FileUrl=FilePath
 Filename=FilePath
 FileName=FilePath
@@ -691,7 +797,7 @@ FileName=FilePath
 
 if __name__=='__main__':
     import sys
-    filename=FileName()
+    filename=FileName('.')
     print(filename)
     print(filename.absolute())
     for c in filename.children:

@@ -67,7 +67,7 @@ def urlAssign(
         self.path=url.path
         self.isUNC=url.isUNC
         self.resource=url.resource
-        self.fragment=url.fragment
+        #self.fragment=url.fragment
         self.cgi=url.cgi.copy()
         return
     # make it ALWAYS a simple url string for processing
@@ -162,7 +162,7 @@ def urlAssign(
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path
-    ret.fragment=parsed.fragment
+    #ret.fragment=parsed.fragment
     ret.cgi.clear()
     if parsed.query is not None and parsed.query:
         cgi=parsed.query.split('&')

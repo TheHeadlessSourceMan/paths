@@ -418,7 +418,7 @@ class URL(
         osForPath:str='posix'
         if self.scheme!='file' or not (self.isUNC or self.isLocalhost()):
             return None
-        path=self.url
+        path=self.urlString
         path=path.split('://',1)[-1].split('?',1)[0]
         if os.sep!='/':
             osForPath='nt'
@@ -521,7 +521,7 @@ class URL(
             return False
         return str(self)==str(asURL(url))
 
-    def __hash__(self)->int: # type: ignore
+    def __hash__(self)->int:
         """
         Hashing function for adding to lookup dicts
         """
@@ -558,7 +558,7 @@ class URL(
         return urllib.parse.unquote(s)
 
     @property
-    def url(self)->str: # type: ignore
+    def urlString(self)->str: # type: ignore
         """
         the url in plain old string form
         """
@@ -609,29 +609,34 @@ class URL(
         if query:
             ret.append(query)
         return ''.join(ret)
-    @url.setter
-    def url(self,url:URLCompatible):
+    @urlString.setter
+    def urlString(self,url:URLCompatible):
         self.assign(url)
-    name=url
+    name=urlString
     def __repr__(self)->str:
         """
         string representation of the url
         """
-        return self.url
+        return self.urlString
+    def __str__(self)->str:
+        """
+        string representation of the url
+        """
+        return self.urlString
 
     def _encodeStr(self)->str:
         """
         Encode this to a string
         (used for saving .url files)
         """
-        return self.url
+        return self.urlString
 
     def _decodeStr(self,data:str)->None:
         """
         Decode this from a string
         (used for loading .url files)
         """
-        self.url=data
+        self.urlString=data
 
     @property
     def fullPath(self)->typing.Optional[str]:
