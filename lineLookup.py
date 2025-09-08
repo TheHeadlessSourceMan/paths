@@ -97,5 +97,5 @@ class LineLookup:
         col=pos
         if row>0:
             col=pos-self.totalBeforeLine[row-1]
-        return UrlWithFileLocation(self.filename,row+1,col+1)
+        return UrlWithFileLocation(self.filename,fromRow=row+1,fromColumn=col+1)
     location=lookup

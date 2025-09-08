@@ -176,7 +176,7 @@ def asFileString(
     shellReplace:typing.Union[bool,typing.Dict[str,typing.Any]]=False
     )->str:
     """
-    Force the location to be a file path string
+    Force the location to be a native file path string
 
     Passing in None or empty string creates a path to the current directory
 
@@ -192,9 +192,12 @@ def asFileString(
         fileLocation='.'
     isFileString:typing.Optional[bool]=None
     while not isinstance(fileLocation,str):
-        if isinstance(fileLocation,(FilePath,pathlib.Path)):
+        if isinstance(fileLocation,FilePath):
             isFileString=True
-            fileLocation=str(location)
+            fileLocation=fileLocation.filePath
+        elif isinstance(fileLocation,pathlib.Path):
+            isFileString=True
+            fileLocation=str(fileLocation)
         elif isinstance(fileLocation,URL):
             isFileString=fileLocation.isFile
             fileLocation=str(fileLocation)
@@ -352,21 +355,35 @@ class FilePath(URL,pathlib.Path):
         Capture the Path "/" operator so it returns a FilePath
         """
         other=asFileString(other)
-        return FilePath(pathlib.Path.__truediv__(self,other)) # type: ignore
+        combined=str(self._pathlibPath.__truediv__(other))
+        return asFilePath(combined)
     def __rtruediv__(self, # type: ignore
         other:FilePathCompatible)->"FilePath":
         """
         Capture the Path "/" operator so it returns a FilePath
         """
         other=asFileString(other)
-        return FilePath(pathlib.Path.__rtruediv__(self,other)) # type: ignore
+        return FilePath(str(self._pathlibPath.__rtruediv__(other)))
+
+    @property
+    def _flavour(self):
+        """
+        Implement pathlib.Path._flavour
+        """
+        return self._pathlibPath._flavour # type: ignore # pylint: disable=no-member,protected-access
+    @property
+    def parse_parts(self):
+        """
+        Implement pathlib.Path.parse_parts
+        """
+        return self._pathlibPath.parse_parts # type: ignore # pylint: disable=no-member
 
     @property
     def parent(self)->"FilePath":
         """
         All of the child filenames
         """
-        if pathlib.Path.parent is None:
+        if self._pathlibPath.parent is None:
             raise FileNotFoundError(str(self)+'/..')
         drv=self._pathlibPath._drv # type: ignore # pylint: disable=protected-access
         root=self._pathlibPath._root # type: ignore # pylint: disable=protected-access
@@ -620,16 +637,16 @@ class FilePath(URL,pathlib.Path):
     addFileSymlink=setFileSymlink
 
     def symlink_to(self, # type: ignore
-        linkTo:FilePathCompatible,
-        isDir:typing.Optional[bool]=None
+        target:FilePathCompatible,
+        target_is_directory:typing.Optional[bool]=None
         )->None:
         """
         Same as pathlib.Path.symlink_to
         """
-        linkTo=asFilePath(linkTo)
-        if isDir is None:
-            isDir=linkTo.isDirectory
-        self._pathlibPath.symlink_to(str(linkTo),isDir)
+        target=asFilePath(target)
+        if target_is_directory is None:
+            target_is_directory=target.isDirectory
+        self._pathlibPath.symlink_to(str(target),target_is_directory)
 
     def is_dir(self)->bool:
         """
@@ -657,21 +674,27 @@ class FilePath(URL,pathlib.Path):
         for pathlibPath in self._pathlibPath.iterdir():
             yield FilePath(pathlibPath)
 
-    def read_text(self, # type: ignore
-        encoding:str='utf-8',errors:str='ignore')->str:
+    def read_text(self,
+        encoding:typing.Optional[str]='utf-8',
+        errors:typing.Optional[str]='ignore'
+        )->str:
         """
         Same as pathlib.Path.read_text
         """
         return self._pathlibPath.read_text(encoding,errors)
 
-    def write_text(self, # type: ignore
-        text:typing.Any,encoding:str='utf-8',errors:str='ignore')->None:
+    def write_text(self,
+        data:typing.Any,
+        encoding:typing.Optional[str]='utf-8',
+        errors:typing.Optional[str]='ignore',
+        newline:typing.Optional[str]=None
+        )->int:
         """
         Same as pathlib.Path.write_text
         """
-        if not isinstance(text,str):
-            text=str(text)
-        self._pathlibPath.write_text(text,encoding,errors)
+        if not isinstance(data,str):
+            data=str(data)
+        return self._pathlibPath.write_text(data,encoding,errors,newline)
 
     def __eq__(self, # type: ignore
         other:FilePathCompatible

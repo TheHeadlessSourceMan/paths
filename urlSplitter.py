@@ -127,7 +127,7 @@ def urlAssign(
     elif os.sep!='/':
         url=url.replace(os.sep,'/')
     # url is always using '/' as the separator from here on out
-    isAbsolutePath=url[0]=='/' or isWindowsAbsolutePath
+    #isAbsolutePath=url[0]=='/' or isWindowsAbsolutePath
     # check for things that should be transformed to fragments, specifically,
     # file.txt:10-11 should be handled by RFC-5147
     # https://datatracker.ietf.org/doc/html/rfc5147

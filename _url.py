@@ -6,6 +6,7 @@ This represents a url type
 import typing
 import os
 import urllib.parse
+import pathlib
 from ._uri import URI
 from .urlTyping import URLCompatible, isURLCompatible, asURL
 from .loadAndSave import LoadAndSave
@@ -28,46 +29,58 @@ class URL(
     ):
     r"""
     Any URL of the form:
-        <protocol>://<user>:<pass>@<host>:<port>/<path>/<resource>[?<option=value>&<option=value..>]
+    ```
+    <protocol>://<user>:<pass>@<host>:<port>/<path>/<resource>[?<option=value>&<option=value..>]
+    ```
 
-    All members of this object are properly decoded automatically.
+    ## Features:
+    * All members of this object are properly decoded automatically.
 
-    This includes local file paths, which are interpereted as file:// urls
+    * This includes local file paths, which are interpereted as `file://` urls
+
         see: https://en.wikipedia.org/wiki/File_URI_scheme
-        * does handle Windows paths (c:\dir\file)
-        * does handle Windows UNC paths (\\machine\dir\file)
-        * does handle technically malformed paths
-            (file://filename should actually be file:///filename)
-
-    This is directly compatible with urllib3
+    * does handle Windows paths `c:\dir\file`
+    * does handle Windows UNC paths `\\machine\dir\file`
+    * does handle technically malformed paths
+            (`file://filename` should actually be `file:///filename`)
+    * This is directly compatible with urllib3
     and backwards-compatible to urllib.
 
-    You can do things like:
-        u=Url('http://www.mysite.com/path/search?q=something&page=1')
-        u['page']=2
-        print(u)
-        # prints "http://www.mysite.com/path/search?q=something&page=2"
-        u['q']='this&that'
-        print(u)
-        # prints "http://www.mysite.com/path/search?q=this%26that&page=2"
-        u=Url('http://www.mysite.com/path/search?q=this%26that&page=2')
-        print(u['q'])
-        # prints "this&that" (meaning, url encode/decode is fully automatic!)
-        # prints "this&that"
-        # (meaning the url encode/decode is fully automatic!)
-        u2=u.relative('/images/1.jpg')
-        print(u2)
-        # prints "http://www.mysite.com/path/images/1.jpg"
+    ## You can do things like:
+    ```python
+    u=Url('http://www.mysite.com/path/search?q=something&page=1')
+    u['page']=2
+    print(u)
+    # prints "http://www.mysite.com/path/search?q=something&page=2"
 
-    NOTE: specifying password in the url is generally considered bad form
+    u['q']='this&that'
+    print(u)
+    # prints "http://www.mysite.com/path/search?q=this%26that&page=2"
 
-    NOTE: has EXPERIMENTAL file-like object access
+    u=Url('http://www.mysite.com/path/search?q=this%26that&page=2')
+    print(u['q'])
+    # prints "this&that"
+    # (meaning the url encode/decode is fully automatic!)
 
-    TODO: IPv6 hosts
-    TODO: look into parsing by hand instead of present urllib workarounds
-        https://www.ietf.org/rfc/rfc3986.html#section-3.1
-        https://en.wikipedia.org/wiki/File_URI_scheme
-    TODO: pull in default readers from imageTools
+    u2=u.relative('/images/1.jpg')
+    print(u2)
+    # prints "http://www.mysite.com/path/images/1.jpg"
+    ```
+
+    ## Notes:
+        NOTE: specifying password in the url is generally considered bad form
+
+        NOTE: has EXPERIMENTAL file-like object access
+
+        TODO: IPv6 hosts
+
+        TODO: look into parsing by hand instead of present urllib workarounds
+
+            https://www.ietf.org/rfc/rfc3986.html#section-3.1
+
+            https://en.wikipedia.org/wiki/File_URI_scheme
+        
+        TODO: pull in default readers from imageTools
     """
 
     # object members that could likely contain a url. order is important
@@ -108,7 +121,9 @@ class URL(
             else:
                 protocol='file'
         actualClass=cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,cls)
-        return super().__new__(actualClass) # type: ignore
+        if not issubclass(actualClass,URL):
+            raise Exception()
+        return super(URL,cls).__new__(actualClass) # type: ignore
 
     def __init__(self,
         url:typing.Optional[URLCompatible],
@@ -310,6 +325,13 @@ class URL(
         self._fragment=None
         self._isDirectory=None
 
+    @property
+    def url(self # type: ignore
+        )->"URL":
+        """
+        create an identical copy
+        """
+        return URL(self)
     def copy(self)->"URL":
         """
         create an identical copy
@@ -624,14 +646,14 @@ class URL(
         """
         return self.urlString
 
-    def _encodeStr(self)->str:
+    def _encodeStr(self)->str: # type: ignore
         """
         Encode this to a string
         (used for saving .url files)
         """
         return self.urlString
 
-    def _decodeStr(self,data:str)->None:
+    def _decodeStr(self,data:str)->None: # type: ignore
         """
         Decode this from a string
         (used for loading .url files)
@@ -737,6 +759,8 @@ class URL(
             return None
         if isinstance(url,URL):
             return str(url)
+        elif isinstance(url,pathlib.Path):
+            url=str(url)
         if isinstance(url,bytes):
             url=url.decode('utf-8','ignore')
         if isinstance(url,str):
@@ -765,12 +789,11 @@ class URL(
                 url=getattr(url,'name')
             if (not foundSomething) and hasattr(url,'keys'):
                 # it's a dict-like, so we can check that too
-                url=typing.cast(typing.Dict,url)
-                keys:typing.Iterable[str]=url.keys()
-                for memberName in self.URL_LIKE_MEMBERS:
+                keys:typing.Iterable[str]=url.keys() # type: ignore
+                for memberName in cls.URL_LIKE_MEMBERS:
                     if memberName in keys:
                         foundSomething=True
-                        url=url[memberName]
+                        url=url[memberName] # type: ignore
                         if callable(url):
                             url=url()
                         if isinstance(url,URL):

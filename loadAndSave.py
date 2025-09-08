@@ -42,7 +42,7 @@ def defaultLoader(f:URLCompatible)->bytes:
     if f.protocol!='file':
         import urllib.request
         headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
-        request=urllib.request.Request(f.url,None,headers)
+        request=urllib.request.Request(str(f.url),None,headers)
         response=urllib.request.urlopen(request)
         return response.read()
     with open(f.filePath,'rb') as f: # type: ignore
@@ -77,7 +77,7 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
     if f.protocol!='file':
         import urllib.request
         headers={'User-Agent':'Mozilla 5.10'} # some servers only like "real browsers" # noqa: E501 # pylint: disable=line-too-long
-        request=urllib.request.Request(f.url,data,headers,method='PUT')
+        request=urllib.request.Request(str(f.url),data,headers,method='PUT')
         _=urllib.request.urlopen(request)
         return
     f.write(data)
@@ -105,19 +105,11 @@ class LoadAndSaveBytes:
         from paths import URL
 
     DefaultFilename:str='UNDEFINED.dat'
-    def _encodeBytes(self)->bytes: # type: ignore
-        return bytes()
-    _encodeBytes:typing.Optional[typing.Callable[[],bytes]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
-    def _decodeBytes(self,data:bytes)->None: # type: ignore
-        _=data
-    _decodeBytes:typing.Optional[typing.Callable[[bytes],None]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
 
-    def _encodeStr(self)->str: # type: ignore
-        return ''
-    _encodeStr:typing.Optional[typing.Callable[[],str]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
-    def _decodeStr(self,data:bytes)->None: # type: ignore
-        _=data
-    _decodeStr:typing.Optional[typing.Callable[[str],None]]=None # type: ignore # noqa: F811, E501 # pylint: disable=line-too-long
+    _encodeBytes:typing.Optional[typing.Callable[[],bytes]]=None
+    _decodeBytes:typing.Optional[typing.Callable[[bytes],None]]=None
+    _encodeStr:typing.Optional[typing.Callable[[],str]]=None
+    _decodeStr:typing.Optional[typing.Callable[[str],None]]=None
 
     def __init__(self,
         filename:typing.Optional[URLCompatible]=None,
@@ -152,7 +144,7 @@ class LoadAndSaveBytes:
         if self._decodeBytes is None:
             if self._decodeStr is None:
                 raise Exception('Cannot load this kind of data')
-            self._decodeStr(data.decode('utf-8',errors='ignore'))
+            self._decodeStr(data.decode('utf-8',errors='ignore')) # pylint: disable=not-callable
         else:
             self._decodeBytes(data) # pylint: disable=not-callable
 
@@ -384,7 +376,7 @@ class LoadAndSave(LoadAndSaveBytes):
             pass
         return 'UTF-8'
 
-    def _decodeBytes(self, # pylint: disable=arguments-differ
+    def _decodeBytes(self, # pylint: disable=arguments-differ # type: ignore
         data:bytes,
         errors:str='ignore',
         altDecoder:typing.Optional[typing.Callable[[str],str]]=None,
@@ -413,7 +405,7 @@ class LoadAndSave(LoadAndSaveBytes):
         else:
             self.decode(textData)
 
-    def _encodeBytes(self, # pylint: disable=arguments-differ
+    def _encodeBytes(self, # pylint: disable=arguments-differ # type: ignore
         altEncoder:typing.Optional[typing.Callable[[str],str]]=None,
         altEncoderParams:typing.Optional[ParamsDict]=None
         )->bytes:
@@ -441,7 +433,9 @@ class LoadAndSave(LoadAndSaveBytes):
             raise Exception('Cannot save this kind of data')
         else:
             textData=self._encode()
-        return textData.encode(encoding)
+        if isinstance(textData,str):
+            textData=textData.encode(encoding)
+        return textData
 
     def decode(self,data:typing.Union[bytes,str])->None:
         """
@@ -459,7 +453,7 @@ class LoadAndSave(LoadAndSaveBytes):
         else:
             if self._decode is None:
                 raise Exception('Cannot load this kind of data')
-            self._decode(data) # pylint: disable=not-callable
+            self._decodeStr(data) # type: ignore # pylint: disable=not-callable
 
     def encode(self)->str: #type: ignore
         """
@@ -474,8 +468,7 @@ class LoadAndSave(LoadAndSaveBytes):
         """
         if self._encode is None:
             raise Exception('Cannot save this kind of data')
-
-        return self._encode() # pylint: disable=not-callable
+        return self._encodeStr() # type: ignore # pylint: disable=not-callable
 
     def load(self,  # type: ignore
         filename:typing.Optional[URLCompatible]=None,
@@ -563,10 +556,12 @@ class LoadAndSave(LoadAndSaveBytes):
             raise Exception('Cannot save this kind of data')
         else:
             data=self._encode() # pylint: disable=not-callable
-        encoding=self.encoding
-        if encoding is None:
-            encoding="utf-8"
-        defaultSaver(filename,data.encode(encoding,errors="ignore"))
+        if isinstance(data,str):
+            encoding=self.encoding
+            if encoding is None:
+                encoding="utf-8"
+            data=data.encode(encoding,errors="ignore")
+        defaultSaver(filename,data)
 
     def __repr__(self)->str:
         return str(self._filename)

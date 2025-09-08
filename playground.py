@@ -37,7 +37,7 @@ class UrlNew:
         port=r"""(:(?P<port>[0-9]+))"""
         location=r"""("""+host+port+r"""?)"""
         login=r"""((?P<username>[-a-z0-9_.]*)?(:(?P<password>[-a-z0-9_]*))?@)"""
-        resource=r"""(/((?P<path>[-a-z0-9_./]*?)(?P<resource>/[-a-z0-9_.])?)(\#(?P<part>.*))?(\?(?P<cgi>.*)))"""
+        resource=r"""(/((?P<path>[-a-z0-9_./]*?)(?P<resource>/[-a-z0-9_.])?)(\#(?P<part>.*))?(\?(?P<cgi>.*)))""" # pylint: disable:line-too-long
         regex=r"""(?P<url>"""+proto+login+r"""?"""+location+resource+r"""?)"""
         return re.compile(regex,re.IGNORECASE)
     def _assignUrl(self,

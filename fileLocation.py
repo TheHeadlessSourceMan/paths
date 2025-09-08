@@ -10,7 +10,7 @@ import typing
 import re
 import urllib.parse
 import paths
-from paths._url import Url
+from paths._url import Url,URLCompatible
 
 
 class LocationWithinFile:
@@ -27,40 +27,31 @@ class LocationWithinFile:
         toRow:typing.Optional[int]=None,
         toColumn:typing.Optional[int]=None):
         """ """
-        self.fromRow:typing.Optional[int]=fromRow
-        self.fromColumn:typing.Optional[int]=fromColumn
-        self.toRow:typing.Optional[int]=toRow
-        self.toColumn:typing.Optional[int]=toColumn
+        self._fromRow:int=0 if fromRow is None else fromRow
+        self._fromColumn:int=0 if fromColumn is None else fromColumn
+        self._toRow:int=-1 if toRow is None else toRow
+        self._toColumn:int=-1 if toColumn is None else toColumn
+
+    def copy(self)->"LocationWithinFile":
+        """
+        Create a copy of this location within file
+        """
+        return LocationWithinFile(
+            self._fromRow,self._fromColumn,self._toRow,self._toColumn)
 
     def __eq__(self,__o: object)->bool:
         """
         Compare to another location
         """
         if isinstance(__o,LocationWithinFile):
-            if __o.fromRow is None or self.fromRow is None:
-                if __o.fromRow is not self.fromRow:
-                    return False
-            elif __o.fromRow>1 and self.fromRow>1:
-                if __o.fromRow!=self.fromRow:
-                    return False
-            if __o.fromColumn is None or self.fromColumn is None:
-                if __o.fromColumn is not self.fromColumn:
-                    return False
-            elif __o.fromColumn>1 and self.fromColumn>1:
-                if __o.fromColumn!=self.fromColumn:
-                    return False
-            if __o.toRow is None or self.toRow is None:
-                if __o.toRow is not self.toRow:
-                    return False
-            elif __o.toRow>1 and self.toRow>1:
-                if __o.toRow!=self.toRow:
-                    return False
-            if __o.toColumn is None or self.toColumn is None:
-                if __o.toColumn is not self.toColumn:
-                    return False
-            elif __o.toColumn>1 and self.toColumn>1:
-                if __o.toColumn!=self.toColumn:
-                    return False
+            if __o.fromRow!=self._fromRow:
+                return False
+            if __o.fromColumn!=self._fromColumn:
+                return False
+            if __o.toRow!=self._toRow:
+                return False
+            if __o.toColumn!=self._toColumn:
+                return False
             return True
         elif hasattr(__o,'location'):
             return self==getattr(__o,'location')
@@ -73,16 +64,16 @@ class LocationWithinFile:
         shortcut to call the openEditor tool
         """
         import openEditor
-        openEditor.openEditor(self,editor=editor)
+        openEditor.openEditor(self,editor=editor) # type: ignore
 
     def contains(self,other:'LocationWithinFile')->bool:
         """
         Does this entirely contain another location?
         """
-        if other.fromLine<=self.toLine:
-            if other.fromColumn<=self.toColumn:
-                if other.toLine>=self.fromLine:
-                    if other.toColumn>=self.toColumn:
+        if other.fromLine<=self._toRow:
+            if other.fromColumn<=self._toColumn:
+                if other.toRow>=self._fromRow:
+                    if other.toColumn>=self._toColumn:
                         return True
         return False
 
@@ -99,115 +90,150 @@ class LocationWithinFile:
         # if either point in the other item is within
         # the range of this item, return True
         if other.fromLine<=self.toLine\
-            and other.fromColumn<=self.toColumn\
-            and other.fromLine>=self.fromLine\
-            and other.fromColumn>=self.fromColumn:
+            and other.fromColumn<=self._toColumn\
+            and other.fromRow>=self._fromRow\
+            and other.fromColumn>=self._fromColumn:
             return True
         if other.toLine<=self.toLine\
-            and other.toColumn<=self.toColumn\
-            and other.toLine>=self.fromLine\
-            and other.toColumn>=self.fromColumn:
+            and other.toColumn<=self._toColumn\
+            and other.toRow>=self._fromRow\
+            and other.toColumn>=self._fromColumn:
             return True
         # or if other completely contains this
         return other.contains(self)
 
     @property
-    def fromLine(self):
+    def fromRow(self)->int:
         """
         same as fromRow
         """
-        return self.fromRow
+        return self._fromRow
+    @fromRow.setter
+    def fromRow(self,fromRow:typing.Optional[int]=None):
+        self._fromRow=0 if fromRow is None else fromRow
+    @property
+    def fromLine(self)->int:
+        """
+        same as fromRow
+        """
+        return self._fromRow
     @fromLine.setter
-    def fromLine(self,fromLine:typing.Optional[int]):
-        self.fromRow=fromLine
+    def fromLine(self,fromLine:typing.Optional[int]=None):
+        self._fromRow=0 if fromLine is None else fromLine
     @property
-    def line(self):
+    def line(self)->int:
         """
         same as fromRow
         """
-        return self.fromRow
+        return self._fromRow
     @line.setter
-    def line(self,fromLine:typing.Optional[int]):
-        self.fromRow=fromLine
+    def line(self,fromLine:typing.Optional[int]=None):
+        self._fromRow=0 if fromLine is None else fromLine
     @property
-    def row(self):
+    def row(self)->int:
         """
         same as fromRow
         """
-        return self.fromRow
+        return self._fromRow
     @row.setter
-    def row(self,row:typing.Optional[int]):
-        self.fromRow=row
+    def row(self,row:typing.Optional[int]=None):
+        self._fromRow=0 if row is None else row
 
     @property
-    def toLine(self):
+    def toRow(self)->int:
         """
         same as toRow
         """
-        return self.toRow
+        return self._toRow
+    @toRow.setter
+    def toRow(self,toRow:typing.Optional[int]=None):
+        self._toRow=-1 if toRow is None else toRow
+    @property
+    def toLine(self)->int:
+        """
+        same as toRow
+        """
+        return self._toRow
     @toLine.setter
-    def toLine(self,toLine:typing.Optional[int]):
-        self.toRow=toLine
+    def toLine(self,toLine:typing.Optional[int]=None):
+        self._toRow=-1 if toLine is None else toLine
 
     @property
-    def numRows(self):
+    def numRows(self)->int:
         """
         numnber of rows
         """
-        return self.toRow-self.fromRow+1
+        return self._toRow-self._fromRow+1
     @numRows.setter
-    def numRows(self,numRows:typing.Optional[int]):
-        self.toColumn=None
+    def numRows(self,numRows:typing.Optional[int]=None):
         if numRows is None or numRows<=0:
             numRows=1
-        self.toRow=self.fromRow+numRows-1
+        self.toRow=self._fromRow+numRows-1
     @property
-    def numLines(self):
+    def numLines(self)->int:
         """
         same as numRows
         """
-        return self.numLines
+        return self.numRows
     @numLines.setter
     def numLines(self,numLines:typing.Optional[int]):
         self.numRows=numLines
 
     @property
-    def fromCol(self):
+    def fromColumn(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self.fromColumn
+        return self._fromColumn
+    @fromColumn.setter
+    def fromColumn(self,fromColumn:typing.Optional[int]=None):
+        self._fromColumn=0 if fromColumn is None else fromColumn
+    @property
+    def fromCol(self)->int:
+        """
+        starting column/character for the given row in the file
+        """
+        return self._fromColumn
     @fromCol.setter
-    def fromCol(self,fromCol:typing.Optional[int]):
-        self.fromColumn=fromCol
+    def fromCol(self,fromCol:typing.Optional[int]=None):
+        self._fromColumn=0 if fromCol is None else fromCol
     @property
-    def col(self):
+    def col(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self.fromColumn
+        return self._fromColumn
     @col.setter
-    def col(self,fromColumn:typing.Optional[int]):
-        self.fromColumn=fromColumn
+    def col(self,fromColumn:typing.Optional[int]=None):
+        self._fromColumn=0 if fromColumn is None else fromColumn
     @property
-    def column(self):
+    def column(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self.fromColumn
+        return self._fromColumn
     @column.setter
-    def column(self,column:typing.Optional[int]):
-        self.fromColumn=column
+    def column(self,column:typing.Optional[int]=None):
+        self._fromColumn=0 if column is None else column
 
     @property
-    def toCol(self):
+    def toColumn(self)->int:
         """
         ending column/character for the given row in the file
         """
-        return self.toColumn
+        return self._toColumn
+    @toColumn.setter
+    def toColumn(self,toColumn:typing.Optional[int]=None):
+        self._toColumn=0 if toColumn is None else toColumn
+    @property
+    def toCol(self)->int:
+        """
+        ending column/character for the given row in the file
+        """
+        return self._toColumn
     @toCol.setter
-    def toCol(self,toCol:typing.Optional[int]):
-        self.toColumn=toCol
+    def toCol(self,toCol:typing.Optional[int]=None):
+        self._toColumn=0 if toCol is None else toCol
 
     def __repr__(self)->str:
         """
@@ -216,12 +242,12 @@ class LocationWithinFile:
         ret=[]
         if self.line is not None:
             ret.append('%d'%self.line)
-            if self.fromColumn is not None:
-                ret.append(':%d'%self.fromColumn)
-            if self.toLine is not None:
-                ret.append('-%d'%self.toLine)
-                if self.toColumn is not None:
-                    ret.append(':%d'%self.toColumn)
+            if self._fromColumn!=-1:
+                ret.append(':%d'%self._fromColumn)
+            if self._toRow!=-1:
+                ret.append('-%d'%self._toRow)
+                if self._toColumn!=-1:
+                    ret.append(':%d'%self._toColumn)
         return ''.join(ret)
 
 
@@ -249,6 +275,24 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     FILE_LOCATION_REGEX=re.compile(
         r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-long
 
+    def __new__(cls,
+        url:paths.URLCompatible,
+        fromRow:typing.Optional[int]=None,
+        fromColumn:typing.Optional[int]=None,
+        toRow:typing.Optional[int]=None,
+        toColumn:typing.Optional[int]=None,
+        smartDecodeUrl:bool=True,
+        relativeTo:typing.Optional[paths.URLCompatible]=None,
+        maxParentLevels:typing.Optional[int]=None,
+        maxChildLevels:typing.Optional[int]=None):
+        """
+        :maxParentLevels: the maximum number of parent levels to allow
+            in a relative path - for security, recommend setting this to 0
+        :maxChildLevels: the maximum number of child levels to allow
+            in a relative path
+        """
+        return super(UrlWithFileLocation,cls).__new__(cls) # pylint: disable=no-value-for-parameter # type: ignore
+
     def __init__(self,
         url:paths.URLCompatible,
         fromRow:typing.Optional[int]=None,
@@ -272,7 +316,17 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             fromRow,fromColumn,toRow,toColumn,
             smartDecodeUrl,relativeTo,maxParentLevels,maxChildLevels)
 
-    def __eq__(self, __o: object)->bool:
+    def copy(self)->"UrlWithFileLocation":
+        """
+        Copy this url with location
+        """
+        return UrlWithFileLocation(self.url,
+            self.fromRow,self.fromColumn,self.toRow,self.toColumn,
+            self.smartDecodeUrl)
+
+    def __eq__(self, # type: ignore
+        __o:typing.Union["UrlWithFileLocation",URLCompatible]
+        )->bool:
         """
         Compare to a filename, location, or url
         """
@@ -302,7 +356,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             return self.url==paths.asURL(typing.cast(paths.URLCompatible,__o))
         return False
 
-    def contains(self,other:LocationWithinFile)->bool:
+    def contains(self,other:LocationWithinFile)->bool: # type: ignore
         """
         Does this entirely contain another location?
         """
@@ -332,12 +386,12 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         if self.fromLine is None:
             return data
         lines=data.replace('\r','').split('\n')
-        lines=lines[v2a(self.fromLine):v2a(self.toLine,None)]
+        lines=lines[v2a(self.fromLine):v2a(self.toLine,-1)]
         lines[0]=lines[0][v2a(self.fromColumn):]
-        lines[-1]=lines[-1][0:v2a(self.toColumn,None)]
+        lines[-1]=lines[-1][0:v2a(self.toColumn,-1)]
         return '\n'.join(lines)
 
-    def assign(self, # pylint: disable=arguments-renamed
+    def assign(self, # type: ignore # pylint: disable=arguments-renamed
         url:paths.URLCompatible,
         fromRow:typing.Optional[int]=None,
         fromColumn:typing.Optional[int]=None,
@@ -383,7 +437,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         parts=self.fragments.get('line','0').split(',')
         return int(parts[0])
     @fromRow.setter
-    def fromRow(self,fromRow:int):
+    def fromRow(self,fromRow:typing.Optional[int]=None):
+        if fromRow is None:
+            fromRow=0
         parts=list(self.fragments.get('line','0').split(','))
         parts[0]=str(fromRow)
         self.fragments['line']=','.join(parts)
@@ -395,7 +451,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         parts=self.fragments.get('line','0').split(',')
         return int(parts[-1])
     @toRow.setter
-    def toRow(self,toRow:int):
+    def toRow(self,toRow:typing.Optional[int]=None):
+        if toRow is None:
+            toRow=0
         parts=list(self.fragments.get('line','0').split(','))
         if len(parts)>1:
             parts[1]=str(toRow)
@@ -411,7 +469,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         parts=self.fragments.get('char','0').split(',')
         return int(parts[0])
     @fromColumn.setter
-    def toColumn(self,fromColumn:int):
+    def fromColumn(self,fromColumn:typing.Optional[int]=None):
+        if fromColumn is None:
+            fromColumn=0
         parts=list(self.fragments.get('char','0').split(','))
         parts[0]=str(fromColumn)
         self.fragments['char']=','.join(parts)
@@ -423,7 +483,9 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         parts=self.fragments.get('char','0').split(',')
         return int(parts[-1])
     @toColumn.setter
-    def toColumn(self,toColumn:int):
+    def toColumn(self,toColumn:typing.Optional[int]=None):
+        if toColumn is None:
+            toColumn=0
         parts=list(self.fragments.get('char','0').split(','))
         if len(parts)>1:
             parts[1]=str(toColumn)
@@ -442,13 +504,14 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         self._url=url
 
     @property
-    def filename(self)->typing.Optional[str]:
+    def filename(self # type: ignore
+        )->typing.Optional[str]:
         """
         returns the url as a filename
         """
         return self.url.filePath
 
-    def html(self, # pylint: disable=invalid-overridden-method
+    def html(self, # pylint: disable=invalid-overridden-method # type: ignore
         hrefFormat:str='',
         title:typing.Optional[str]=None
         )->str:
@@ -555,49 +618,55 @@ class UrlWithFileLocations(UrlWithFileLocation):
         """
         for fl in self.locations:
             yield UrlWithFileLocation(self.url,
-                fl.fromRow,fl.fromColumn,
-                fl.toRow,fl.toColumn,
-                self.smartDecodeUrl)
+                fl.fromRow,fl.fromColumn,fl.toRow,fl.toColumn,self.smartDecodeUrl)
 
-    @property # type: ignore
-    def fromRow(self)->typing.Optional[int]:
+    @property
+    def fromRow(self)->int:
         """
         the starting row/line in the file
 
         NOTE: there is no setter, because that doesn't make sense
         """
-        r=None
+        r=0
         for loc in self.locations:
             if r is None or loc.fromRow<r:
                 r=loc.fromRow
         return r
-    row=fromRow
-    line=fromRow
-    fromLine=fromRow
+    @fromRow.setter
+    def fromRow(self,fromRow:typing.Optional[int]=None):
+        _=fromRow
+        raise IndexError("Cannot manually set size of the file")
+    row=fromRow # type: ignore
+    line=fromRow # type: ignore
+    fromLine=fromRow # type: ignore
 
-    @property # type: ignore
-    def toRow(self)->typing.Optional[int]:
+    @property
+    def toRow(self)->int:
         """
         ending row/line in the file
 
         NOTE: there is no setter, because that doesn't make sense
         """
-        r=None
+        r=-1
         for loc in self.locations:
             if r is None or loc.toRow>r:
                 r=loc.toRow
         return r
-    toLine=toRow
+    @toRow.setter
+    def toRow(self,toRow:typing.Optional[int]=None):
+        _=toRow
+        raise IndexError("Cannot manually set size of the file")
+    toLine=toRow # type: ignore
 
-    @property # type: ignore
-    def fromColumn(self)->typing.Optional[int]:
+    @property
+    def fromColumn(self)->int:
         """
         starting column/character for the given row in the file
 
         NOTE: there is no setter, because that doesn't make sense
         """
         r=None
-        c=None
+        c=0
         for loc in self.locations:
             if r is None or loc.fromRow<r:
                 r=loc.fromRow
@@ -605,16 +674,20 @@ class UrlWithFileLocations(UrlWithFileLocation):
             elif r==loc.fromRow and loc.fromColumn<c:
                 c=loc.fromColumn
         return c
+    @fromColumn.setter
+    def fromColumn(self,fromColumn:typing.Optional[int]=None):
+        _=fromColumn
+        raise IndexError("Cannot manually set size of the file")
 
-    @property # type: ignore
-    def toColumn(self)->typing.Optional[int]:
+    @property
+    def toColumn(self)->int:
         """
         ending column/character for the given row in the file
 
         NOTE: there is no setter, because that doesn't make sense
         """
         r=None
-        c=None
+        c=-1
         for loc in self.locations:
             if r is None or loc.toRow>r:
                 r=loc.toRow
@@ -622,6 +695,10 @@ class UrlWithFileLocations(UrlWithFileLocation):
             elif r==loc.toRow and loc.toColumn>c:
                 c=loc.toColumn
         return c
+    @toColumn.setter
+    def toColumn(self,toColumn:typing.Optional[int]=None):
+        _=toColumn
+        raise IndexError("Cannot manually set size of the file")
 
     def __repr__(self)->str:
         r"""

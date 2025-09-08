@@ -25,13 +25,16 @@ def findFilenamesOfType(
     """
     tape:typing.List[Path]
     if isinstance(startDirs,Path):
+        if not startDirs.is_dir():
+            return
         tape=[startDirs]
     elif isinstance(startDirs,str):
-        tape=[Path(startDirs)]
+        startDirs=Path(startDirs)
+        if not startDirs.is_dir():
+            return
+        tape=[startDirs]
     else:
         tape=[Path(startDir) for startDir in startDirs]
-    if not startDirs.is_dir():
-        return
     if isinstance(extensions,str):
         extensions=(extensions,)
     for currentDir in tape:

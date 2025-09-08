@@ -230,7 +230,7 @@ def sanitizePath(
     """
     elements:typing.Iterable[str]
     if not isinstance(path,str) and hasattr(path,"__iter__"):
-        elements=path
+        elements=tuple(path) # type: ignore
     else:
         path=str(path)
         if expandEnvironment:
@@ -409,7 +409,7 @@ def asPathlibPath(urlOrPath:typing.Union[str,Path,UrlCompatible])->Path:
     urlOrPathUrl=asUrl(urlOrPath).filePath
     if urlOrPathUrl is None:
         raise FileNotFoundError(f'Path must be local "{urlOrPath}"')
-    return urlOrPathUrl
+    return Path(urlOrPathUrl)
 
 
 def asLocalPath(urlOrPath:typing.Union[str,Path,UrlCompatible])->Path:
@@ -418,4 +418,4 @@ def asLocalPath(urlOrPath:typing.Union[str,Path,UrlCompatible])->Path:
 
     If this is a url and not file:// will raise FileNotFoundError
     """
-    return str(asPathlibPath(urlOrPath))
+    return asPathlibPath(urlOrPath)

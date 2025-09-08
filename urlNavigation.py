@@ -38,6 +38,14 @@ class UrlNavigation:
         """
 
     @property
+    def url(self)->"URL":
+        """
+        The current url as a string
+        """
+        from paths import asUrl
+        return asUrl(self.urlString)
+
+    @property
     def parent(self)->"URL":
         """
         parent directory
@@ -159,7 +167,7 @@ class UrlNavigation:
         """
         import paths
         if url is None:
-            return self
+            return self.url
         if isinstance(url,paths.URL):
             # assume it is fully qualified, whatever it is
             return url

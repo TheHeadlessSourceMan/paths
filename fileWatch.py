@@ -157,7 +157,7 @@ def watchForFileChange(
         target=waitForFileChange,args=[filename,onChange,context])
     setattr(thread,'context',context)
     def stop(self:threading.Thread):
-        self.context.keepGoing=False
+        self.context.keepGoing=False # type: ignore
         self.join()
     setattr(thread,'stop',stop)
     thread.start()
@@ -205,7 +205,7 @@ def cmdline(args:typing.Iterable[str])->int:
         time.sleep(0.250)
         keepGoing=False
         for t in threads:
-            if t.context.keepGoing:
+            if t.context.keepGoing: # type: ignore
                 keepGoing=True
                 break
     return 0
