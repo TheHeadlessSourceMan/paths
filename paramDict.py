@@ -96,7 +96,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         Exactly the same thing as a clear() followed by an update()
         """
         self.clear()
-        if otherDict is not None:
+        if otherDict is not None and otherDict and otherDict!=self:
             self.update(otherDict)
 
     def __delitem__(self,k:str)->None:

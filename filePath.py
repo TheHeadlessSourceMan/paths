@@ -4,14 +4,15 @@ to make it compatible with paths.URL, and also
 to add some missing features
 """
 import typing
+from abc import ABC
 import os
 import re
 import pathlib
 import datetime
-from ._url import URL
-from .urlTyping import UrlCompatible
-from .search import findFilenamesOfType
-from .errors import MalformedFilename
+from paths._url import URL
+from paths.urlTyping import UrlCompatible
+from paths.search import findFilenamesOfType
+from paths.errors import MalformedFilename
 
 
 FilePathCompatible=UrlCompatible
@@ -241,7 +242,8 @@ def asFileString(
     return fileLocation
 
 
-class FilePath(URL,pathlib.Path):
+_PathBase = pathlib.WindowsPath if os.name == "nt" else pathlib.PosixPath
+class FilePath(_PathBase,URL):
     """
     This expands upon pathlib.Path object
     to make it compatible with paths.URL, and also
@@ -251,6 +253,17 @@ class FilePath(URL,pathlib.Path):
     """
 
     scheme="file"
+
+    def __new__(cls,
+        location:typing.Optional[FilePathCompatible],
+        *args,
+        **kwargs):
+        """ """
+        self = _PathBase.__new__(cls, '[BAD PATH]', '[BAD PATH]')
+        #if location is None:
+        #    location='.'
+        #URL.__init__(self,location)
+        return self
 
     def __init__(self,
         location:typing.Optional[FilePathCompatible]=None,
@@ -365,12 +378,6 @@ class FilePath(URL,pathlib.Path):
         other=asFileString(other)
         return FilePath(str(self._pathlibPath.__rtruediv__(other)))
 
-    @property
-    def _flavour(self):
-        """
-        Implement pathlib.Path._flavour
-        """
-        return self._pathlibPath._flavour # type: ignore # pylint: disable=no-member,protected-access
     @property
     def parse_parts(self):
         """
@@ -650,9 +657,15 @@ class FilePath(URL,pathlib.Path):
 
     def is_dir(self)->bool:
         """
-        Same as pathlib.Path.symlink_to
+        Same as pathlib.Path.is_dir
         """
         return self._pathlibPath.is_dir()
+
+    def is_mount(self)->bool:
+        """
+        Same as pathlib.Path.is_mount
+        """
+        return self._pathlibPath.is_mount()
 
     @property
     def suffix(self)->str:
@@ -812,7 +825,13 @@ class FilePath(URL,pathlib.Path):
         """
         Hashing function for adding to lookup dicts
         """
-        return self.url.__hash__()
+        return self.urlString.__hash__()
+
+    def __str__(self)->str:
+        return str(self._pathlibPath)
+
+    def __repr__(self)->str:
+        return str(self._pathlibPath)
 FileUrl=FilePath
 Filename=FilePath
 FileName=FilePath

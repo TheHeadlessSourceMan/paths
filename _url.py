@@ -7,16 +7,16 @@ import typing
 import os
 import urllib.parse
 import pathlib
-from ._uri import URI
-from .urlTyping import URLCompatible, isURLCompatible, asURL
-from .loadAndSave import LoadAndSave
-from .urlNavigation import UrlNavigation
-from .dataReadWrite import DataReadWrite
-from .paramDict import ParamDict
-from .cleverUrls import CleverUrls
-from .filePathTools import encodeFilePath
-from .errors import MalformedURL
-from .pathLike import PathLike
+from paths._uri import URI
+from paths.urlTyping import URLCompatible, isURLCompatible, asURL
+from paths.loadAndSave import LoadAndSave
+from paths.urlNavigation import UrlNavigation
+from paths.dataReadWrite import DataReadWrite
+from paths.paramDict import ParamDict
+from paths.cleverUrls import CleverUrls
+from paths.filePathTools import encodeFilePath
+from paths.errors import MalformedURL
+from paths.pathLike import PathLike
 
 
 class URL(
@@ -95,9 +95,7 @@ class URL(
 
     def __new__(cls,
         url:typing.Optional[URLCompatible],
-        relativeTo:typing.Optional[URLCompatible]=None,
-        maxParentLevels:typing.Optional[int]=None,
-        maxChildLevels:typing.Optional[int]=None):
+        *args,**kwargs):
         """
         Intercepting this allows us the stupid pet trick
         of creating derived types from one constructor,
@@ -120,10 +118,12 @@ class URL(
                 protocol=protoPath[0]
             else:
                 protocol='file'
-        actualClass=cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,cls)
+        actualClass:typing.Optional[typing.Type[URL]]=\
+            cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,URL)
         if not issubclass(actualClass,URL):
             raise Exception()
-        return super(URL,cls).__new__(actualClass) # type: ignore
+        newClass=super(URL,cls).__new__(actualClass)
+        return newClass
 
     def __init__(self,
         url:typing.Optional[URLCompatible],
@@ -184,6 +184,19 @@ class URL(
         if url is not None and (not isinstance(url,str) or url):
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
+
+    @classmethod
+    def _from_parts(cls,*args):
+        """
+        This is necessary to get __new__() working due to pathlib.Path
+        """
+        _=args
+
+    class _flavour:
+        """
+        This is necessary to get __new__() working due to pathlib.Path
+        """
+        is_supported=True
 
     @property
     def fragment(self)->str:
@@ -321,17 +334,22 @@ class URL(
         self.port=None
         self.path=''
         self.isUNC=False
-        self.cgi.clear()
+        if self.cgi:
+            self.cgi.clear()
         self._fragment=None
         self._isDirectory=None
 
     @property
-    def url(self # type: ignore
+    def url(self
         )->"URL":
         """
         create an identical copy
         """
         return URL(self)
+    @url.setter
+    def url(self,url:URLCompatible):
+        self.assign(url)
+
     def copy(self)->"URL":
         """
         create an identical copy
@@ -805,7 +823,13 @@ class URL(
                 typename=url.__class__.__name__
                 raise MalformedURL(
                     str(url),f'incompatible type {typename} for assigning')
-        return cls._getCleverURL(url)
+        try:
+            url=cls._getCleverURL(url)
+        except MalformedURL:
+            # must be a filename I guess
+            url=str(url).replace('\\','/')
+            url='file://'+url
+        return url
 
     @property
     def isFile(self)->bool:
@@ -888,7 +912,7 @@ class URL(
         :maxChildLevels: the maximum number of child levels to allow
             in a relative path
         """
-        from .urlSplitter import urlAssign
+        from paths.urlSplitter import urlAssign
         urlAssign(self,url,
             relativeTo,maxParentLevels,maxChildLevels,_isDirectory)
     setUrl=assign
