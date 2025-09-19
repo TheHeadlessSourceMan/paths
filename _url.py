@@ -122,7 +122,7 @@ class URL(
             cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,URL)
         if not issubclass(actualClass,URL):
             raise Exception()
-        newClass=super(URL,cls).__new__(actualClass)
+        newClass=super(URL,cls).__new__(actualClass) # type: ignore
         return newClass
 
     def __init__(self,

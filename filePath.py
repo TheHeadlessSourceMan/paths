@@ -4,7 +4,6 @@ to make it compatible with paths.URL, and also
 to add some missing features
 """
 import typing
-from abc import ABC
 import os
 import re
 import pathlib
@@ -665,7 +664,7 @@ class FilePath(_PathBase,URL):
         """
         Same as pathlib.Path.is_mount
         """
-        return self._pathlibPath.is_mount()
+        return self._pathlibPath.is_mount() # type: ignore
 
     @property
     def suffix(self)->str:
