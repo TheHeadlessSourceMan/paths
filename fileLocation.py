@@ -11,7 +11,7 @@ import re
 import urllib.parse
 import paths
 from paths._url import Url,URLCompatible
-from urlTyping import isUrlCompatible
+from paths.urlTyping import isUrlCompatible
 
 
 class FileLocationSinglePoint:
