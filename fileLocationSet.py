@@ -10,7 +10,9 @@ FileLocationSetCompatible=typing.Union[
     FileLocationCompatible,typing.Iterable[FileLocationCompatible]]
 FileLocationListCompatible=FileLocationSetCompatible
 FileLocationsCompatible=FileLocationSetCompatible
-
+UrlLocationSetCompatible=FileLocationSetCompatible
+UrlLocationListCompatible=FileLocationSetCompatible
+UrlLocationsCompatible=FileLocationSetCompatible
 
 def asFileLocationSet(files:FileLocationListCompatible)->"FileLocationSet":
     """
@@ -21,6 +23,9 @@ def asFileLocationSet(files:FileLocationListCompatible)->"FileLocationSet":
     return FileLocationList(files)
 asFileLocationList=asFileLocationSet
 asFileLocations=asFileLocationSet
+asUrlLocationSet=asFileLocationSet
+asUrlLocationList=asFileLocationSet
+asUrlLocations=asFileLocationSet
 
 
 def isFileLocationSetCompatible(something:typing.Any)->bool:
@@ -38,6 +43,9 @@ def isFileLocationSetCompatible(something:typing.Any)->bool:
     return False
 isFileLocationListCompatible=isFileLocationSetCompatible
 isFileLocationsCompatible=isFileLocationSetCompatible
+isUrlLocationListCompatible=isFileLocationSetCompatible
+isUrlLocationListCompatible=isFileLocationSetCompatible
+isUrlLocationsCompatible=isFileLocationSetCompatible
 
 
 class FileLocationSet:
@@ -250,3 +258,6 @@ class FileLocationSet:
 
 FileLocations=FileLocationSet
 FileLocationList=FileLocationSet
+UrlLocationSet=FileLocationSet
+UrlLocations=FileLocationSet
+UrlLocationList=FileLocationSet
