@@ -2,7 +2,23 @@
 Tools to search paths
 """
 import typing
+import enum
+import os
+import re
 from pathlib import Path
+from paths.urlTyping import URLCompatible,asURL
+
+
+osIsCaseSensitive=not os.name=='nt'
+
+
+class MatchType(enum.Enum):
+    """
+    Used to indicate what type of match a string represents
+    """
+    SimpleStringMatch=0
+    GlobMatch=1
+    PythonRegexMatch=2
 
 
 def findFilenamesOfType(
@@ -44,3 +60,270 @@ def findFilenamesOfType(
                     tape.append(filename) # noqa: E501 # pylint: disable=modified-iterating-list
             elif extensions is None or filename.suffix in extensions:
                 yield filename
+
+
+def globToRegexStr(glob:str)->str:
+    """
+    Convert a Unix-style glob pattern to a regular expression string.
+
+    Example:
+        '*.txt'      -> '^.*\\.txt$'
+        '**/*.py'    -> '^(?:.*/)?[^/]*\\.py$'
+        'data?.csv'  -> '^data.{1}\\.csv$'
+    """
+    ret=['^'] # TODO: Do I want to do this, or .*
+    for c in glob:
+        if c=='*':
+            if ret and ret[-1] in ('[^/]*','.*'):
+                # last character was *, so overwrite it as **
+                ret[-1]='.*'
+            else:
+                ret.append('[^/]*')
+        elif c=='?':
+            # ? is single character match
+            ret.append('.')
+        else:
+            ret.append(re.escape(c))
+    ret.append('$')
+    return ''.join(ret)
+
+
+def globToRegex(
+    glob:str,
+    caseSensitive:bool=osIsCaseSensitive
+    )->typing.Pattern[str]:
+    """
+    Create a regex from a glob expression
+    """
+    flags=0
+    if not caseSensitive:
+        flags|=re.IGNORECASE
+    return re.compile(globToRegexStr(glob),flags)
+
+
+class FileMatcher:
+    """
+    A general-purpose file matcher
+    """
+
+    def __init__(self,
+        match:typing.Union[None,str,typing.Pattern]=None,
+        matchType:MatchType=MatchType.SimpleStringMatch,
+        caseSensitive:bool=osIsCaseSensitive,
+        extensions:typing.Union[None,str,typing.Iterable[str]]=None,
+        ):
+        """ """
+        self._match=match
+        self._matchType=matchType
+        self._caseSensitive=caseSensitive
+        self._extensions=extensions
+        self._regex:typing.Optional[typing.Pattern[str]]=None
+
+    @property
+    def regex(self)->typing.Pattern[str]:
+        """
+        Get/set this match pattern as a python regular expressions
+        """
+        if self._regex is None:
+            regexStrs=[]
+            if isinstance(self._match,re.Pattern):
+                self._matchType=MatchType.PythonRegexMatch
+                if not self._extensions:
+                    self._regex=self._match
+                    return self._regex
+                regexStrs.append(self._match.pattern)
+            if self._matchType==MatchType.PythonRegexMatch:
+                if self._match is not None \
+                    and isinstance(self._match,str) \
+                    and str(self._match).strip():
+                    regexStrs.append('.*/'+self._match)
+            elif self._matchType==MatchType.GlobMatch:
+                if self._match is not None \
+                    and isinstance(self._match,str) \
+                    and str(self._match).strip():
+                    regexStrs.append(globToRegexStr(self._match))
+            elif self._matchType==MatchType.SimpleStringMatch:
+                if self._match is not None \
+                    and isinstance(self._match,str) \
+                    and str(self._match).strip():
+                    regexStrs.append('.*/'+re.escape(self._match))
+            else:
+                raise NotImplementedError
+            if self._extensions:
+                extns=[]
+                for ext in self._extensions:
+                    if ext.startswith('.'):
+                        ext=ext[1:]
+                    ext=f'(.*[.]{ext}$)'
+                    extns.append(ext)
+                if len(extns)>1:
+                    regexStrs.append('('+('|'.join(extns))+')')
+                elif len(extns)==1:
+                    regexStrs.append(extns[0])
+            if not regexStrs:
+                regexStr='.*'
+            elif len(regexStrs)==1:
+                regexStr=regexStrs[0]
+            else:
+                regexStr='&'.join([f'({s})' for s in regexStrs])
+            self.regex=regexStr
+        return self._regex # type: ignore
+    @regex.setter
+    def regex(self,regex:typing.Union[str,typing.Pattern[str]]):
+        if isinstance(regex,str):
+            flags=0
+            if not self._caseSensitive:
+                flags|=re.IGNORECASE
+            regex=re.compile(regex,flags)
+        self._regex=regex
+
+    def matches(self,filename:typing.Union[str,Path,URLCompatible])->bool:
+        """
+        Determine if a filename matches these criteria
+        """
+        if not isinstance(filename,str):
+            if isinstance(filename,Path):
+                filename=str(filename)
+            else:
+                filename=str(asURL(filename))
+        return self.regex.match(filename) is not None
+    __eq__=matches #type: ignore
+
+
+class FileWalker:
+    """
+    A generator to traverse over a set of files.
+    """
+
+    def __init__(self,
+        startDirs:typing.Union[
+            Path,str,
+            typing.Iterable[typing.Union[Path,str]]]='.',
+        recursive:bool=True,
+        depthFirst:bool=False,
+        yeildDirectories:bool=False):
+        """ """
+        if isinstance(startDirs,(str,Path)):
+            startDirs=(startDirs,)
+        if not startDirs:
+            startDirs=['.']
+        self._tape:typing.List[Path]=[Path(p) for p in startDirs]
+        self._visited:typing.Set[Path]=set()
+        self._currentDirectory:typing.Generator[Path]=[] # type: ignore
+        self.recursive=recursive
+        self.depthFirst=depthFirst
+        self.yeildDirectories=yeildDirectories
+
+    def __iter__(self):
+        return self
+
+    def __next__(self)->Path:
+        while True:
+            while not self._currentDirectory:
+                while not self._tape:
+                    raise StopIteration
+                self._currentDirectory=self._tape.pop(0).iterdir()
+            try:
+                filename=next(self._currentDirectory)
+            except StopIteration:
+                continue
+            if filename in self._visited:
+                continue
+            self._visited.add(filename)
+            if filename.is_dir():
+                if self.recursive:
+                    if self.depthFirst:
+                        self._tape.insert(0,filename)
+                    else:
+                        self._tape.append(filename)
+                if self.yeildDirectories:
+                    return filename
+            else:
+                return filename
+
+
+def findFiles(
+    match:typing.Union[None,str,typing.Pattern]=None,
+    matchType:MatchType=MatchType.SimpleStringMatch,
+    extensions:typing.Union[None,str,typing.Iterable[str]]=None,
+    startDirs:typing.Union[
+        Path,str,
+        typing.Iterable[typing.Union[Path,str]]]='.',
+    recursive:bool=True,
+    depthFirst:bool=False,
+    caseSensitive:bool=osIsCaseSensitive
+    )->typing.Generator[Path,None,None]:
+    """
+    Versitile, general-purpose file search
+    """
+    matcher=FileMatcher(match,matchType,caseSensitive,extensions)
+    for file in FileWalker(startDirs,recursive,depthFirst):
+        if matcher==file:
+            yield file
+find=findFiles
+search=findFiles
+
+
+def cmdline(args:typing.Iterable[str])->int:
+    """
+    Run the command line
+
+    :param args: command line arguments (WITHOUT the filename)
+    """
+    printHelp=False
+    match=""
+    recursive=False
+    matchType=MatchType.GlobMatch
+    extensions:typing.List[str]=[]
+    caseSensitive:bool=osIsCaseSensitive
+    startDirs:typing.List[str]=[]
+    depthFirst:bool=False
+    for arg in args:
+        if arg.startswith('-'):
+            kw=arg.split('=',1)
+            k=kw[0].lower()
+            if k in ('-h','--help'):
+                printHelp=True
+            elif k.startswith('--ext') and len(kw)>1:
+                extensions.extend([s.strip() for s in kw[1].replace(';',',').split(',')])
+            elif k in ('--case','--casesensitive'):
+                if len(kw)>1 and kw[1]:
+                    caseSensitive=kw[1][0].lower() in ('y','t','1')
+                else:
+                    caseSensitive=True
+            elif k in ('-r','--r'):
+                if len(kw)>1 and kw[1]:
+                    recursive=kw[1][0].lower() in ('y','t','1')
+                else:
+                    recursive=True
+            elif k in ('--re','--regex'):
+                matchType=MatchType.PythonRegexMatch
+            elif k in ('--depth','--depthfirst','--deapth','--deapthfirst'):
+                if len(kw)>1 and kw[1]:
+                    depthFirst=kw[1][0].lower() in ('y','t','1')
+                else:
+                    depthFirst=True
+        else:
+            if match:
+                startDirs.append(match)
+            match=arg
+    if printHelp:
+        print("USAGE: search.py [flags] [in_dir ...] [match]")
+        print("FLAGS:")
+        print("  -h ................. print this help")
+        print("  --help ............. print this help")
+        print("  -r[=y/n] ........... recursive")
+        print("  --re[gex] .......... match by regex")
+        print("  --depth[first][=y/n] ....... perform depth-first search")
+        print("  --ext[ension[s]]=e1,e2,e3 .. match by extensions")
+        print("  --case[sensitive][=y/n] .... match case sensitivity")
+        return 1
+    for f in findFiles(match,matchType,extensions,
+        startDirs,recursive,depthFirst,caseSensitive):
+        print(f.absolute())
+    return 0
+
+
+if __name__=='__main__':
+    import sys
+    sys.exit(cmdline(sys.argv[1:]))
