@@ -13,6 +13,7 @@ from ._url import *
 from ._urn import *
 from .loadAndSave import *
 from .fileLocation import *
+from .fileLocationSet import *
 from .mimeType import *
 from .errors import *
 from .localFilenameUtils import *
