@@ -12,473 +12,10 @@ import urllib.parse
 import paths
 from paths._url import Url,URLCompatible
 from paths.urlTyping import isUrlCompatible
+from .textLocation import TextLocation,TextLocationSinglePoint
 
 
-class FileLocationSinglePoint:
-    """
-    A single index point within a file.
-
-    Basically just a row and column, but this
-    makes them easily comparable.
-    """
-
-    def __init__(self,row:int,column:int):
-        self.row=row
-        self.column=column
-
-    def copy(self)->'FileLocationSinglePoint':
-        """
-        Create a copy of this point
-        """
-        return FileLocationSinglePoint(self.row,self.column)
-
-    def max(self,
-        other:typing.Union[
-            'FileLocationSinglePoint',
-            typing.Iterable['FileLocationSinglePoint']]
-        )->'FileLocationSinglePoint':
-        """
-        Returns the maximum of this and one or more other points
-        """
-        if hasattr(other,'__iter__'):
-            mmax=self
-            for item in other: # type: ignore
-                if item>mmax:
-                    mmax=item
-            return mmax
-        if other>self: # type: ignore
-            return other # type: ignore
-        return self
-
-    def min(self,
-        other:typing.Union[
-            'FileLocationSinglePoint',
-            typing.Iterable['FileLocationSinglePoint']]
-        )->'FileLocationSinglePoint':
-        """
-        Returns the maximminimum of this and one or more other points
-        """
-        if hasattr(other,'__iter__'):
-            mmax=self
-            for item in other: # type: ignore
-                if item<mmax:
-                    mmax=item
-            return mmax
-        if other<self: # type: ignore
-            return other # type: ignore
-        return self
-
-    def __cmp__(self,other:'FileLocationSinglePoint')->int:
-        """
-        Like the old __cmp__ dunder, but
-        respects array-style negative numbers
-        Returns
-            -1: a<b
-             0: a=b
-             1: a>b
-
-        NOTE: Since this has no knowledge of the length of the
-        thing being indexed, handling negatives is a little tricky.
-        Therefore, negatives are always preferred.  That is, 999999<-2
-        will always return True, even if the document is 1 byte long.
-        """
-        def _cmpVal(a:int,b:int)->int:
-            if a<0:
-                if b<0:
-                    if a>b:
-                        return -1
-                    return a<b
-                return a
-            if b<0:
-                return b
-            if a<b:
-                return -1
-            return a>b
-        rowCmp=_cmpVal(self.row,other.row)
-        if rowCmp==0:
-            return _cmpVal(self.column,other.column)
-        return rowCmp
-
-    def __lt__(self,other:'FileLocationSinglePoint')->bool:
-        return self.__cmp__(other)<0
-
-    def __le__(self,other:'FileLocationSinglePoint')->bool:
-        return self.__cmp__(other)<=0
-
-    def __gt__(self,other:'FileLocationSinglePoint')->bool:
-        return self.__cmp__(other)>0
-
-    def __ge__(self,other:'FileLocationSinglePoint')->bool:
-        return self.__cmp__(other)>=0
-
-    def __eq__(self, # type: ignore
-        other:'FileLocationSinglePoint')->bool:
-        return self.__cmp__(other)==0
-
-
-class LocationWithinFile:
-    """
-    A location without a filename.
-
-    Broken into its own object so multifile locations can have one
-    url, but many locations
-    """
-
-    @typing.overload
-    def __init__(self,
-        fromRow:FileLocationSinglePoint,
-        fromColumn:None=None,
-        toRow:typing.Optional[FileLocationSinglePoint]=None,
-        toColumn:None=None,
-        location:None=None):
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        :location: fill in any missing to/from row/column with this location
-        """
-
-    @typing.overload
-    def __init__(self,
-        fromRow:typing.Optional[int]=None,
-        fromColumn:typing.Optional[int]=None,
-        toRow:typing.Optional[int]=None,
-        toColumn:typing.Optional[int]=None,
-        location:typing.Optional['FileLocationCompatible']=None):
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        :location: fill in any missing to/from row/column with this location
-        """
-
-    @typing.overload
-    def __init__(self,
-        fromRow:'FileLocationCompatible'):
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        """
-
-    def __init__(self,
-        fromRow:typing.Union[None,int,'FileLocationCompatible',FileLocationSinglePoint]=None,
-        fromColumn:typing.Optional[int]=None,
-        toRow:typing.Union[None,int,FileLocationSinglePoint]=None,
-        toColumn:typing.Optional[int]=None,
-        location:typing.Optional['FileLocationCompatible']=None):
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        :location: fill in any missing to/from row/column with this location
-        """
-        self.fromPoint=FileLocationSinglePoint(0,0)
-        self.toPoint=FileLocationSinglePoint(-1,-1)
-        self.assign(fromRow,fromColumn,toRow,toColumn,location)
-
-    def assign(self,
-        fromRow:typing.Union[None,int,
-            'FileLocationCompatible',FileLocationSinglePoint,'LocationWithinFile']=None,
-        fromColumn:typing.Optional[int]=None,
-        toRow:typing.Union[None,int,FileLocationSinglePoint]=None,
-        toColumn:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','LocationWithinFile']=None)->None:
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        :location: fill in any missing to/from row/column with this location
-        """
-        if not fromRow is None:
-            if isinstance(fromRow,FileLocationSinglePoint):
-                self.fromPoint=fromRow.copy()
-                fromRow=None
-            elif not isinstance(fromRow,int):
-                location=fromRow
-                fromRow=None
-        if not toRow is None:
-            if isinstance(toRow,FileLocationSinglePoint):
-                self.toPoint=toRow.copy()
-                toRow=None
-        if location is not None:
-            if not isinstance(location,LocationWithinFile):
-                location=asFileLocation(location)
-            if fromRow is None:
-                fromRow=location.fromRow
-            if fromColumn is None:
-                fromColumn=location.fromColumn
-            if toRow is None:
-                toRow=location.toRow
-            if toColumn is None:
-                toColumn=location.toColumn
-        if fromRow is not None:
-            self.fromPoint.row=fromRow
-        if fromColumn is not None:
-            self.fromPoint.column=fromColumn
-        if toRow is not None:
-            self.toPoint.row=toRow
-        if toColumn is not None:
-            self.toPoint.column=toColumn
-
-    def copy(self)->"LocationWithinFile":
-        """
-        Create a copy of this location within file
-        """
-        return LocationWithinFile(
-            self.fromPoint.row,self.fromPoint.column,self.toPoint.row,self.toPoint.column)
-
-    def __eq__(self,__o: object)->bool:
-        """
-        Compare to another location
-        """
-        if isinstance(__o,LocationWithinFile):
-            return self.fromPoint==__o.fromPoint and self.toPoint==__o.toPoint
-        elif hasattr(__o,'location'):
-            return self==getattr(__o,'location')
-        elif isinstance(__o,str):
-            return self==UrlWithFileLocation(__o)
-        return False
-
-    def openEditor(self,editor:typing.Optional[str]=None):
-        """
-        shortcut to call the openEditor tool
-        """
-        import openEditor
-        openEditor.openEditor(self,editor=editor) # type: ignore
-
-    def contains(self,other:'LocationWithinFile')->bool:
-        """
-        Does this entirely contain another location?
-        """
-        return other.fromPoint<=self.fromPoint and other.toPoint>=self.toPoint
-
-    def containedBy(self,other:'LocationWithinFile')->bool:
-        """
-        Is this entirely contained by another location?
-        """
-        return other.contains(self)
-
-    def overlaps(self,other:'LocationWithinFile')->bool:
-        """
-        Does this contain or overlap another location?
-        """
-        # if either point in the other item is within
-        # the range of this item, return True
-        if other.fromPoint<=self.toPoint\
-            and other.fromPoint>=self.fromPoint:
-            return True
-        if other.toPoint<=self.toPoint\
-            and other.toPoint>=self.fromPoint:
-            return True
-        # or if other completely contains this
-        return other.contains(self)
-
-    def union(self,
-        other:'LocationWithinFile',fillGaps:bool=True
-        )->'LocationWithinFile':
-        """
-        Return a new location that is a combination of this location
-        and another location.
-
-        :fillGaps: if it is file.txt:100-110 and file.txt:200-210, should
-            we return file.txt:100-210, or raise a ValueError exception?
-        """
-        if not fillGaps and not self.overlaps(other):
-            raise ValueError(f'Regions {self} and {other} are discontigious')
-        fromPoint=self.fromPoint.min(other.fromPoint)
-        toPoint=self.fromPoint.max(other.toPoint)
-        return LocationWithinFile(fromPoint,None,toPoint)
-
-    def difference(self,
-        other:'LocationWithinFile'
-        )->typing.Union[None,
-            'LocationWithinFile',
-            typing.Tuple['LocationWithinFile','LocationWithinFile']]:
-        """
-        Return a new location that is a this location
-        with another location removed from it.
-
-        returns None if this causes the location to completely disappear
-        NOTE: this could result in this being split into two, eg. 
-            file.txt:100..400 - file.txt:200..300 = (file.txt:100..200, file.txt:300-400)
-        """
-        if not self.overlaps(other):
-            # nothing will be removed
-            return self.copy()
-        if other.contains(self):
-            # the entire thing will be removed
-            return None
-        if self.fromPoint<other.fromPoint:
-            if self.toPoint>other.toPoint:
-                # this splits us in half!
-                return (
-                    LocationWithinFile(self.fromPoint,None,other.fromPoint),
-                    LocationWithinFile(other.toPoint,None,self.toPoint))
-            fromPoint=other.fromPoint
-            toPoint=self.toPoint
-        else:
-            fromPoint=self.fromPoint
-            toPoint=other.toPoint
-        return LocationWithinFile(fromPoint,None,toPoint)
-
-    def intersection(self,
-        other:'LocationWithinFile'
-        )->typing.Optional['LocationWithinFile']:
-        """
-        Return a new location that is a combination of the parts of this location
-        and of another location that overlap.
-
-        returns None if there are no parts in common causing the
-        location to completely disappear
-        """
-        if not self.overlaps(other):
-            # they do not overlap, so intersection is empty
-            return None
-        fromPoint=self.fromPoint.max(other.fromPoint)
-        toPoint=self.toPoint.min(other.toPoint)
-        return LocationWithinFile(fromPoint,None,toPoint)
-
-    @property
-    def fromRow(self)->int:
-        """
-        same as fromRow
-        """
-        return self._fromRow
-    @fromRow.setter
-    def fromRow(self,fromRow:typing.Optional[int]=None):
-        self._fromRow=0 if fromRow is None else fromRow
-    @property
-    def fromLine(self)->int:
-        """
-        same as fromRow
-        """
-        return self._fromRow
-    @fromLine.setter
-    def fromLine(self,fromLine:typing.Optional[int]=None):
-        self._fromRow=0 if fromLine is None else fromLine
-    @property
-    def line(self)->int:
-        """
-        same as fromRow
-        """
-        return self._fromRow
-    @line.setter
-    def line(self,fromLine:typing.Optional[int]=None):
-        self._fromRow=0 if fromLine is None else fromLine
-    @property
-    def row(self)->int:
-        """
-        same as fromRow
-        """
-        return self._fromRow
-    @row.setter
-    def row(self,row:typing.Optional[int]=None):
-        self._fromRow=0 if row is None else row
-
-    @property
-    def toRow(self)->int:
-        """
-        same as toRow
-        """
-        return self._toRow
-    @toRow.setter
-    def toRow(self,toRow:typing.Optional[int]=None):
-        self._toRow=-1 if toRow is None else toRow
-    @property
-    def toLine(self)->int:
-        """
-        same as toRow
-        """
-        return self._toRow
-    @toLine.setter
-    def toLine(self,toLine:typing.Optional[int]=None):
-        self._toRow=-1 if toLine is None else toLine
-
-    @property
-    def numRows(self)->int:
-        """
-        numnber of rows
-        """
-        return self._toRow-self._fromRow+1
-    @numRows.setter
-    def numRows(self,numRows:typing.Optional[int]=None):
-        if numRows is None or numRows<=0:
-            numRows=1
-        self.toRow=self._fromRow+numRows-1
-    @property
-    def numLines(self)->int:
-        """
-        same as numRows
-        """
-        return self.numRows
-    @numLines.setter
-    def numLines(self,numLines:typing.Optional[int]):
-        self.numRows=numLines
-
-    @property
-    def fromColumn(self)->int:
-        """
-        starting column/character for the given row in the file
-        """
-        return self._fromColumn
-    @fromColumn.setter
-    def fromColumn(self,fromColumn:typing.Optional[int]=None):
-        self._fromColumn=0 if fromColumn is None else fromColumn
-    @property
-    def fromCol(self)->int:
-        """
-        starting column/character for the given row in the file
-        """
-        return self._fromColumn
-    @fromCol.setter
-    def fromCol(self,fromCol:typing.Optional[int]=None):
-        self._fromColumn=0 if fromCol is None else fromCol
-    @property
-    def col(self)->int:
-        """
-        starting column/character for the given row in the file
-        """
-        return self._fromColumn
-    @col.setter
-    def col(self,fromColumn:typing.Optional[int]=None):
-        self._fromColumn=0 if fromColumn is None else fromColumn
-    @property
-    def column(self)->int:
-        """
-        starting column/character for the given row in the file
-        """
-        return self._fromColumn
-    @column.setter
-    def column(self,column:typing.Optional[int]=None):
-        self._fromColumn=0 if column is None else column
-
-    @property
-    def toColumn(self)->int:
-        """
-        ending column/character for the given row in the file
-        """
-        return self._toColumn
-    @toColumn.setter
-    def toColumn(self,toColumn:typing.Optional[int]=None):
-        self._toColumn=0 if toColumn is None else toColumn
-    @property
-    def toCol(self)->int:
-        """
-        ending column/character for the given row in the file
-        """
-        return self._toColumn
-    @toCol.setter
-    def toCol(self,toCol:typing.Optional[int]=None):
-        self._toColumn=0 if toCol is None else toCol
-
-    def __repr__(self)->str:
-        """
-        string representation of this object
-        """
-        ret=[]
-        if self.line is not None:
-            ret.append('%d'%self.line)
-            if self._fromColumn!=-1:
-                ret.append(':%d'%self._fromColumn)
-            if self._toRow!=-1:
-                ret.append('-%d'%self._toRow)
-                if self._toColumn!=-1:
-                    ret.append(':%d'%self._toColumn)
-        return ''.join(ret)
-
-
-class UrlWithFileLocation(LocationWithinFile,Url):
+class UrlWithFileLocation(TextLocation):
     """
     Indicates a url to a file with location (or start/end location)
 
@@ -498,44 +35,22 @@ class UrlWithFileLocation(LocationWithinFile,Url):
     specified in RFC-5147
     https://datatracker.ietf.org/doc/html/rfc5147
     """
+    _URL_BASE_CLASSES = {}
 
     FILE_LOCATION_REGEX=re.compile(
-        r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-long
-
-    def __new__(cls,
-        url:paths.URLCompatible,
-        fromRow:typing.Union[None,int,
-            'FileLocationCompatible',FileLocationSinglePoint,LocationWithinFile]=None,
-        fromColumn:typing.Optional[int]=None,
-        toRow:typing.Union[None,int,FileLocationSinglePoint]=None,
-        toColumn:typing.Optional[int]=None,
-        smartDecodeUrl:bool=True,
-        relativeTo:typing.Optional[paths.URLCompatible]=None,
-        maxParentLevels:typing.Optional[int]=None,
-        maxChildLevels:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','LocationWithinFile']=None):
-        """
-        :fromRow: can be used as location to make ordered-parameters easier
-        :maxParentLevels: the maximum number of parent levels to allow
-            in a relative path - for security, recommend setting this to 0
-        :maxChildLevels: the maximum number of child levels to allow
-            in a relative path
-        :location: fill in any missing to/from row/column with this location
-        """
-        return super(UrlWithFileLocation,cls).__new__(cls) # pylint: disable=no-value-for-parameter # type: ignore
+        r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-lo
 
     def __init__(self,
-        url:paths.URLCompatible,
+        url:paths.URLCompatible="",
         fromRow:typing.Union[None,int,
-            'FileLocationCompatible',FileLocationSinglePoint,LocationWithinFile]=None,
+            'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
-        toRow:typing.Union[None,int,FileLocationSinglePoint]=None,
+        toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
-        smartDecodeUrl:bool=True,
         relativeTo:typing.Optional[paths.URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','LocationWithinFile']=None):
+        location:typing.Union[None,'FileLocationCompatible','TextLocation']=None):
         """
         :fromRow: can be used as location to make ordered-parameters easier
         :maxParentLevels: the maximum number of parent levels to allow
@@ -544,20 +59,40 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             in a relative path
         :location: fill in any missing to/from row/column with this location
         """
-        self.smartDecodeUrl:bool=smartDecodeUrl
-        Url.__init__(self,'')
-        LocationWithinFile.__init__(self)
-        self.assign(url,
+        self.url:Url
+        TextLocation.__init__(self)
+        UrlWithFileLocation.assign(self,url,
             fromRow,fromColumn,toRow,toColumn,
-            smartDecodeUrl,relativeTo,maxParentLevels,maxChildLevels,location)
+            relativeTo,maxParentLevels,maxChildLevels,location)
+
+    def asOffsetIntoText(self,text:typing.Optional[str]=None)->typing.Tuple[int,int]:
+        """
+        Convert this point into an offset in the given text.
+        You can leave the text blank and it will auto-read from file.
+
+        NOTE: this has to look up carriage returns every time,
+        so if you do a lot of this, it may be better to use a
+        stored index table, eg, generated from rowOffsets().
+        """
+        if text is None:
+            text=self.url.readString()
+        return TextLocation.asOffsetIntoText(self,text)
+
+    def rowOffsets(self,text:typing.Optional[str]=None)->typing.List[int]:
+        """
+        Generate a table of row offsets
+        You can leave the text blank and it will auto-read from file.
+        """
+        if text is None:
+            text=self.url.readString()
+        return TextLocation.rowOffsets(self,text)
 
     def copy(self)->"UrlWithFileLocation":
         """
         Copy this url with location
         """
         return UrlWithFileLocation(self.url,
-            self.fromRow,self.fromColumn,self.toRow,self.toColumn,
-            self.smartDecodeUrl)
+            self.fromRow,self.fromColumn,self.toRow,self.toColumn)
 
     def __eq__(self, # type: ignore
         __o:typing.Union["UrlWithFileLocation",URLCompatible]
@@ -591,24 +126,24 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             return self.url==paths.asURL(typing.cast(paths.URLCompatible,__o))
         return False
 
-    def contains(self,other:LocationWithinFile)->bool: # type: ignore
+    def contains(self,other:TextLocation)->bool: # type: ignore
         """
         Does this entirely contain another location?
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             return False
-        return LocationWithinFile.contains(self,other)
+        return TextLocation.contains(self,other)
 
-    def overlaps(self,other:LocationWithinFile)->bool:
+    def overlaps(self,other:TextLocation)->bool:
         """
         Does this contain or overlap another location?
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             return False
-        return LocationWithinFile.overlaps(self,other)
+        return TextLocation.overlaps(self,other)
 
     def union(self,
-        other:'LocationWithinFile',fillGaps:bool=True
+        other:'TextLocation',fillGaps:bool=True
         )->'UrlWithFileLocation':
         """
         Return a new location that is a combination of this location
@@ -619,10 +154,10 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             raise ValueError('Cannot combine line ranges across two different files')
-        location=LocationWithinFile.union(self,other)
+        location=TextLocation.union(self,other)
         return UrlWithFileLocation(self.url,location)
     def __add__(self, # type: ignore
-        other:'LocationWithinFile'
+        other:'TextLocation'
         )->typing.Optional['FileLocation']:
         """
         Implement addition operator same as union() function
@@ -630,7 +165,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         return self.union(other)
 
     def difference(self,
-        other:'LocationWithinFile'
+        other:'TextLocation'
         )->typing.Union[None,
             'UrlWithFileLocation',
             typing.Tuple['UrlWithFileLocation','UrlWithFileLocation']]:
@@ -644,7 +179,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             raise ValueError('Cannot subtract line ranges across two different files')
-        location=LocationWithinFile.difference(self,other)
+        location=TextLocation.difference(self,other)
         if location is None:
             return None
         if isinstance(location,tuple):
@@ -653,7 +188,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
                 UrlWithFileLocation(self.url,location[1]))
         return UrlWithFileLocation(self.url,location)
     def __sub__(self,
-        other:'LocationWithinFile'
+        other:'TextLocation'
         )->typing.Union[None,
             'UrlWithFileLocation',
             typing.Tuple['UrlWithFileLocation','UrlWithFileLocation']]:
@@ -663,7 +198,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         return self.difference(other)
 
     def intersection(self,
-        other:'LocationWithinFile'
+        other:'TextLocation'
         )->typing.Optional['UrlWithFileLocation']:
         """
         Return a new location that is a combination of the parts of this location
@@ -675,7 +210,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
             # raise ValueError('Cannot intersect line ranges across two different files')
             return None # probably ok to say that there is no intersection?
-        location=LocationWithinFile.intersection(self,other)
+        location=TextLocation.intersection(self,other)
         if location is None:
             return None
         return UrlWithFileLocation(self.url,location)
@@ -700,17 +235,16 @@ class UrlWithFileLocation(LocationWithinFile,Url):
         return '\n'.join(lines)
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
-        url:paths.URLCompatible,
+        url:paths.URLCompatible="",
         fromRow:typing.Union[None,int,
-            'FileLocationCompatible',FileLocationSinglePoint,LocationWithinFile]=None,
+            'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
-        toRow:typing.Union[None,int,FileLocationSinglePoint]=None,
+        toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
-        smartDecodeUrl=True,
         relativeTo:typing.Optional[paths.URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','LocationWithinFile']=None
+        location:typing.Union[None,'FileLocationCompatible','TextLocation']=None
         )->None:
         """
         assign the value of this file location
@@ -730,83 +264,72 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             in a relative path
         :location: fill in any missing to/from row/column with this location
         """
-        self.smartDecodeUrl=smartDecodeUrl
-        Url.assign(self,url,relativeTo,maxParentLevels,maxChildLevels)
-        LocationWithinFile.assign(self,fromRow,fromColumn,toRow,toColumn,location)
+        self.url=Url(url,relativeTo,maxParentLevels,maxChildLevels)
+        TextLocation.assign(self,fromRow,fromColumn,toRow,toColumn,location)
 
     @property
     def fromRow(self)->int:
         """
         starting row of this file location
         """
-        parts=self.fragments.get('line','0').split(',')
+        parts=self.url.fragments.get('line','0').split(',')
         return int(parts[0])
     @fromRow.setter
     def fromRow(self,fromRow:typing.Optional[int]=None):
         if fromRow is None:
             fromRow=0
-        parts=list(self.fragments.get('line','0').split(','))
+        parts=list(self.url.fragments.get('line','0').split(','))
         parts[0]=str(fromRow)
-        self.fragments['line']=','.join(parts)
+        self.url.fragments['line']=','.join(parts)
     @property
     def toRow(self)->int:
         """
         ending row of this file location
         """
-        parts=self.fragments.get('line','0').split(',')
+        parts=self.url.fragments.get('line','0').split(',')
         return int(parts[-1])
     @toRow.setter
     def toRow(self,toRow:typing.Optional[int]=None):
         if toRow is None:
             toRow=0
-        parts=list(self.fragments.get('line','0').split(','))
+        parts=list(self.url.fragments.get('line','0').split(','))
         if len(parts)>1:
             parts[1]=str(toRow)
         else:
             parts.append(str(toRow))
-        self.fragments['line']=','.join(parts)
+        self.url.fragments['line']=','.join(parts)
 
     @property
     def fromColumn(self)->int:
         """
         starting Column of this file location
         """
-        parts=self.fragments.get('char','0').split(',')
+        parts=self.url.fragments.get('char','0').split(',')
         return int(parts[0])
     @fromColumn.setter
     def fromColumn(self,fromColumn:typing.Optional[int]=None):
         if fromColumn is None:
             fromColumn=0
-        parts=list(self.fragments.get('char','0').split(','))
+        parts=list(self.url.fragments.get('char','0').split(','))
         parts[0]=str(fromColumn)
-        self.fragments['char']=','.join(parts)
+        self.url.fragments['char']=','.join(parts)
     @property
     def toColumn(self)->int:
         """
         ending Column of this file location
         """
-        parts=self.fragments.get('char','0').split(',')
+        parts=self.url.fragments.get('char','0').split(',')
         return int(parts[-1])
     @toColumn.setter
     def toColumn(self,toColumn:typing.Optional[int]=None):
         if toColumn is None:
             toColumn=0
-        parts=list(self.fragments.get('char','0').split(','))
+        parts=list(self.url.fragments.get('char','0').split(','))
         if len(parts)>1:
             parts[1]=str(toColumn)
         else:
             parts.append(str(toColumn))
-        self.fragments['char']=','.join(parts)
-
-    @property
-    def url(self)->paths.URL:
-        """
-        The file to whom we are referring
-        """
-        return typing.cast(paths.URL,paths.asURL(self._url))
-    @url.setter
-    def url(self,url:paths.URLCompatible):
-        self._url=url
+        self.url.fragments['char']=','.join(parts)
 
     @property
     def filename(self # type: ignore
@@ -855,7 +378,7 @@ class UrlWithFileLocation(LocationWithinFile,Url):
             for k,v in otherReplacements.items():
                 fmt=fmt.replace('{%s}'%k,str(v))
         replacements={
-            'filename':self.fullPath,
+            'filename':self.url.fullPath,
             'row':self.row,
             'col':self.col}
         for k,v in replacements.items():
@@ -884,8 +407,11 @@ class UrlWithFileLocation(LocationWithinFile,Url):
 
 FileLocationRange=UrlWithFileLocation
 FileLocation=UrlWithFileLocation
+UrlLocation=UrlWithFileLocation
+UrlWithLocation=UrlWithFileLocation
 
-UrlLocationCompatible=typing.Union[UrlWithFileLocation,paths.URLCompatible]
+UrlWithLocationCompatible=typing.Union[UrlWithFileLocation,paths.URLCompatible]
+UrlLocationCompatible=UrlWithLocationCompatible
 FileLocationCompatible=UrlLocationCompatible
 def asUrlWithFileLocation(location:UrlLocationCompatible)->UrlWithFileLocation:
     """
@@ -897,7 +423,8 @@ def asUrlWithFileLocation(location:UrlLocationCompatible)->UrlWithFileLocation:
         return location
     return UrlWithFileLocation(location)
 asFileLocation=asUrlWithFileLocation
-
+asUrlWithLocation=asUrlWithFileLocation
+asUrlLocation=asUrlWithFileLocation
 
 def isFileLocationCompatible(something:typing.Any)->bool:
     """
@@ -919,11 +446,10 @@ class UrlWithFileLocations(UrlWithFileLocation):
         that all contained locations exist within.
     """
     def __init__(self,url:paths.URLCompatible,
-        fileLocations:typing.Iterable[LocationWithinFile],
-        smartDecodeUrl:bool=True):
+        fileLocations:typing.Iterable[TextLocation]):
         """ """
-        UrlWithFileLocation.__init__(self,url,smartDecodeUrl=smartDecodeUrl)
-        self.locations:typing.List[LocationWithinFile]=list(fileLocations)
+        UrlWithFileLocation.__init__(self,url)
+        self.locations:typing.List[TextLocation]=list(fileLocations)
 
     @property
     def urlFileLocations(self
@@ -934,7 +460,7 @@ class UrlWithFileLocations(UrlWithFileLocation):
         """
         for fl in self.locations:
             yield UrlWithFileLocation(self.url,
-                fl.fromRow,fl.fromColumn,fl.toRow,fl.toColumn,self.smartDecodeUrl)
+                fl.fromRow,fl.fromColumn,fl.toRow,fl.toColumn)
 
     @property
     def fromRow(self)->int:
