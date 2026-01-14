@@ -214,7 +214,7 @@ class FileLocationSet:
 
     def getByFile(self,
         filename:UrlCompatible
-        )->typing.Generator[FileLocation]:
+        )->typing.Generator[FileLocation,None,None]:
         """
         Get locations for a specific file
         """
