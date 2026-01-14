@@ -101,7 +101,24 @@ class URL(
         of creating derived types from one constructor,
         for example, you would think:
             type(Url('http://google.com'))
-        would be "Url", but it is actually "HttpUrl" !
+        would be "Url", but it is actually "HttpUrl"
+        Or type(Url('file://d:/cheese')) a File
+        """
+        actualClass=cls.determineUrlSubclass(url)
+        newClass=super(URL,cls,url,*args,**kwargs).__new__(actualClass)
+        return newClass
+
+    @classmethod
+    def determineUrlSubclass(cls,
+        url:typing.Optional[URLCompatible]=""
+        )->typing.Type["URL"]:
+        """
+        Determine which URL subclass should be used for a particular url.
+
+        It will do this by looking up in URL.URL_PROTOCOL_OBJECT_TYPES[],
+        so if you want to add a new one, add it there.
+
+        This can raise TypeError if there is no matching URL type registered.
         """
         protocol:typing.Optional[str]=None
         if isinstance(url,Url):
@@ -120,13 +137,12 @@ class URL(
                 protocol='file'
         actualClass:typing.Optional[typing.Type[URL]]=\
             cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,URL)
-        if not issubclass(actualClass,URL):
-            raise Exception()
-        newClass=super(URL,cls).__new__(actualClass) # type: ignore
-        return newClass
+        if actualClass is None or not issubclass(actualClass,URL):
+            raise TypeError(f'Unable to determine type of URL for "{url}"')
+        return actualClass
 
     def __init__(self,
-        url:typing.Optional[URLCompatible],
+        url:typing.Optional[URLCompatible]="",
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None):
