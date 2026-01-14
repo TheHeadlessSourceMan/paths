@@ -12,6 +12,131 @@ from paths.urlTyping import URLCompatible,asURL
 osIsCaseSensitive=not os.name=='nt'
 
 
+# Common file extension types
+C_FILE_EXTENSIONS=('.c','.h')
+CPP_FILE_EXTENSIONS=\
+    C_FILE_EXTENSIONS+\
+    ('.cpp','.cxx','.hpp','.hxx')
+PYTHON_FILE_EXTENSIONS=('.py',)
+JAVA_FILE_EXTENSIONS=('.java',)
+JAVASCRIPT_EXTENSIONS=('.js',)
+TYPESCRIPT_EXTENSIONS=('.ts',)
+JSX_EXTENSIONS=('.jsx','.tsx')
+ALL_JAVASCRIPT_EXTENSIONS=\
+    JAVA_FILE_EXTENSIONS+\
+    TYPESCRIPT_EXTENSIONS+\
+    JSX_EXTENSIONS
+SOURCE_CODE_FILE_EXTENSIONS=\
+    CPP_FILE_EXTENSIONS+\
+    PYTHON_FILE_EXTENSIONS+\
+    JAVA_FILE_EXTENSIONS+\
+    ALL_JAVASCRIPT_EXTENSIONS
+
+JPEG_EXTENSIONS=('.jpg','.jpe','.jpeg','.jfif')
+RASTER_IMAGE_EXTENSIONS=\
+    JPEG_EXTENSIONS+\
+    ('.png','.bmp','.gif')
+VECTOR_IMAGE_EXTENSIONS=('.svg','.dxf')
+IMAGE_EXTENSIONS=\
+    RASTER_IMAGE_EXTENSIONS+\
+    VECTOR_IMAGE_EXTENSIONS
+
+MPEG_EXTENSIONS=('.mpg','.mpe','.mpeg','.mp4','.mp5')
+VIDEO_EXTENSIONS=\
+    MPEG_EXTENSIONS+\
+    ('.avi','.vp8','.flv')
+
+
+def isFileOfType(
+    filename:typing.Union[str,Path,URLCompatible],
+    extensions:typing.Iterable[str]
+    )->bool:
+    """
+    Determine if a file matches one of a set of extensions
+    """
+    from paths import URL
+    if isinstance(filename,Path):
+        return filename.suffix in extensions
+    if not isinstance(filename,URL):
+        filename=URL(filename)
+    return filename.extension in extensions
+
+
+def isCodeFile(
+    filename:typing.Union[str,Path,URLCompatible]
+    )->bool:
+    """
+    Determine if a file is source code of some kind
+    """
+    return isFileOfType(filename,SOURCE_CODE_FILE_EXTENSIONS)
+
+
+def isCppFile(
+    filename:typing.Union[str,Path,URLCompatible]
+    )->bool:
+    """
+    Determine if a file is c/c++ source code
+    """
+    return isFileOfType(filename,CPP_FILE_EXTENSIONS)
+
+
+def findDirectoriesContainingFileTypes(
+    parentDirs:typing.Union[str,Path,typing.Iterable[typing.Union[str,Path]]],
+    fileExtensions:typing.Iterable[str],
+    onlyHighestLevel:bool=False,
+    )->typing.Generator[Path,None,None]:
+    """
+    Find all directories containing specified file types
+    """
+    if isinstance(parentDirs,str):
+        yield from findDirectoriesContainingFileTypes(
+            Path(parentDirs),fileExtensions,onlyHighestLevel)
+    elif isinstance(parentDirs,Path):
+        tape=[]
+        isCodeDir=False
+        for item in parentDirs.iterdir():
+            if item.is_dir():
+                tape.append(item)
+            elif isFileOfType(item,fileExtensions):
+                isCodeDir=True
+        if isCodeDir:
+            yield parentDirs
+            if not onlyHighestLevel:
+                yield from findDirectoriesContainingFileTypes(
+                    tape,fileExtensions,onlyHighestLevel)
+        elif tape:
+            yield from findDirectoriesContainingFileTypes(
+                tape,fileExtensions,onlyHighestLevel)
+    else:
+        for d in parentDirs:
+            yield from findDirectoriesContainingFileTypes(
+                d,fileExtensions,onlyHighestLevel)
+
+
+def findSourceCodeDirectories(
+    parentDirs:typing.Union[str,Path,typing.Iterable[typing.Union[str,Path]]],
+    sourceCodeExtensions:typing.Iterable[str]=SOURCE_CODE_FILE_EXTENSIONS,
+    onlyHighestLevel:bool=False
+    )->typing.Generator[Path,None,None]:
+    """
+    Find all directories containing source code file types
+    """
+    yield from findDirectoriesContainingFileTypes(
+        parentDirs,sourceCodeExtensions,onlyHighestLevel)
+
+
+def findImageDirectories(
+    parentDirs:typing.Union[str,Path,typing.Iterable[typing.Union[str,Path]]],
+    imageExtensions:typing.Iterable[str]=IMAGE_EXTENSIONS,
+    onlyHighestLevel:bool=False
+    )->typing.Generator[Path,None,None]:
+    """
+    Find all directories containing image file types
+    """
+    yield from findDirectoriesContainingFileTypes(
+        parentDirs,imageExtensions,onlyHighestLevel)
+
+
 class MatchType(enum.Enum):
     """
     Used to indicate what type of match a string represents
