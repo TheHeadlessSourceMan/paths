@@ -105,8 +105,7 @@ class URL(
         Or type(Url('file://d:/cheese')) a File
         """
         actualClass=cls.determineUrlSubclass(url)
-        newClass=super(URL,cls,url,*args,**kwargs).__new__(actualClass)
-        return newClass
+        return super().__new__(actualClass) # type: ignore
 
     @classmethod
     def determineUrlSubclass(cls,

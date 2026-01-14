@@ -164,10 +164,6 @@ class TextLocation:
     A location within some text.
     """
 
-    def __new__(cls,*args,**kwargs):
-        s=super().__new__(cls,*args,**kwargs)
-        return s
-
     @typing.overload
     def __init__(self,
         fromRow:TextLocationSinglePoint,
@@ -399,68 +395,68 @@ class TextLocation:
         """
         same as fromRow
         """
-        return self._fromRow
+        return self.fromPoint.row
     @fromRow.setter
     def fromRow(self,fromRow:typing.Optional[int]=None):
-        self._fromRow=0 if fromRow is None else fromRow
+        self.fromPoint.row=0 if fromRow is None else fromRow
     @property
     def fromLine(self)->int:
         """
         same as fromRow
         """
-        return self._fromRow
+        return self.fromPoint.row
     @fromLine.setter
     def fromLine(self,fromLine:typing.Optional[int]=None):
-        self._fromRow=0 if fromLine is None else fromLine
+        self.fromPoint.row=0 if fromLine is None else fromLine
     @property
     def line(self)->int:
         """
         same as fromRow
         """
-        return self._fromRow
+        return self.fromPoint.row
     @line.setter
     def line(self,fromLine:typing.Optional[int]=None):
-        self._fromRow=0 if fromLine is None else fromLine
+        self.fromPoint.row=0 if fromLine is None else fromLine
     @property
     def row(self)->int:
         """
         same as fromRow
         """
-        return self._fromRow
+        return self.fromPoint.row
     @row.setter
     def row(self,row:typing.Optional[int]=None):
-        self._fromRow=0 if row is None else row
+        self.fromPoint.row=0 if row is None else row
 
     @property
     def toRow(self)->int:
         """
         same as toRow
         """
-        return self._toRow
+        return self.toPoint.row
     @toRow.setter
     def toRow(self,toRow:typing.Optional[int]=None):
-        self._toRow=-1 if toRow is None else toRow
+        self.toPoint.row=-1 if toRow is None else toRow
     @property
     def toLine(self)->int:
         """
         same as toRow
         """
-        return self._toRow
+        return self.toPoint.row
     @toLine.setter
     def toLine(self,toLine:typing.Optional[int]=None):
-        self._toRow=-1 if toLine is None else toLine
+        self.toPoint.row=-1 if toLine is None else toLine
 
     @property
     def numRows(self)->int:
         """
         numnber of rows
         """
-        return self._toRow-self._fromRow+1
+        return self.toPoint.row-self.fromPoint.row+1
     @numRows.setter
     def numRows(self,numRows:typing.Optional[int]=None):
         if numRows is None or numRows<=0:
             numRows=1
-        self.toRow=self._fromRow+numRows-1
+        self.toRow=self.fromRow+numRows-1
     @property
     def numLines(self)->int:
         """
@@ -536,8 +532,8 @@ class TextLocation:
             ret.append('%d'%self.line)
             if self._fromColumn!=-1:
                 ret.append(':%d'%self._fromColumn)
-            if self._toRow!=-1:
-                ret.append('-%d'%self._toRow)
+            if self.toRow!=-1:
+                ret.append('-%d'%self.toRow)
                 if self._toColumn!=-1:
                     ret.append(':%d'%self._toColumn)
         return ''.join(ret)
