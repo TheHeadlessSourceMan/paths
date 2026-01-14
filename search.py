@@ -93,13 +93,13 @@ def findDirectoriesContainingFileTypes(
             Path(parentDirs),fileExtensions,onlyHighestLevel)
     elif isinstance(parentDirs,Path):
         tape=[]
-        isCodeDir=False
+        matchesDir=False
         for item in parentDirs.iterdir():
             if item.is_dir():
                 tape.append(item)
             elif isFileOfType(item,fileExtensions):
-                isCodeDir=True
-        if isCodeDir:
+                matchesDir=True
+        if matchesDir:
             yield parentDirs
             if not onlyHighestLevel:
                 yield from findDirectoriesContainingFileTypes(
@@ -135,6 +135,40 @@ def findImageDirectories(
     """
     yield from findDirectoriesContainingFileTypes(
         parentDirs,imageExtensions,onlyHighestLevel)
+
+
+def findMakefileDirectories(
+    parentDirs:typing.Union[str,Path,typing.Iterable[typing.Union[str,Path]]],
+    onlyHighestLevel:bool=False
+    )->typing.Generator[Path,None,None]:
+    """
+    Find all directories containing makefiles
+    """
+    if isinstance(parentDirs,str):
+        yield from findMakefileDirectories(
+            Path(parentDirs),onlyHighestLevel)
+    elif isinstance(parentDirs,Path):
+        tape=[]
+        matchesDir=False
+        for item in parentDirs.iterdir():
+            if item.is_dir():
+                tape.append(item)
+            elif item.name.lower() in ('make','makefile') \
+                or item.suffix in ('.mak',):
+                #
+                matchesDir=True
+        if matchesDir:
+            yield parentDirs
+            if not onlyHighestLevel:
+                yield from findMakefileDirectories(
+                    tape,onlyHighestLevel)
+        elif tape:
+            yield from findMakefileDirectories(
+                tape,onlyHighestLevel)
+    else:
+        for d in parentDirs:
+            yield from findMakefileDirectories(
+                d,onlyHighestLevel)
 
 
 class MatchType(enum.Enum):
