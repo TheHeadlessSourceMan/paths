@@ -564,17 +564,30 @@ class URL(
             ret.append('')
         self._path=('/'.join(ret)).replace('//','/').replace('//','/')
 
-    def __eq__(self, # type: ignore
-        url:typing.Optional[URLCompatible]
-        )->bool:
+    def __cmp__(self,other:URLCompatible)->int:
         """
-        compare this url with another
+        Oldschool compare
         """
-        if not isURLCompatible(url):
-            return False
-        if url is None:
-            return False
-        return str(self)==str(asURL(url))
+        for a,b in zip(self.path,asURL(other).path):
+            if a==b:
+                continue
+            if a<b:
+                return -1
+            return 1
+        return 0
+    # Implementing the new dunder methods using __cmp__
+    def __lt__(self,other):
+        return self.__cmp__(other)<0
+    def __le__(self,other):
+        return self.__cmp__(other)<=0
+    def __eq__(self,other):
+        return self.__cmp__(other)==0
+    def __ne__(self,other):
+        return self.__cmp__(other)!=0
+    def __gt__(self, other):
+        return self.__cmp__(other)>0
+    def __ge__(self,other):
+        return self.__cmp__(other)>=0
 
     def __hash__(self)->int:
         """

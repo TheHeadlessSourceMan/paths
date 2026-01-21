@@ -65,6 +65,9 @@ class UrlWithFileLocation(TextLocation):
             fromRow,fromColumn,toRow,toColumn,
             relativeTo,maxParentLevels,maxChildLevels,location)
 
+    def __hash__(self)->int:
+        return hash(str(self))
+
     def asOffsetIntoText(self,text:typing.Optional[str]=None)->typing.Tuple[int,int]:
         """
         Convert this point into an offset in the given text.
@@ -125,6 +128,30 @@ class UrlWithFileLocation(TextLocation):
             or hasattr(__o,'filename'):
             return self.url==paths.asURL(typing.cast(paths.URLCompatible,__o))
         return False
+
+    def __cmp__(self,other:'UrlWithLocationCompatible')->int:
+        """
+        Oldschool compare
+        """
+        other=asUrlWithFileLocation(other)
+        result=self.url.__cmp__(other.url)
+        if result==0:
+            result=self.fromPoint.__cmp__(other.fromPoint)
+            if result==0:
+                result=self.toPoint.__cmp__(other.toPoint)
+        return result
+
+    # Implementing the new dunder methods using __cmp__
+    def __lt__(self,other):
+        return self.__cmp__(other)<0
+    def __le__(self,other):
+        return self.__cmp__(other)<=0
+    def __ne__(self,other):
+        return self.__cmp__(other)!=0
+    def __gt__(self, other):
+        return self.__cmp__(other)>0
+    def __ge__(self,other):
+        return self.__cmp__(other)>=0
 
     def contains(self,other:TextLocation)->bool: # type: ignore
         """
@@ -233,6 +260,12 @@ class UrlWithFileLocation(TextLocation):
         lines[0]=lines[0][v2a(self.fromColumn):]
         lines[-1]=lines[-1][0:v2a(self.toColumn,-1)]
         return '\n'.join(lines)
+    @property
+    def text(self)->str:
+        """
+        Text at this location
+        """
+        return self.read()
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
         url:paths.URLCompatible="",

@@ -472,56 +472,56 @@ class TextLocation:
         """
         starting column/character for the given row in the file
         """
-        return self._fromColumn
+        return self.fromPoint.column
     @fromColumn.setter
     def fromColumn(self,fromColumn:typing.Optional[int]=None):
-        self._fromColumn=0 if fromColumn is None else fromColumn
+        self.fromPoint.column=0 if fromColumn is None else fromColumn
     @property
     def fromCol(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self._fromColumn
+        return self.fromPoint.column
     @fromCol.setter
     def fromCol(self,fromCol:typing.Optional[int]=None):
-        self._fromColumn=0 if fromCol is None else fromCol
+        self.fromPoint.column=0 if fromCol is None else fromCol
     @property
     def col(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self._fromColumn
+        return self.fromPoint.column
     @col.setter
     def col(self,fromColumn:typing.Optional[int]=None):
-        self._fromColumn=0 if fromColumn is None else fromColumn
+        self.fromPoint.column=0 if fromColumn is None else fromColumn
     @property
     def column(self)->int:
         """
         starting column/character for the given row in the file
         """
-        return self._fromColumn
+        return self.fromPoint.column
     @column.setter
     def column(self,column:typing.Optional[int]=None):
-        self._fromColumn=0 if column is None else column
+        self.fromPoint.column=0 if column is None else column
 
     @property
     def toColumn(self)->int:
         """
         ending column/character for the given row in the file
         """
-        return self._toColumn
+        return self.toPoint.column
     @toColumn.setter
     def toColumn(self,toColumn:typing.Optional[int]=None):
-        self._toColumn=0 if toColumn is None else toColumn
+        self.toPoint.column=0 if toColumn is None else toColumn
     @property
     def toCol(self)->int:
         """
         ending column/character for the given row in the file
         """
-        return self._toColumn
+        return self.toPoint.column
     @toCol.setter
     def toCol(self,toCol:typing.Optional[int]=None):
-        self._toColumn=0 if toCol is None else toCol
+        self.toPoint.column=0 if toCol is None else toCol
 
     def __repr__(self)->str:
         """
@@ -530,10 +530,10 @@ class TextLocation:
         ret=[]
         if self.line is not None:
             ret.append('%d'%self.line)
-            if self._fromColumn!=-1:
-                ret.append(':%d'%self._fromColumn)
+            if self.fromColumn!=-1:
+                ret.append(':%d'%self.fromColumn)
             if self.toRow!=-1:
                 ret.append('-%d'%self.toRow)
-                if self._toColumn!=-1:
-                    ret.append(':%d'%self._toColumn)
+                if self.toColumn!=-1:
+                    ret.append(':%d'%self.toColumn)
         return ''.join(ret)

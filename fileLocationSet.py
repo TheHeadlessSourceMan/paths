@@ -48,14 +48,15 @@ isUrlLocationListCompatible=isFileLocationSetCompatible
 isUrlLocationsCompatible=isFileLocationSetCompatible
 
 
-class FileLocationSet:
+T=typing.TypeVar('T',bound=FileLocation)
+class FileLocationSet(typing.Generic[T]):
     """
     A set of file locations
     """
     def __init__(self,
         files:typing.Optional[FileLocationListCompatible]=None):
         """ """
-        self._locations:typing.Set[FileLocation]=set()
+        self._locations:typing.List[FileLocation]=[]
         if files is not None:
             self.append(files)
 
@@ -63,13 +64,13 @@ class FileLocationSet:
         """
         Clear out the set of locations
         """
-        self._locations=set()
+        self._locations=[]
 
-    def copy(self)->'FileLocationSet':
+    def copy(self)->'FileLocationSet[T]':
         """
         Create a copy of this set
         """
-        return FileLocationSet(self)
+        return FileLocationSet[T](self)
 
     def assign(self,
         files:typing.Optional[FileLocationListCompatible]=None
@@ -81,6 +82,28 @@ class FileLocationSet:
         if files is not None:
             self.append(files)
 
+    def _add1(self,location:FileLocation):
+        """
+        Internal method to add a new location to the set in proper order
+
+        Expects location to be perfect
+        """
+        low,high=0,len(self._locations)
+        # Check if the object already exists and update it
+        for i in range(high):
+            if self._locations[i]==location:
+                self._locations[i]=location  # Update existing object
+                return
+        # Binary search for the right insertion point to maintain order
+        while low<high:
+            mid=(low+high)//2
+            if self._locations[mid]<location:
+                low=mid+1
+            else:
+                high=mid
+        # Insert the new object at the correct position
+        self._locations.insert(low,location)
+
     def append(self,
         fileLocations:typing.Optional[FileLocationListCompatible]=None
         )->None:
@@ -89,12 +112,13 @@ class FileLocationSet:
         """
         if fileLocations is not None:
             if isFileLocationCompatible(fileLocations):
-                self._locations.add(
-                    FileLocation(fileLocations)) # type: ignore
+                if isinstance(fileLocations,FileLocation):
+                    self._add1(fileLocations.copy())
+                else:
+                    self._add1(FileLocation(fileLocations)) # type: ignore
             else:
                 for fileLocation in fileLocations: # type: ignore
-                    self._locations.add(
-                        FileLocation(fileLocation))
+                    self._add1(FileLocation(fileLocation))
     add=append
     extend=append
 
@@ -122,15 +146,15 @@ class FileLocationSet:
                         # we need to re-add a cropped version
                         if isinstance(cropped,tuple):
                             # the difference has split the item into two
-                            self._locations.add(cropped[0])
-                            self._locations.add(cropped[1])
+                            self._add1(cropped[0])
+                            self._add1(cropped[1])
                         else:
-                            self._locations.add(cropped)
+                            self._add1(cropped)
     subtract=remove
 
     def union(self,
         fileLocations:typing.Optional[FileLocationListCompatible]
-        )->'FileLocationSet':
+        )->'FileLocationSet[T]':
         """
         Get a new fileLocationList consisting of this list and another list
         (NOTE: the + operator will also do this)
@@ -142,7 +166,7 @@ class FileLocationSet:
 
     def __add__(self,
         fileLocations:typing.Optional[FileLocationListCompatible]
-        )->'FileLocationSet':
+        )->'FileLocationSet[T]':
         """
         Use the + operator to create a new set consisting of a combination of both sets
         """
@@ -150,7 +174,7 @@ class FileLocationSet:
 
     def difference(self,
         fileLocations:typing.Optional[FileLocationListCompatible]
-        )->'FileLocationSet':
+        )->'FileLocationSet[T]':
         """
         Get a new fileLocationList consisting of this list
         with regions from another list removed
@@ -161,7 +185,7 @@ class FileLocationSet:
         return result
 
     def __sub__(self,fileLocations:typing.Optional[FileLocationListCompatible]
-        )->'FileLocationSet':
+        )->'FileLocationSet[T]':
         """
         Use the - operator to create a new set consisting of this set, with
         another set removed from it.
@@ -170,7 +194,7 @@ class FileLocationSet:
 
     def intersection(self,
         fileLocations:typing.Optional[FileLocationListCompatible]
-        )->'FileLocationSet':
+        )->'FileLocationSet[T]':
         """
         Get a new fileLocationList consisting of this list
         with regions but only where it intersects another set of regions
@@ -196,7 +220,7 @@ class FileLocationSet:
         results in [file.txt:100-250]
         """
         locations=list(self._locations)
-        result=[]
+        result:typing.List[FileLocation]=[]
         stopIndex=len(locations)-1
         for idx,a in enumerate(locations):
             if idx==stopIndex:
@@ -204,17 +228,17 @@ class FileLocationSet:
             for b in locations[idx+1:]:
                 if a.overlaps(b):
                     result.append(a.union(b))
-        self._locations=set(result)
+        self._locations=result
 
-    def __iter__(self)->typing.Iterator[FileLocation]:
-        return iter(self._locations)
+    def __iter__(self)->typing.Iterator[T]:
+        return iter(self._locations) # type: ignore
 
     def __len__(self)->int:
         return len(self._locations)
 
     def getByFile(self,
         filename:UrlCompatible
-        )->typing.Generator[FileLocation,None,None]:
+        )->typing.Generator[T,None,None]:
         """
         Get locations for a specific file
         """
