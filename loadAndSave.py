@@ -455,7 +455,7 @@ class LoadAndSave(LoadAndSaveBytes):
                 raise Exception('Cannot load this kind of data')
             self._decodeStr(data) # type: ignore # pylint: disable=not-callable
 
-    def encode(self)->str: #type: ignore
+    def encode(self)->str:
         """
         Encode to text
 
