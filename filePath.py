@@ -326,6 +326,17 @@ class FilePath(_PathBase,URL):
             raise ValueError(str(url))
         return FilePath(fp)
 
+    def remove(self)->None:
+        """
+        Remove the file (if it exists)
+        """
+        if self._pathlibPath.is_dir():
+            self._pathlibPath.rmdir()
+        else:
+            self._pathlibPath.unlink(True)
+    rm=remove
+    delete=remove
+
     def dir(
         self,
         globExpression:typing.Union[None,str,typing.Pattern[str]]=None,
@@ -335,7 +346,8 @@ class FilePath(_PathBase,URL):
         Act like the system dir or ls command
         """
         if globExpression is not None and isinstance(globExpression,str):
-            raise NotImplementedError() # TODO: need to convert from glob to regex
+            from .search import globToRegex
+            globExpression=globToRegex(globExpression)
         for result in self.findFilenamesOfType(recursive=recursive):
             if globExpression is not None:
                 if not result.isAbsolute:
