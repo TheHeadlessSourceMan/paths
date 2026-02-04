@@ -9,8 +9,7 @@ per line.
 import typing
 import itertools
 import bisect
-from pathlib import Path
-from fileLocation import UrlWithFileLocation
+from paths import UrlWithFileLocation,UrlCompatible,Url
 
 class LineLookup:
     """
@@ -22,14 +21,12 @@ class LineLookup:
     per line.
     """
     def __init__(self,
-        filename:typing.Union[str,Path],
+        filename:UrlCompatible,
         data:typing.Optional[str]=None):
         """ """
-        self.filename:Path=Path(filename)
+        self.filename:Url=Url(filename)
         if data is None:
-            data=''
-            with open(filename,'r',encoding='utf-8',errors='ignore') as f:
-                data=f.read()
+            data=self.filename.read()
         self.data:str=data
         self._totalBeforeLine:typing.Optional[typing.List[int]]=None
 
