@@ -8,14 +8,14 @@ import os
 import urllib.parse
 import pathlib
 from paths._uri import URI
-from paths.urlTyping import URLCompatible, isURLCompatible, asURL
+from paths.urlTyping import URLCompatible,asURL
 from paths.loadAndSave import LoadAndSave
 from paths.urlNavigation import UrlNavigation
 from paths.dataReadWrite import DataReadWrite
 from paths.paramDict import ParamDict
 from paths.cleverUrls import CleverUrls
 from paths.filePathTools import encodeFilePath
-from paths.errors import MalformedURL
+from paths.errors import MalformedURL,NonIterableDirectory,UnknownBaseDirectory
 from paths.pathLike import PathLike
 
 
@@ -199,6 +199,84 @@ class URL(
         if url is not None and (not isinstance(url,str) or url):
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
+
+    def absolute(self)->"Url":
+        """
+        This as an absolute url
+        """
+        if self.isAbsolute:
+            return self
+        raise UnknownBaseDirectory(self)
+
+    def iterdir(self)->typing.Generator["URL",None,None]:
+        """
+        iterate over the current directory
+        """
+        raise NonIterableDirectory(self)
+    @property
+    def children(self)->typing.Generator["URL",None,None]:
+        """
+        iterate over the current directory
+        """
+        return self.iterdir()
+
+    @property
+    def files(self)->typing.Iterator["URL"]:
+        """
+        All of the child files
+        """
+        for c in self.children:
+            if c.isFile:
+                yield c
+
+    @property
+    def directories(self)->typing.Iterator["URL"]:
+        """
+        All of the child directories
+        """
+        for c in self.children:
+            if c.isDir:
+                yield c
+
+    def findFilenamesOfType(
+        self,
+        extensions:typing.Union[None,str,typing.Iterable[str]]=None,
+        recursive:bool=True
+        )->typing.Generator["URL",None,None]:
+        """
+        Depth-first file search.
+
+        Yields only files, never directories.
+
+        :extensions: limit results to one or more extensions
+            (extensions must include the dot, for instance [".c",".cpp"])
+        :recursive: default=true
+        """
+        _=extensions,recursive
+        raise NonIterableDirectory(self)
+
+    def dir(
+        self,
+        globExpression:typing.Union[None,str,typing.Pattern[str]]=None,
+        recursive:bool=True
+        )->typing.Generator["URL",None,None]:
+        """
+        Act like the system dir or ls command
+        """
+        if globExpression is not None and isinstance(globExpression,str):
+            from .search import globToRegex
+            globExpression=globToRegex(globExpression)
+        for result in self.findFilenamesOfType(recursive=recursive):
+            if globExpression is not None:
+                if not result.isAbsolute:
+                    resultStr=str(result.absolute())
+                else:
+                    resultStr=str(result)
+                if globExpression.match(resultStr) is not None:
+                    yield result
+            else:
+                yield result
+    ls=dir
 
     @classmethod
     def _from_parts(cls,*args):
@@ -896,6 +974,25 @@ class URL(
     @isDirectory.setter
     def isDirectory(self,isDirectory:bool):
         self._isDirectory=isDirectory
+    @property
+    def isDir(self)->bool:
+        """
+        NOTE: for file:// urls we can determine this,
+        but for other types it is merely a guess unless
+        explicitly assigned.
+
+        Eg: is http://fooblatz.com/items going to be a
+            directory or a webpage?  Or both (implied index.htm)?
+        But you can always set url.isDirectory=True to track that
+
+        NOTE: the algorithm for determining if url is a directory is:
+            1) if there is cgi, it IS NOT a directory
+            2)
+        """
+        return self.isDirectory
+    @isDir.setter
+    def isDir(self,isDir:bool):
+        self.isDirectory=isDir
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
         url:typing.Optional[URLCompatible],

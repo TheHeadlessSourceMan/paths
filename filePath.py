@@ -337,29 +337,6 @@ class FilePath(_PathBase,URL):
     rm=remove
     delete=remove
 
-    def dir(
-        self,
-        globExpression:typing.Union[None,str,typing.Pattern[str]]=None,
-        recursive:bool=True
-        )->typing.Generator["FilePath",None,None]:
-        """
-        Act like the system dir or ls command
-        """
-        if globExpression is not None and isinstance(globExpression,str):
-            from .search import globToRegex
-            globExpression=globToRegex(globExpression)
-        for result in self.findFilenamesOfType(recursive=recursive):
-            if globExpression is not None:
-                if not result.isAbsolute:
-                    resultStr=str(result.absolute())
-                else:
-                    resultStr=str(result)
-                if globExpression.match(resultStr) is not None:
-                    yield result
-            else:
-                yield result
-    ls=dir
-
     @property
     def extension(self)->str:
         """
@@ -425,12 +402,11 @@ class FilePath(_PathBase,URL):
         return self
 
     @property
-    def children(self)->typing.Iterator["FilePath"]:
+    def children(self)->typing.Generator["FilePath",None,None]:
         """
-        All of the child filenames
+        iterate over the current directory
         """
-        for c in self._pathlibPath.iterdir():
-            yield FilePath(c)
+        return self.iterdir()
 
     @property
     def files(self)->typing.Iterator["FilePath"]:
@@ -438,7 +414,7 @@ class FilePath(_PathBase,URL):
         All of the child files
         """
         for c in self.children:
-            if self._pathlibPath.is_file():
+            if c.isFile:
                 yield c
 
     @property
@@ -447,8 +423,19 @@ class FilePath(_PathBase,URL):
         All of the child directories
         """
         for c in self.children:
-            if self._pathlibPath.is_dir():
+            if c.isDir:
                 yield c
+
+    def dir(
+        self,
+        globExpression:typing.Union[None,str,typing.Pattern[str]]=None,
+        recursive:bool=True
+        )->typing.Generator["FilePath",None,None]:
+        """
+        Act like the system dir or ls command
+        """
+        return URL.dir(self,globExpression,recursive) # type: ignore
+    ls=dir
 
     @property
     def isDirectory(self)->bool:
