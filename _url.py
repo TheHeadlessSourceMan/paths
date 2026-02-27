@@ -947,6 +947,38 @@ class URL(
         return self.protocol=='file'
 
     @property
+    def isBinaryFile(self)->bool:
+        """
+        Utility to check a file to see if it's "binary" or not
+
+        This is very basic.  For more strategies, see:
+        http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
+        """
+        if self.isDirectory:
+            return False
+        while True:
+            character=self.readBytes(1) # the first byte of a short might be null if we're Unicode. # noqa: E501 # pylint: disable=line-too-long
+            if character=='':
+                break
+            character=self.readBytes(1)
+            if character=='':
+                break
+            elif character[1]=='\0':
+                self.close()
+                return True
+        self.close()
+        return False
+
+    @property
+    def isTextFile(self)->bool:
+        """
+        Utility to check a file to see if it's "binary" or not
+        """
+        if self.isDirectory:
+            return False
+        return not self.isBinaryFile
+
+    @property
     def isDirectory(self)->bool:
         """
         NOTE: for file:// urls we can determine this,
