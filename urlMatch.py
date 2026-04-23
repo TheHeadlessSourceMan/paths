@@ -4,8 +4,8 @@ Tools to match urls against lists of urls and/or regex patterns
 import typing
 import os
 import re
-from _url import Url
-from urlTyping import URLCompatible,asURL
+from paths._url import Url
+from paths.urlTyping import URLCompatible,asURL
 
 
 UrlMatchable=typing.Union[
