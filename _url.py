@@ -770,6 +770,20 @@ class URL(
         """
         return self.urlString
 
+    @property
+    def shortName(self)->str:
+        """
+        for "/path/to/foo.html" return "foo"
+        """
+        return self.path
+
+    @property
+    def nameWithExtension(self)->str:
+        """
+        for "/path/to/foo.html" return "foo.html"
+        """
+        return self.path
+
     def _encodeStr(self)->str: # type: ignore
         """
         Encode this to a string
