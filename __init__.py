@@ -19,6 +19,7 @@ from .errors import *
 from .localFilenameUtils import *
 from .httpUrl import *
 from .filePath import *
+from .urlMatch import *
 
 # register common URL class types
 URL.URL_PROTOCOL_OBJECT_TYPES['http']=HttpUrl

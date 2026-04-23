@@ -17,6 +17,8 @@ from paths.cleverUrls import CleverUrls
 from paths.filePathTools import encodeFilePath
 from paths.errors import MalformedURL,NonIterableDirectory,UnknownBaseDirectory
 from paths.pathLike import PathLike
+if typing.TYPE_CHECKING:
+    from paths.urlMatch import UrlMatchable
 
 
 class URL(
@@ -881,6 +883,32 @@ class URL(
                 # this has no subdomain
                 self.domain=host
                 self.subdomain=None
+
+    def urlMatches(
+        self,
+        matches:"UrlMatchable",
+        ignoreCase:typing.Optional[bool]=None
+        )->bool:
+        """
+        Check if this url matches one or more url's and/or patterns
+
+        :matches: url(s) and/or regex pattern(s) to match
+            if None, always returns False
+        :ignoreCase: do not be case sensitive None (default) means
+            best-guess based upon the url protocol and 
+            (this only applies to other url's as it is assumed
+            if you have a regex you compiled it the way you want)
+
+        returns True if it matches any of the matches
+
+        NOTE: if you do this on more than one url with
+        the same set of matches, it may be more efficient
+        to call allUrlMatches()
+        """
+        from paths.urlMatch import urlMatches
+        return urlMatches(self,matches,ignoreCase)
+    fileMatches=urlMatches
+    matches=urlMatches
 
     @classmethod
     def _getUrlString(cls,
