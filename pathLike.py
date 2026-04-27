@@ -243,6 +243,16 @@ class PathLike:
         """
         return PathLike(self,separators=self.separators)
 
+    @property
+    def pathSteps(self)->typing.Iterable[PathStep]:
+        """
+        steps in the path
+        """
+        return iter(self._pathSteps)
+    @pathSteps.setter
+    def pathSteps(self,pathSteps:typing.Iterable[PathStep])->None:
+        self._pathSteps=[ps for ps in pathSteps]
+
     def makeRelativeTo(self,relativeTo:"PathCompatible")->"PathLike":
         """
         Get copy of this path, as it is re relative to another path
@@ -251,7 +261,7 @@ class PathLike:
         this would return "../b" because that is
         the relative path to get from "/home/bob/a/c" to "/home/bob/a/b"
         """
-        return PathLike(relativeTo,self,separators=self.separators)
+        raise NotImplementedError()
     getRelativeTo=makeRelativeTo
     makeRelative=makeRelativeTo
 

@@ -299,6 +299,77 @@ class FilePath(_PathBase,URL):
         self._pathlibPath=pathlib.Path(fileLocation)
         URL.__init__(self,location,relativeTo,maxParentLevels,maxChildLevels)
 
+    def makeRelativeTo(self, # type: ignore
+        relativeTo:"FilePathCompatible"
+        )->"FilePath":
+        """
+        Get copy of this path, as it is re relative to another path
+
+        That is, if we are "/home/bob/a/b" and relativeTo is "/home/bob/a/c"
+        this would return "../b" because that is
+        the relative path to get from "/home/bob/a/c" to "/home/bob/a/b"
+
+        TODO: this needs tested. There are all kinds of edge
+        cases in something like this!
+        """
+        from pathLike import PathStep
+        relativeTo=asFilePath(relativeTo)
+        # to compare, it needs to be all absolute, or all relative
+        allRelative=False
+        p1=self
+        if p1.isFile:
+            p1=p1.parent
+        steps1:typing.List[PathStep]=[]
+        steps2:typing.List[PathStep]=[]
+        if not self.isAbsolute:
+            if relativeTo.isAbsolute:
+                steps1=list(self.pathSteps)
+                allRelative=True
+            else:
+                steps1=list(relativeTo.absolute().pathSteps)
+            steps2=list(relativeTo.pathSteps)
+        elif not relativeTo.isAbsolute:
+            steps1=list(self.pathSteps)
+            steps2=list(relativeTo.absolute().pathSteps)
+        # strip off common
+        while steps1[0]=='.':
+            steps1=steps1[1:]
+        while steps2[0]=='.':
+            steps2=steps2[1:]
+        # compare it
+        if allRelative:
+            # strip off everything that is the same
+            n=0
+            for (n,(s1,s2)) in enumerate(zip(steps1,steps2)):
+                if s1==s2:
+                    steps1=steps1[1:]
+                    steps2=steps2[1:]
+                else:
+                    break
+            # go up so many directories
+            ret=[PathStep('..') for _ in steps2]
+            # then go down to where we wanted
+            ret.extend(steps1[n:])
+        else:
+            # strip off everything that is the same
+            n=0
+            for (n,(s1,s2)) in enumerate(zip(steps1,steps2)):
+                if s1==s2:
+                    steps1=steps1[1:]
+                    steps2=steps2[1:]
+                else:
+                    break
+            # go up so many directories
+            ret=[PathStep('..') for _ in steps2]
+            # then go down to where we wanted
+            ret.extend(steps1[n:])
+        # create a new value with the result
+        ret=self.__class__(self)
+        ret.pathSteps=steps1
+        return ret
+    getRelativeTo=makeRelativeTo
+    makeRelative=makeRelativeTo
+
     def findFilenamesOfType(
         self,
         extensions:typing.Union[None,str,typing.Iterable[str]]=None,
