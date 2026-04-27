@@ -19,6 +19,14 @@ FilePathCompatible=UrlCompatible
 FileUrlCompatible=FilePathCompatible
 
 
+# Options:
+# True/'always' - always overwrite existing files
+# False/'error' - raise an error if the file already exists (default)
+# 'ignore'/'skip' - do nothing if the file already exists
+# 'newer' - keep the newer of the two files
+OverwriteOptions=typing.Union[bool,typing.Literal['always','error','ignore','skip','newer']]
+
+
 def asFilePath(
     path:typing.Optional[FilePathCompatible],
     relativeTo:typing.Optional[FilePathCompatible]=None,
@@ -744,17 +752,24 @@ class FilePath(_PathBase,URL):
         """
         return self.findFilenamesOfType()
 
-    def makedirs(self,inclusive:bool):
+    def makedirs(self,
+        relativePath:typing.Optional[FilePathCompatible]=None,
+        inclusive:bool=True):
         """
         Make all directories exist leading up to this point
 
         :inclusive: if True, create this path as a directory as well
         """
-        pth=self.absolute()
-        if not inclusive:
+        if relativePath is None:
+            pth=self.absolute()
+        else:
+            pth=FilePath(relativePath,self).absolute()
+        if not inclusive or self.exists:
             pth=pth.parent
         os.makedirs(str(pth))
     mkdirs=makedirs
+    makedir=makedirs
+    mkdir=makedirs # type: ignore
 
     @property
     def filename(self)->str:
@@ -806,6 +821,41 @@ class FilePath(_PathBase,URL):
         Create a copy of this path
         """
         return super().copy() # type: ignore
+
+    def copyFile(self,
+        destination:FilePathCompatible,
+        overwrite:OverwriteOptions=False,
+        recursive:bool=False
+        )->"FilePath":
+        """
+        Copy this file to a new location
+
+        :destination: the new location for the file
+        :overwrite: whether or not to overwrite the destination if it already exists
+        """
+        import shutil
+        destination=asFilePath(destination)
+        if destination.exists() and not overwrite:
+            raise FileExistsError(str(destination))
+        if self.isDir:
+            for c in self.children:
+                if c.isDir:
+                    # if it's not recursive, then we create the directory but not its contents
+                    destination.makedirs(c.name)
+                    if not recursive:
+                        continue
+                c.copyFile(destination/c.name,overwrite,recursive)
+        else:
+            if destination.exists():
+                if overwrite=='newer':
+                    if destination.lastModifiedTime>=self.lastModifiedTime:
+                        return destination
+                elif overwrite==('ignore','skip'):
+                    return destination
+                elif overwrite=='error':
+                    raise FileExistsError(str(destination))
+            shutil.copy2(str(self),str(destination))
+        return destination
 
     @property
     def isAbsolute(self)->bool:
