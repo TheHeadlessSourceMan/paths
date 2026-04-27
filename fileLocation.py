@@ -41,7 +41,7 @@ class UrlWithFileLocation(TextLocation):
         r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-lo
 
     def __init__(self,
-        url:paths.UrlWithLocationCompatible="",
+        url:"UrlWithLocationCompatible"="",
         fromRow:typing.Union[None,int,
             'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
@@ -268,7 +268,7 @@ class UrlWithFileLocation(TextLocation):
         return self.read()
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
-        url:paths.UrlWithLocationCompatible="",
+        url:"UrlWithLocationCompatible"="",
         fromRow:typing.Union[None,int,
             'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,

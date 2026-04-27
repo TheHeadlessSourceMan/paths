@@ -8,7 +8,7 @@ import os
 import re
 import pathlib
 import datetime
-from _callableValue import CallableValue
+from paths._callableValue import CallableValue
 from paths._url import URL
 from paths.urlTyping import UrlCompatible
 from paths.search import findFilenamesOfType
@@ -16,6 +16,7 @@ from paths.errors import MalformedFilename
 
 
 FilePathCompatible=UrlCompatible
+FileUrlCompatible=FilePathCompatible
 
 
 def asFilePath(
