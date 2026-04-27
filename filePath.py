@@ -8,6 +8,7 @@ import os
 import re
 import pathlib
 import datetime
+from warnings import warn
 from paths._callableValue import CallableValue
 from paths._url import URL
 from paths.urlTyping import UrlCompatible
@@ -816,11 +817,33 @@ class FilePath(_PathBase,URL):
             self._pathlibPath.lstat().st_mtime,
             tz=datetime.timezone.utc)
 
-    def copy(self)->"FilePath":
+    def copy(self)->"FilePath": # type: ignore
         """
-        Create a copy of this path
+        DEPRECATED.
+
+        This function is too ambiguious.
+        You either meant:
+            copyPath() to create a new path object
+            copyFile() to copy file(s)
+        so call that function, not this.
         """
-        return super().copy() # type: ignore
+        msg="""
+            DEPRECATED.
+
+            This function is too ambiguious.
+            You either meant:
+                copyPath() to create a new path object
+                copyFile() to copy file(s)
+            so call that function, not this.
+            """
+        warn(msg,DeprecationWarning,stacklevel=2)
+        return self.copyPath()
+
+    def copyPath(self)->"FilePath":
+        """
+        create a copy of this path
+        """
+        return super().__class__(self)
 
     def copyFile(self,
         destination:FilePathCompatible,
@@ -856,6 +879,21 @@ class FilePath(_PathBase,URL):
                     raise FileExistsError(str(destination))
             shutil.copy2(str(self),str(destination))
         return destination
+    copyFiles=copyFile
+
+    def copyTree(self,
+        destination:FilePathCompatible,
+        overwrite:OverwriteOptions=False,
+        recursive:bool=True
+        )->"FilePath":
+        """
+        Recursively copy this file to a new location
+
+        :destination: the new location for the file
+        :overwrite: whether or not to overwrite the destination if it already exists
+        """
+        return self.copyFile(destination,overwrite,recursive)
+    copytree=copyTree
 
     @property
     def isAbsolute(self)->bool:
