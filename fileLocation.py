@@ -41,7 +41,7 @@ class UrlWithFileLocation(TextLocation):
         r"""(?P<filename>(.*[/\\])?[^:(]*)([:(](?P<row>\d*)(\s*[:,]\s*(?P<col>\d*))?\)?)""") # noqa: E501 # pylint: disable=line-too-lo
 
     def __init__(self,
-        url:paths.URLCompatible="",
+        url:paths.UrlWithLocationCompatible="",
         fromRow:typing.Union[None,int,
             'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
@@ -268,7 +268,7 @@ class UrlWithFileLocation(TextLocation):
         return self.read()
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
-        url:paths.URLCompatible="",
+        url:paths.UrlWithLocationCompatible="",
         fromRow:typing.Union[None,int,
             'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
@@ -297,7 +297,29 @@ class UrlWithFileLocation(TextLocation):
             in a relative path
         :location: fill in any missing to/from row/column with this location
         """
+        if isinstance(url,UrlWithFileLocation):
+            if fromRow is None:
+                fromRow=url.fromRow
+            if fromColumn is None:
+                fromColumn=url.fromColumn
+            if toRow is None:
+                toRow=url.toRow
+            if toColumn is None:
+                toColumn=url.toColumn
+            url=url.url
         self.url=Url(url,relativeTo,maxParentLevels,maxChildLevels)
+        fragments=self.url.fragments
+        if fragments:
+            rowfrag=Url.fragValueToRange(fragments.get('line',fragments.get('row','')))
+            colfrag=Url.fragValueToRange(fragments.get('col',''))
+            if fromRow is None and rowfrag[0]:
+                fromRow=int(rowfrag[0])
+            if fromColumn is None:
+                fromColumn=url.fromColumn
+            if toRow is None and len(rowfrag)>1 and rowfrag[1]:
+                toRow=int(rowfrag[1])
+            if toColumn is None:
+                toColumn=url.toColumn
         TextLocation.assign(self,fromRow,fromColumn,toRow,toColumn,location)
 
     @property

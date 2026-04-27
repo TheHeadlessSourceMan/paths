@@ -311,6 +311,30 @@ class URL(
         else:
             self.fragments[kv[0]]=kv[1]
 
+    @classmethod
+    def fragValueToRange(cls,fragVal:str)->typing.Tuple[int,int]:
+        """
+        Convert a fragment value (eg row:10-20) into a range (eg (10,20))
+
+        See also:
+            https://datatracker.ietf.org/doc/html/rfc5147#section-2.1.2
+
+        Returns a tuple of (fromInt,toInt), the default is (0,-1)
+        """
+        fromInt=0
+        toInt=-1
+        for val in fragVal.split(','):
+            startEnd=[s.strip() for s in val.split('-',1)]
+            if startEnd[0] and startEnd[0].isdigit():
+                v=int(startEnd[0])
+                if v>fromInt:
+                    fromInt=v
+            if len(startEnd)>1 and startEnd[1] and startEnd[1].isdigit():
+                v=int(startEnd[1])
+                if toInt==-1 or v>toInt:
+                    toInt=v
+        return fromInt,toInt
+
     @property
     def extension(self)->str:
         """
