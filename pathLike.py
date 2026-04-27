@@ -243,6 +243,25 @@ class PathLike:
         """
         return PathLike(self,separators=self.separators)
 
+    def makeRelativeTo(self,relativeTo:"PathCompatible")->"PathLike":
+        """
+        Get copy of this path, as it is re relative to another path
+
+        That is, if we are "/home/bob/a/b" and relativeTo is "/home/bob/a/c"
+        this would return "../b" because that is
+        the relative path to get from "/home/bob/a/c" to "/home/bob/a/b"
+        """
+        return PathLike(relativeTo,self,separators=self.separators)
+    getRelativeTo=makeRelativeTo
+    makeRelative=makeRelativeTo
+
+    def makeRelativeFrom(self,fromPath:"PathCompatible")->"PathLike":
+        """
+        Get a relative path from another path to this one
+        """
+        return asPath(fromPath).makeRelativeTo(self)
+    getRelativeFrom=makeRelativeFrom
+
     def getRelative(self,
         relative:"PathCompatible",
         inheritChanges:bool=False,
