@@ -8,6 +8,7 @@ import os
 import re
 import pathlib
 import datetime
+from _callableValue import CallableValue
 from paths._url import URL
 from paths.urlTyping import UrlCompatible
 from paths.search import findFilenamesOfType
@@ -678,6 +679,13 @@ class FilePath(_PathBase,URL):
         """
         return self._pathlibPath.is_file()
 
+    @property
+    def exists(self)->CallableValue(bool): # type: ignore # pylint:disable=invalid-overridden-method
+        """
+        Return True if this file or directory exists, False otherwise
+        """
+        return self._pathlibPath.exists()
+
     def iterdir(self)->typing.Generator['FilePath',None,None]:
         """
         Same as pathlib.Path.iterdir
@@ -714,12 +722,6 @@ class FilePath(_PathBase,URL):
         Is this the same as another filename?
         """
         return self.absolute()==asFileString(other,True)
-
-    def exists(self)->bool:
-        """
-        Same as pathlib.Path.exists()
-        """
-        return self._pathlibPath.exists()
 
     @property
     def isCwd(self)->bool:
