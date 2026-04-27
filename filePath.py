@@ -753,7 +753,7 @@ class FilePath(_PathBase,URL):
         """
         return self.findFilenamesOfType()
 
-    def makedirs(self,
+    def makeDirs(self,
         relativePath:typing.Optional[FilePathCompatible]=None,
         inclusive:bool=True):
         """
@@ -768,9 +768,28 @@ class FilePath(_PathBase,URL):
         if not inclusive or self.exists:
             pth=pth.parent
         os.makedirs(str(pth))
-    mkdirs=makedirs
-    makedir=makedirs
-    mkdir=makedirs # type: ignore
+    makedirs=makeDirs
+    mkdirs=makeDirs
+    makedir=makeDirs
+
+    def mkdir(self,mode:int=0o777,parents:bool=False,exist_ok:bool=False):
+        """
+        DEPRECATED.
+
+        The pathlib.Path function for this is completely
+        different in its desgin (and not as nice).
+        
+        Use makeDir() instead.
+        """
+        msg="""
+            DEPRECATED.
+
+            The pathlib.Path function for this is completely
+            different in its desgin (and not as nice).
+            
+            Use makeDir() instead.
+            """
+        warn(msg,DeprecationWarning,stacklevel=2)
 
     @property
     def filename(self)->str:
@@ -798,8 +817,28 @@ class FilePath(_PathBase,URL):
         return self.parts[-1]
     @name.setter
     def name(self,name:FilePathCompatible):
-        # TODO: does this constitute a system rename?
-        raise NotImplementedError()
+        """
+        DEPRECATED.
+
+        Don't know if this is intending to rename the
+        object value, or the file itself.
+
+        Either choose:
+            self.parent/"otherName" # access a different file name
+            self.renameFile("newName") # rename this file
+        """
+        msg="""
+            DEPRECATED.
+
+            Don't know if this is intending to rename the
+            object value, or the file itself.
+
+            Either choose:
+                self.parent/"otherName" # access a different file name
+                self.renameFile("newName") # rename this file
+            """
+        _=name
+        warn(msg,DeprecationWarning,stacklevel=2)
 
     @property
     def expandvars(self)->"FilePath":
