@@ -953,7 +953,7 @@ class FilePath(_PathBase,URL):
         """
         create a copy of this path
         """
-        return super().__class__(self)
+        return self.__class__(self)
 
     def copyFile(self,
         destination:FilePathCompatible,
