@@ -312,7 +312,7 @@ class FilePath(_PathBase,URL):
         TODO: this needs tested. There are all kinds of edge
         cases in something like this!
         """
-        from pathLike import PathStep
+        from paths import PathStep
         relativeTo=asFilePath(relativeTo)
         # to compare, it needs to be all absolute, or all relative
         allRelative=False
@@ -369,6 +369,15 @@ class FilePath(_PathBase,URL):
         return ret
     getRelativeTo=makeRelativeTo
     makeRelative=makeRelativeTo
+
+    def makeRelativeFrom(self, # type: ignore
+        fromPath:"FilePathCompatible"
+        )->"FilePath":
+        """
+        Get a relative path from another path to this one
+        """
+        return asFilePath(fromPath).makeRelativeTo(self)
+    getRelativeFrom=makeRelativeFrom
 
     def findFilenamesOfType(
         self,
