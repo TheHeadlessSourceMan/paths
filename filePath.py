@@ -972,9 +972,8 @@ class FilePath(_PathBase,URL):
         """
         import shutil
         destination=asFilePath(destination)
-        if destination.exists() and not overwrite:
-            raise FileExistsError(str(destination))
         if self.isDir:
+            destination.makedirs()
             for c in self.children:
                 if c.isDir:
                     # if it's not recursive, then we create the directory but not its contents
