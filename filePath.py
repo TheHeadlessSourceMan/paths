@@ -982,9 +982,13 @@ class FilePath(_PathBase,URL):
                 elif overwrite=='error':
                     raise FileExistsError(str(destination))
                 destination.remove()
-            if not destination.exists():
+            if not destination.exists:
                 destination.makedirs()
-                shutil.copystat(str(self),str(destination))
+                try:
+                    shutil.copystat(str(self),str(destination))
+                except Exception as e:
+                    print(e)
+                    print(f'Problem copying stats. File exists={destination.exists()} "{destination}"')
             for c in self.children:
                 if c.isDir:
                     # if it's not recursive, then we create the directory but not its contents
