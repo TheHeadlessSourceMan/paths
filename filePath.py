@@ -770,11 +770,11 @@ class FilePath(_PathBase,URL):
         return self._pathlibPath.is_file()
 
     @property
-    def exists(self)->CallableValue(bool): # type: ignore # pylint:disable=invalid-overridden-method
+    def exists(self)->CallableValue[bool]: # type: ignore # pylint:disable=invalid-overridden-method
         """
         Return True if this file or directory exists, False otherwise
         """
-        return self._pathlibPath.exists()
+        return CallableValue[bool](self._pathlibPath.exists())
 
     def iterdir(self)->typing.Generator['FilePath',None,None]:
         """
