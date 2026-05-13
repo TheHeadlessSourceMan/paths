@@ -228,7 +228,7 @@ class URL(
         All of the child files
         """
         for c in self.children:
-            if c.isFile:
+            if not c.isDirectory:
                 yield c
 
     @property
@@ -1006,11 +1006,10 @@ class URL(
     @property
     def isFile(self)->bool:
         """
-        is True if this is a file:// url
-
-        This IS NOT similar to url.isDirectory!!!
+        This is deprecated because it is ambiguous.
+        Use url.protocol=="file" or (url.exists and not url.isDirectory) instead
         """
-        return self.protocol=='file'
+        raise DeprecationWarning('isFile is ambiguious, use url.protocol=="file" or (url.exists and not url.isDirectory) instead') # pylint: disable=line-too-long
 
     @property
     def isBinaryFile(self)->bool:
@@ -1060,7 +1059,7 @@ class URL(
             2)
         """
         if self._isDirectory is None:
-            if self.isFile:
+            if self.protocol=='file':
                 if not self.filePath:
                     self._isDirectory=True # / is a directory
                 else:

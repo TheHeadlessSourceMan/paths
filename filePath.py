@@ -210,7 +210,7 @@ def asFileString(
             isFileString=True
             fileLocation=str(fileLocation)
         elif isinstance(fileLocation,URL):
-            isFileString=fileLocation.isFile
+            isFileString=fileLocation.protocol=='file'
             fileLocation=str(fileLocation)
         elif hasattr(fileLocation,'url'):
             member=fileLocation.url # type: ignore
@@ -317,7 +317,7 @@ class FilePath(_PathBase,URL):
         # to compare, it needs to be all absolute, or all relative
         allRelative=False
         p1=self
-        if p1.isFile:
+        if p1.exists and not p1.isDirectory:
             p1=p1.parent
         steps1:typing.List[PathStep]=[]
         steps2:typing.List[PathStep]=[]
@@ -500,7 +500,7 @@ class FilePath(_PathBase,URL):
         All of the child files
         """
         for c in self.children:
-            if c.isFile:
+            if not c.isDirectory:
                 yield c
 
     @property
@@ -973,7 +973,7 @@ class FilePath(_PathBase,URL):
         import shutil
         destination=asFilePath(destination)
         if self.isDir:
-            if destination.isFile:
+            if not destination.isDirectory:
                 if overwrite=='newer':
                     if destination.lastModifiedTime>=self.lastModifiedTime:
                         return destination
