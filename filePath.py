@@ -973,7 +973,18 @@ class FilePath(_PathBase,URL):
         import shutil
         destination=asFilePath(destination)
         if self.isDir:
-            destination.makedirs()
+            if destination.isFile:
+                if overwrite=='newer':
+                    if destination.lastModifiedTime>=self.lastModifiedTime:
+                        return destination
+                elif overwrite==('ignore','skip'):
+                    return destination
+                elif overwrite=='error':
+                    raise FileExistsError(str(destination))
+                destination.remove()
+            if not destination.exists():
+                destination.makedirs()
+                shutil.copystat(str(self),str(destination))
             for c in self.children:
                 if c.isDir:
                     # if it's not recursive, then we create the directory but not its contents
