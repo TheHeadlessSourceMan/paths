@@ -469,15 +469,10 @@ class FilePath(_PathBase,URL):
         """
         All of the child filenames
         """
-        if self._pathlibPath.parent is None:
+        parent=self._pathlibPath.parent
+        if parent==self._pathlibPath:   # already at root
             raise FileNotFoundError(str(self)+'/..')
-        drv=self._pathlibPath._drv # type: ignore # pylint: disable=protected-access
-        root=self._pathlibPath._root # type: ignore # pylint: disable=protected-access
-        parts=self._pathlibPath._parts # type: ignore # pylint: disable=protected-access
-        if len(parts)==1 and (drv or root):
-            raise FileNotFoundError(str(self)+'/..')
-        parentPath=self._pathlibPath._from_parsed_parts(drv,root,parts[:-1]) # type: ignore # pylint: disable=protected-access
-        return FilePath(parentPath)
+        return FilePath(parent)
 
     @property
     def root(self)->"FilePath": # type: ignore
@@ -847,7 +842,7 @@ class FilePath(_PathBase,URL):
             pth=FilePath(relativePath,self).absolute()
         if not inclusive or self.exists:
             pth=pth.parent
-        os.makedirs(str(pth))
+        os.makedirs(str(pth),exist_ok=True)
     makedirs=makeDirs
     mkdirs=makeDirs
     makedir=makeDirs
@@ -883,11 +878,11 @@ class FilePath(_PathBase,URL):
 
     @property
     def parts(self # type: ignore
-        )->typing.List[str]:
+        )->typing.Tuple[str,...]:
         """
         Parts of the path
         """
-        return self._pathlibPath._parts.copy() # type: ignore # pylint: disable=protected-access
+        return self._pathlibPath.parts
 
     @property
     def name(self)->str:
@@ -996,7 +991,14 @@ class FilePath(_PathBase,URL):
                     return destination
                 elif overwrite=='error':
                     raise FileExistsError(str(destination))
-            shutil.copy2(str(self),str(destination))
+            try:
+                shutil.copy2(str(self),str(destination))
+            except FileNotFoundError as e:
+                # make sure the context is included in the error
+                me=str(self)
+                if str(e).find(me)<0:
+                    raise FileNotFoundError(f'Unable to copy file "{me}" to "{destination}"') from e
+                raise e
         return destination
     copyFiles=copyFile
 
