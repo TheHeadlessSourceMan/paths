@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path
 from paths.urlTyping import URLCompatible,asURL
+import stringTools
 
 
 osIsCaseSensitive=not os.name=='nt'
@@ -425,6 +426,42 @@ find=findFiles
 search=findFiles
 
 
+def fileFilter(
+    src:typing.Union[str,Path,typing.Iterable[typing.Union[str,Path]]],
+    match:typing.Optional[stringTools.MatchLike]=None,
+    matchStringAs:stringTools.MatchStringAs="exact",
+    ignorecase:bool=False,
+    includeExtension:bool=False,
+    includePath:bool=False
+    )->typing.Iterable[Path]:
+    """
+    Simply filter a list of files without asking where it came
+    from or if it even exists.
+
+    This uses the stringTools stringFilter for speed and versatility.
+    """
+    if isinstance(src,(str,Path)):
+        src=(src,)
+    t:typing.List[typing.Tuple[str,Path]]=[]
+    for s in src:
+        if not isinstance(s,Path):
+            p=Path(s)
+        else:
+            p=s
+        if match is None:
+            yield p
+            continue
+        if includePath:
+            s=str(p.absolute())
+        elif includeExtension:
+            s=p.name
+        else:
+            s=p.stem
+        t.append((s,p))
+    for _,p in stringTools.tupleStringFilter(t,match,matchStringAs,ignorecase):
+        yield p
+
+
 def cmdline(args:typing.Iterable[str])->int:
     """
     Run the command line
@@ -446,7 +483,8 @@ def cmdline(args:typing.Iterable[str])->int:
             if k in ('-h','--help'):
                 printHelp=True
             elif k.startswith('--ext') and len(kw)>1:
-                extensions.extend([s.strip() for s in kw[1].replace(';',',').split(',')])
+                extensions.extend([
+                    s.strip() for s in kw[1].replace(';',',').split(',')])
             elif k in ('--case','--casesensitive'):
                 if len(kw)>1 and kw[1]:
                     caseSensitive=kw[1][0].lower() in ('y','t','1')
