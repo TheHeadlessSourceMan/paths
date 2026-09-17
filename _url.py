@@ -202,6 +202,20 @@ class URL(
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
 
+    def _encode(self)->str:
+        """
+        Return the encoded URL as a string.
+        """
+        return f'[InternetShortcut]\nURL={self}\n'
+
+    def _decode(self,data:str)->None:
+        """
+        Decode the given URL string.
+
+        :data: the URL string to decode
+        """
+        self.assign(data)
+
     def absolute(self)->"Url":
         """
         This as an absolute url
@@ -954,8 +968,19 @@ class URL(
         if isinstance(url,bytes):
             url=url.decode('utf-8','ignore')
         if isinstance(url,str):
-            # if it's blank, treat it the same as None
             url=url.lstrip()
+            # handle if it looks like a .url file content
+            if url.lower().startswith('[internetshortcut]'):
+                found=False
+                for line in url.splitlines():
+                    line=line.lstrip()
+                    if line.lower().startswith('url='):
+                        url=line[4:].strip()
+                        found=True
+                        break
+                if not found:
+                    raise Exception('Malformed .url file: missing "URL=" line')
+            # if it's blank, treat it the same as None
             if not url:
                 return None
         else:

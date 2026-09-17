@@ -39,6 +39,7 @@ def urlAssign(
             or even (href,src,location,rel) like in html-ish objects
         * a file object with a .name member
         * a system path+file where the path exists
+        * the contents of a .url file
     :type url: URLCompatible
     :param relativeTo: the url parameter is relative to this.
         eg asUrl('about.htm','http://fooblatz.com')

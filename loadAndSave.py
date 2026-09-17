@@ -81,6 +81,7 @@ def defaultSaver(f:URLCompatible,data:bytes)->None:
         _=urllib.request.urlopen(request)
         return
     f.write(data)
+    f.close()
 
 
 ParamsDict=typing.Dict[str,typing.Any]
