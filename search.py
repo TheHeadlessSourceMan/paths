@@ -405,7 +405,7 @@ class FileWalker:
 
 
 def findFiles(
-    match:typing.Union[None,str,typing.Pattern]=None,
+    match:typing.Union[None,str,typing.Pattern[str]]=None,
     matchType:MatchType=MatchType.SimpleStringMatch,
     extensions:typing.Union[None,str,typing.Iterable[str]]=None,
     startDirs:typing.Union[

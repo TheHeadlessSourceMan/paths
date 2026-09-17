@@ -60,6 +60,8 @@ def isUrlCompatible(obj:typing.Any,strict:bool=False)->bool:
                     proto=obj[:firstColon]
                     if ' ' not in proto:
                         return True
+    if isinstance(obj,pathlib.Path):
+        return True
     import paths
     return isinstance(obj,paths.URL) \
         or hasattr(obj,'url') \

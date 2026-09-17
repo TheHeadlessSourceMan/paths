@@ -14,13 +14,15 @@ UrlLocationSetCompatible=FileLocationSetCompatible
 UrlLocationListCompatible=FileLocationSetCompatible
 UrlLocationsCompatible=FileLocationSetCompatible
 
-def asFileLocationSet(files:FileLocationListCompatible)->"FileLocationSet":
+def asFileLocationSet(
+    files:FileLocationListCompatible
+    )->"FileLocationSet[typing.Any]":
     """
     Always get a FileLocationList.  If it already is one, simply return it.
     """
-    if isinstance(files,FileLocationList):
-        return files
-    return FileLocationList(files)
+    if isinstance(files,FileLocationSet):
+        return files # type: ignore
+    return FileLocationSet[typing.Any](files)
 asFileLocationList=asFileLocationSet
 asFileLocations=asFileLocationSet
 asUrlLocationSet=asFileLocationSet
@@ -118,7 +120,7 @@ class FileLocationSet(typing.Generic[T]):
                     self._add1(FileLocation(fileLocations)) # type: ignore
             else:
                 for fileLocation in fileLocations: # type: ignore
-                    self._add1(FileLocation(fileLocation))
+                    self._add1(FileLocation(fileLocation)) # type: ignore
     add=append
     extend=append
 
@@ -146,10 +148,10 @@ class FileLocationSet(typing.Generic[T]):
                         # we need to re-add a cropped version
                         if isinstance(cropped,tuple):
                             # the difference has split the item into two
-                            self._add1(cropped[0])
-                            self._add1(cropped[1])
+                            self._add1(cropped[0]) # type: ignore
+                            self._add1(cropped[1]) # type: ignore
                         else:
-                            self._add1(cropped)
+                            self._add1(cropped) # type: ignore
     subtract=remove
 
     def union(self,
@@ -168,7 +170,8 @@ class FileLocationSet(typing.Generic[T]):
         fileLocations:typing.Optional[FileLocationListCompatible]
         )->'FileLocationSet[T]':
         """
-        Use the + operator to create a new set consisting of a combination of both sets
+        Use the + operator to create a new set consisting of
+        a combination of both sets
         """
         return self.union(fileLocations)
 
@@ -200,7 +203,7 @@ class FileLocationSet(typing.Generic[T]):
         with regions but only where it intersects another set of regions
         (NOTE: the - operator will also do this)
         """
-        result=FileLocationSet()
+        result=FileLocationSet[T]()
         if fileLocations is None:
             return result
         fileLocations=asFileLocationSet(fileLocations)
