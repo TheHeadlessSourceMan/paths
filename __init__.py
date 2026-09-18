@@ -20,8 +20,9 @@ from .localFilenameUtils import *
 from .httpUrl import *
 from .filePath import *
 from .urlMatch import *
+from .urlFileFormat import *
 
 # register common URL class types
-URL.URL_PROTOCOL_OBJECT_TYPES['http']=HttpUrl
-URL.URL_PROTOCOL_OBJECT_TYPES['https']=HttpUrl
-URL.URL_PROTOCOL_OBJECT_TYPES['file']=FilePath
+URL.URL_PROTOCOL_OBJECT_TYPES['http']=HttpUrl # noqa: F405
+URL.URL_PROTOCOL_OBJECT_TYPES['https']=HttpUrl # noqa: F405
+URL.URL_PROTOCOL_OBJECT_TYPES['file']=FilePath # noqa: F405

@@ -56,7 +56,7 @@ def urlAssign(
         in a relative path
     """
     self.clear()
-    self._isDirectory=_isDirectory # type: ignore # pylint: disable=protected-access
+    self._isDirectory=_isDirectory # type: ignore # noqa: E501 # pylint: disable=protected-access
     if url is None:
         return
     if isinstance(url,paths.URL):

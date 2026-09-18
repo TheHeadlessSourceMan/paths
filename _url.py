@@ -81,7 +81,7 @@ class URL(
             https://www.ietf.org/rfc/rfc3986.html#section-3.1
 
             https://en.wikipedia.org/wiki/File_URI_scheme
-        
+
         TODO: pull in default readers from imageTools
     """
 
@@ -829,14 +829,22 @@ class URL(
         Encode this to a string
         (used for saving .url files)
         """
-        return self.urlString
+        from .urlFileFormat import UrlFileFormat
+        f=UrlFileFormat(self.urlString)
+        return f.encode()
 
     def _decodeStr(self,data:str)->None: # type: ignore
         """
         Decode this from a string
         (used for loading .url files)
         """
-        self.urlString=data
+        from .urlFileFormat import UrlFileFormat,isUrlFileData
+        if not isUrlFileData(data):
+            self.assign(Url(data))
+            return
+        f=UrlFileFormat("")
+        f.assign(self)
+        self.assign(f)
 
     @property
     def fullPath(self)->typing.Optional[str]:
@@ -933,7 +941,7 @@ class URL(
         :matches: url(s) and/or regex pattern(s) to match
             if None, always returns False
         :ignoreCase: do not be case sensitive None (default) means
-            best-guess based upon the url protocol and 
+            best-guess based upon the url protocol and
             (this only applies to other url's as it is assumed
             if you have a regex you compiled it the way you want)
 
@@ -1032,9 +1040,10 @@ class URL(
     def isFile(self)->bool:
         """
         This is deprecated because it is ambiguous.
-        Use url.protocol=="file" or (url.exists and not url.isDirectory) instead
+        Use url.protocol=="file" or (url.exists and not url.isDirectory)
+        instead
         """
-        raise DeprecationWarning('isFile is ambiguious, use url.protocol=="file" or (url.exists and not url.isDirectory) instead') # pylint: disable=line-too-long
+        raise DeprecationWarning('isFile is ambiguious, use url.protocol=="file" or (url.exists and not url.isDirectory) instead') # noqa: E501 # pylint: disable=line-too-long
 
     @property
     def isBinaryFile(self)->bool:
