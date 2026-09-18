@@ -41,7 +41,10 @@ def cleanup(
         # if it's not root then add relativeTo
         relativeTo=relativeTo.replace('\\','/').strip()
         path=f'{relativeTo}/{path}/'
-    path=PathCleanupRe.sub('/',path)
+    previous=None
+    while path!=previous:
+        previous=path
+        path=PathCleanupRe.sub('/',path)
     while path[-1]=='/':
         path=path[0:-1]
     return path

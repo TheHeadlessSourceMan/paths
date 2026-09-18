@@ -41,6 +41,34 @@ invalidWindowsFilenameCharactersRe=re.compile(
     r'[<>:"/\\|?*\x00-\x1F\x7F]|_vti_')
 invalidWindowsFilenamesRe=re.compile(
     r'CON|PRN|AUX|NUL|COM[0-9]+|LPT[0-9]+|\.lock')
+
+
+def _sanitizeDelimitedFilename(
+    filename:str,
+    invalidCharactersRe:typing.Pattern[str],
+    delimiter:str
+    )->str:
+    """
+    Sanitize filename using reversible delimiter tokens.
+    """
+    filename=filename.replace(delimiter,delimiter+delimiter)
+    ret:typing.List[str]=[]
+    lastPos=0
+    for m in invalidCharactersRe.finditer(filename):
+        if lastPos!=m.start():
+            ret.append(filename[lastPos:m.start()])
+        found=m.group(0)
+        if len(found)==1 and found[0]<='\x1F':
+            token='0x%02X'%found.encode('ascii',errors='ignore')[0]
+        else:
+            token=filenameSymbolToName[found]
+        ret.append(f'{delimiter}{token}{delimiter}')
+        lastPos=m.end()
+    if lastPos<len(filename):
+        ret.append(filename[lastPos:])
+    return ''.join(ret)
+
+
 def sanitizeWindowsFilename(
     filename:str,
     delimiter:typing.Optional[str]=None,
@@ -91,33 +119,16 @@ def sanitizeWindowsFilename(
     if replacement is None:
         if delimiter is None:
             delimiter='_'
-        # replace the delimiter character by doubling it up
-        filename=filename.replace(delimiter,delimiter+delimiter)
-        # replace all tokens anywhere in the string
-        ret:typing.List[str]=[]
-        lastPos=0
-        found=''
-        for m in invalidWindowsFilenameCharactersRe.finditer(filename):
-            if lastPos!=m.start():
-                ret.append(filename[lastPos:m.start()])
-            found=m.group(0)
-            # first need to handle some special cases that don't lend
-            # themselves well to a dict structure
-            if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
-            else:
-                ret.append(filenameSymbolToName[found])
-        if lastPos<len(found)-1:
-            ret.append(filename[lastPos:])
-        filename=''.join(ret)
+        filename=_sanitizeDelimitedFilename(
+            filename,invalidWindowsFilenameCharactersRe,delimiter)
         # replace a ~$ thing at the beginning of the string
         if filename.startswith('~$'):
-            filename=f"{replacement}{filenameSymbolToName['!']}{replacement}{delimiter}{filenameSymbolToName['$']}{delimiter}" # noqa: E501 # pylint: disable=line-too-long
+            filename=f"{delimiter}{filenameSymbolToName['!']}{delimiter}{delimiter}{filenameSymbolToName['$']}{delimiter}" # noqa: E501 # pylint: disable=line-too-long
         else:
             # replace any whole filenames the system needs
             m=invalidWindowsFilenamesRe.match(filename)
             if m is not None:
-                filename=f"{replacement}{m.group()}{replacement}"
+                filename=f"{delimiter}{m.group()}{delimiter}"
     else: # we are doing a simple replacement
         # just use simple regex replacement
         filename=invalidWindowsFilenameCharactersRe.sub(replacement,filename)
@@ -170,25 +181,8 @@ def sanitizePosixFilename(
     if replacement is None:
         if delimiter is None:
             delimiter='_'
-        # replace the delimiter character by doubling it up
-        filename=filename.replace(delimiter,delimiter+delimiter)
-        # replace all tokens anywhere in the string
-        ret:typing.List[str]=[]
-        found=''
-        lastPos=0
-        for m in invalidWindowsFilenameCharactersRe.finditer(filename):
-            if lastPos!=m.start():
-                ret.append(filename[lastPos:m.start()])
-            found=m.group(0)
-            # first need to handle some special cases that don't lend
-            # themselves well to a dict structure
-            if len(found)==1 and found[0]<='\x1F':
-                ret.append('0x%02X'%found.encode('ascii',errors='ignore')[0])
-            else:
-                ret.append(filenameSymbolToName[found])
-        if lastPos<len(found)-1:
-            ret.append(filename[lastPos:])
-        filename=''.join(ret)
+        filename=_sanitizeDelimitedFilename(
+            filename,invalidPosixFilenameCharactersRe,delimiter)
     else: # we are doing a simple replacement
         # just use simple regex replacement
         filename=invalidPosixFilenameCharactersRe.sub(replacement,filename)
@@ -365,14 +359,17 @@ def deSanitizeLocalFilename(
         idx=filename.find(delimiter,lastIdx)
         if idx<0:
             done=True
-            idx=len(filename)-1 # be sure to eat the remainder
+            idx=len(filename) # be sure to eat the remainder
         if isInsideDelimiter: # we are leaving a delimiter section
             # decode it
-            if idx-lastIdx==1:
+            token=filename[lastIdx:idx]
+            if token=='':
                 # it was a double-delimiter with nothing inside
                 ret.append(delimiter)
             else:
-                symbol=filenameNameToSymbol.get(filename[lastIdx:idx])
+                symbol=filenameNameToSymbol.get(token)
+                if symbol is None and re.fullmatch(r'0x[0-9A-Fa-f]{2}',token):
+                    symbol=chr(int(token[2:],16))
                 if symbol is None:
                     # found an unrecognized symbol, so accept
                     # full filename as-is
@@ -383,7 +380,7 @@ def deSanitizeLocalFilename(
             # append plain text
             ret.append(filename[lastIdx:idx])
             isInsideDelimiter=True
-        lastIdx=idx
+        lastIdx=idx+len(delimiter)
     return ''.join(ret)
 deSanitizeFilename=deSanitizeLocalFilename
 deSanitizeWindowsFilename=deSanitizeLocalFilename

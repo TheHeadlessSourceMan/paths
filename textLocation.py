@@ -196,7 +196,8 @@ class TextLocation:
         """
 
     def __init__(self,
-        fromRow:typing.Union[None,int,'FileLocationCompatible',TextLocationSinglePoint]=None,
+        fromRow:typing.Union[None,
+            int,'FileLocationCompatible',TextLocationSinglePoint]=None,
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
@@ -213,7 +214,9 @@ class TextLocation:
         """
         Convert this location tinto an offset in the given text
         """
-        return self.fromPoint.asOffsetIntoText(text),self.toPoint.asOffsetIntoText(text)
+        return (
+            self.fromPoint.asOffsetIntoText(text),
+            self.toPoint.asOffsetIntoText(text))
 
     def rowOffsets(self,text:str)->typing.List[int]:
         """
@@ -229,24 +232,25 @@ class TextLocation:
         return text[startIdx:endIdx]
 
     def assign(self,
-        fromRow:typing.Union[None,int,
-            'FileLocationCompatible',TextLocationSinglePoint,'TextLocation']=None,
+        fromRow:typing.Union[None,int,'FileLocationCompatible',
+            TextLocationSinglePoint,'TextLocation']=None,
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','TextLocation']=None)->None:
+        location:typing.Union[None,
+            'FileLocationCompatible','TextLocation']=None)->None:
         """
         :fromRow: can be used as location to make ordered-parameters easier
         :location: fill in any missing to/from row/column with this location
         """
-        if not fromRow is None:
+        if fromRow is not None:
             if isinstance(fromRow,TextLocationSinglePoint):
                 self.fromPoint=fromRow.copy()
                 fromRow=None
             elif not isinstance(fromRow,int):
                 location=fromRow
                 fromRow=None
-        if not toRow is None:
+        if toRow is not None:
             if isinstance(toRow,TextLocationSinglePoint):
                 self.toPoint=toRow.copy()
                 toRow=None
@@ -276,7 +280,10 @@ class TextLocation:
         Create a copy of this location within file
         """
         return TextLocation(
-            self.fromPoint.row,self.fromPoint.column,self.toPoint.row,self.toPoint.column)
+            self.fromPoint.row,
+            self.fromPoint.column,
+            self.toPoint.row,
+            self.toPoint.column)
 
     def __eq__(self,__o: object)->bool:
         """
@@ -351,8 +358,9 @@ class TextLocation:
         with another location removed from it.
 
         returns None if this causes the location to completely disappear
-        NOTE: this could result in this being split into two, eg. 
-            file.txt:100..400 - file.txt:200..300 = (file.txt:100..200, file.txt:300-400)
+        NOTE: this could result in this being split into two, eg.
+            file.txt:100..400 - file.txt:200..300 =
+                (file.txt:100..200, file.txt:300-400)
         """
         if not self.overlaps(other):
             # nothing will be removed
@@ -377,8 +385,8 @@ class TextLocation:
         other:'TextLocation'
         )->typing.Optional['TextLocation']:
         """
-        Return a new location that is a combination of the parts of this location
-        and of another location that overlap.
+        Return a new location that is a combination of the parts of
+        this location and of another location that overlap.
 
         returns None if there are no parts in common causing the
         location to completely disappear

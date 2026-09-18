@@ -14,11 +14,11 @@ def illegalCharsForOs(osName:typing.Optional[str]=None)->str:
     TODO: need to research this!!!
     """
     if osName is None:
-        import sys
-        osName=sys.platform
+        import os
+        osName=os.name
     if osName=='nt':
-        return r'*"/;|=,'
-    return r'*":;|=,\\'
+        return r'<>:"/\|?*'
+    return '/\0'
 
 
 def enquoteFilePath(filePath:str)->str:
@@ -84,6 +84,6 @@ def filenameFixer(
     NOTE: be sure to ONLY include the filename, not a path
     """
     for i in illegalCharsForOs(osName):
-        if filename.find(i)>0:
+        if filename.find(i)>=0:
             filename=filename.replace(i,replaceWith)
     return filename

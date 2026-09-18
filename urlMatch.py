@@ -9,9 +9,9 @@ from paths.urlTyping import URLCompatible,asURL
 
 
 UrlMatchable=typing.Union[
-    None,URLCompatible,typing.Pattern,
-    typing.Iterable[typing.Union[URLCompatible,typing.Pattern]]]
-MatchFilter=typing.Iterable[typing.Union[str,typing.Pattern]]
+    None,URLCompatible,typing.Pattern[str],
+    typing.Iterable[typing.Union[URLCompatible,typing.Pattern[str]]]]
+MatchFilter=typing.Iterable[typing.Union[str,typing.Pattern[str]]]
 
 
 def _createMatchFilter(matches:UrlMatchable,ignoreCase:bool)->MatchFilter:
@@ -19,9 +19,14 @@ def _createMatchFilter(matches:UrlMatchable,ignoreCase:bool)->MatchFilter:
     Convert to a simple list of exact strings and regex patterns
     """
     if isinstance(matches,str) or not hasattr(matches,'__iter__'):
-        matches=typing.cast(typing.Iterable[typing.Union[URLCompatible,typing.Pattern]],[matches])
+        matches=typing.cast(
+            typing.Iterable[typing.Union[URLCompatible,typing.Pattern[str]]],
+            [matches])
     results:MatchFilter=[]
-    for m in typing.cast(typing.Iterable[typing.Union[URLCompatible,typing.Pattern]],matches):
+    for m in typing.cast(
+        typing.Iterable[typing.Union[URLCompatible,typing.Pattern[str]]],
+        matches):
+        #
         if not isinstance(m,re.Pattern):
             m=str(asURL(m))
             if ignoreCase:
@@ -42,7 +47,7 @@ def urlMatches(
     :matches: url(s) and/or regex pattern(s) to match
         if None, always returns False
     :ignoreCase: do not be case sensitive None (default) means
-        best-guess based upon the url protocol and 
+        best-guess based upon the url protocol and
         (this only applies to other url's as it is assumed
         if you have a regex you compiled it the way you want)
 
@@ -85,7 +90,7 @@ def allUrlMatches(
     :matches: url(s) and/or regex pattern(s) to match
         if None, always returns False
     :ignoreCase: do not be case sensitive None (default) means
-        best-guess based upon the url protocol and 
+        best-guess based upon the url protocol and
         (this only applies to other url's as it is assumed
         if you have a regex you compiled it the way you want)
 

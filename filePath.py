@@ -25,7 +25,8 @@ FileUrlCompatible=FilePathCompatible
 # False/'error' - raise an error if the file already exists (default)
 # 'ignore'/'skip' - do nothing if the file already exists
 # 'newer' - keep the newer of the two files
-OverwriteOptions=typing.Union[bool,typing.Literal['always','error','ignore','skip','newer']]
+OverwriteOptions=typing.Union[bool,
+    typing.Literal['always','error','ignore','skip','newer']]
 
 
 def asFilePath(
@@ -42,14 +43,22 @@ def asFilePath(
     Passing in None or empty string creates a path to the current directory
 
     :makeAbsolute: Make this always an absolute path
-    :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-        This can be dangerous because a if hacker can somehow cause your program to
-        open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-        For that reason, it is recommended to use shellReplace as a dict and only populate
-        it with valid environment variables.
+    :shellReplace: Whether or not to perform shell replacements
+        or a dict of shell replacements.
+        This can be dangerous because a if hacker can somehow cause
+        your program to open file "./%SECRET_PASSWORD%" and then it throws
+        "Unable to open file ./1234"
+        For that reason, it is recommended to use shellReplace as a dict
+        and only populate it with valid environment variables.
     """
     if not isinstance(path,FilePath):
-        return FilePath(path,relativeTo,maxParentLevels,maxChildLevels,makeAbsolute,shellReplace) # type: ignore # pylint: disable=too-many-function-args
+        return FilePath(
+            path,
+            relativeTo,
+            maxParentLevels,
+            maxChildLevels,
+            makeAbsolute,
+            shellReplace) # type: ignore # pylint: disable=too-many-function-args # noqa: E501
     if makeAbsolute and not path.isAbsolute:
         return path.absolute()
     return path
@@ -72,11 +81,13 @@ def asAbsoluteFilePath(
     Passing in None or empty string creates a path to the current directory
 
     :makeAbsolute: Make this always an absolute path
-    :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-        This can be dangerous because a if hacker can somehow cause your program to
-        open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-        For that reason, it is recommended to use shellReplace as a dict and only populate
-        it with valid environment variables.
+    :shellReplace: Whether or not to perform shell replacements
+        or a dict of shell replacements.
+        This can be dangerous because a if hacker can somehow cause
+        your program to open file "./%SECRET_PASSWORD%" and then it throws
+        "Unable to open file ./1234"
+        For that reason, it is recommended to use shellReplace as a dict
+        and only populate it with valid environment variables.
     """
     return asFilePath(path,relativeTo,
         maxParentLevels,maxChildLevels,makeAbsolute,shellReplace)
@@ -99,11 +110,13 @@ def expandUserStr(
       - %VAR% (Windows-style)
 
     :param path: The input path string
-    :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-        This can be dangerous because a if hacker can somehow cause your program to
-        open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-        For that reason, it is recommended to use shellReplace as a dict and only populate
-        it with valid environment variables.
+    :shellReplace: Whether or not to perform shell replacements
+        or a dict of shell replacements.
+        This can be dangerous because a if hacker can somehow cause
+        your program to open file "./%SECRET_PASSWORD%" and then it throws
+        "Unable to open file ./1234"
+        For that reason, it is recommended to use shellReplace as a dict
+        and only populate it with valid environment variables.
     :return: Expanded path string
     """
     pathStr:str=''
@@ -118,11 +131,11 @@ def expandUserStr(
         pathStr=asFileString(path)
     if isinstance(shellReplace,bool):
         if shellReplace:
-            pathStr=os.path.expanduser(str(path))
+            pathStr=os.path.expanduser(pathStr)
     elif shellReplace: # no sense doing anything if empty
         # make sure it's all strings
         replacements:typing.Dict[str,str]={}
-        for k,v in shellReplace:
+        for k,v in shellReplace.items():
             replacements[k]=str(v)
         # repeatedly make replacements
         pathBefore=''
@@ -140,12 +153,12 @@ def expandUserStr(
             # Replace $VAR and ${VAR} (Unix-style)
             def replaceDollar(match:typing.Match[str])->str:
                 var_name=match.group(1) or match.group(2)
-                return replacements.get(var_name,match.group(0))  # leave as-is if not found
+                return replacements.get(var_name,match.group(0))  # leave as-is if not found # noqa: E501 # pylint: disable=line-too-long
             pathStr=re.sub(r'\$(\w+)|\${(\w+)}',replaceDollar,pathStr)
             # Replace %VAR% (Windows-style)
             def replacePercent(match:typing.Match[str])->str:
                 k=match.group(1)
-                return replacements.get(k,match.group(0))  # leave as-is if not found
+                return replacements.get(k,match.group(0))  # leave as-is if not found # noqa: E501
             pathStr=re.sub(r'%([^%]+)%',replacePercent,pathStr)
             if pathBefore==pathStr:
                 # No substitutions made this round, so we're done
@@ -167,11 +180,13 @@ def expanduser(
       - %VAR% (Windows-style)
 
     :param path: The input path string
-    :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-        This can be dangerous because a if hacker can somehow cause your program to
-        open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-        For that reason, it is recommended to use shellReplace as a dict and only populate
-        it with valid environment variables.
+    :shellReplace: Whether or not to perform shell replacements
+        or a dict of shell replacements.
+        This can be dangerous because a if hacker can somehow cause
+        your program to open file "./%SECRET_PASSWORD%" and then it throws
+        "Unable to open file ./1234"
+        For that reason, it is recommended to use shellReplace as a dict
+        and only populate it with valid environment variables.
     :return: Expanded path as FilePath
     """
     if shellReplace is not None and isinstance(path,FilePath):
@@ -192,14 +207,16 @@ def asFileString(
     Passing in None or empty string creates a path to the current directory
 
     :makeAbsolute: Make this always an absolute path
-    :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-        This can be dangerous because a if hacker can somehow cause your program to
-        open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-        For that reason, it is recommended to use shellReplace as a dict and only populate
-        it with valid environment variables.
+    :shellReplace: Whether or not to perform shell replacements
+        or a dict of shell replacements.
+        This can be dangerous because a if hacker can somehow cause your
+        program to open file "./%SECRET_PASSWORD%" and then it throws
+        "Unable to open file ./1234"
+        For that reason, it is recommended to use shellReplace as a dict
+        and only populate it with valid environment variables.
     """
     fileLocation=location
-    if fileLocation is None or (isinstance(fileLocation,str) and not fileLocation):
+    if fileLocation is None or (isinstance(fileLocation,str) and not fileLocation): # noqa: E501
         fileLocation='.'
     isFileString:typing.Optional[bool]=None
     while not isinstance(fileLocation,str):
@@ -228,10 +245,10 @@ def asFileString(
         else:
             raise MalformedFilename(
                 '[Unknown]',
-                f'Unable to obtain filename from type {fileLocation.__class__.__name__}')
+                f'Unable to obtain filename from type {fileLocation.__class__.__name__}') # noqa: E501 # pylint: disable=line-too-long
         if fileLocation is None or not fileLocation:
             fileLocation='.'
-            raise MalformedFilename(str(fileLocation),'Empty or missing filename')
+            raise MalformedFilename(str(fileLocation),'Empty or missing filename') # noqa: E501
     if isFileString is None:
         fileLocationSplit=fileLocation.split(':',1)
         isFileString=False
@@ -266,13 +283,14 @@ class FilePath(_PathBase,URL):
 
     def __new__(cls,
         location:typing.Optional[FilePathCompatible],
-        *args,
-        **kwargs):
+        *args:typing.ParamSpecArgs,
+        **kwargs:typing.ParamSpecKwargs):
         """ """
         self = _PathBase.__new__(cls, '[BAD PATH]', '[BAD PATH]')
         #if location is None:
         #    location='.'
         #URL.__init__(self,location)
+        _=args,kwargs
         return self
 
     def __init__(self,
@@ -286,11 +304,13 @@ class FilePath(_PathBase,URL):
         Passing in None or empty string creates a path to the current directory
 
         :makeAbsolute: Make this always an absolute path
-        :shellReplace: Whether or not to perform shell replacements or a dict of shell replacements.
-            This can be dangerous because a if hacker can somehow cause your program to
-            open file "./%SECRET_PASSWORD%" and the it throws "Unable to open file ./1234"
-            For that reason, it is recommended to use shellReplace as a dict and only populate
-            it with valid environment variables.
+        :shellReplace: Whether or not to perform shell replacements
+            or a dict of shell replacements.
+            This can be dangerous because a if hacker can somehow cause
+            your program to open file "./%SECRET_PASSWORD%" and then it throws
+            "Unable to open file ./1234"
+            For that reason, it is recommended to use shellReplace as a dict
+            and only populate it with valid environment variables.
         """
         _=makeAbsolute,shellReplace # used in __new__
         self.username=None
@@ -462,7 +482,7 @@ class FilePath(_PathBase,URL):
         """
         Implement pathlib.Path.parse_parts
         """
-        return self._pathlibPath.parse_parts # type: ignore # pylint: disable=no-member
+        return self._pathlibPath.parse_parts # type: ignore # pylint: disable=no-member # noqa: E501
 
     @property
     def parent(self)->"FilePath":
@@ -479,10 +499,10 @@ class FilePath(_PathBase,URL):
         """
         All of the child filenames
         """
-        if self._pathlibPath._root is not None: # type: ignore # pylint: disable=protected-access
-            return FilePath(self._pathlibPath._root) # type: ignore # pylint: disable=protected-access
-        if self._pathlibPath._drv is not None: # type: ignore # pylint: disable=protected-access
-            return FilePath(self._pathlibPath._drv) # type: ignore # pylint: disable=protected-access
+        if self._pathlibPath._root is not None: # type: ignore # pylint: disable=protected-access # noqa: E501
+            return FilePath(self._pathlibPath._root) # type: ignore # pylint: disable=protected-access # noqa: E501
+        if self._pathlibPath._drv is not None: # type: ignore # pylint: disable=protected-access # noqa: E501
+            return FilePath(self._pathlibPath._drv) # type: ignore # pylint: disable=protected-access # noqa: E501
         if self._boundParentPath is not None:
             return asFilePath(self._boundParentPath).root # type: ignore
         return self
@@ -765,7 +785,7 @@ class FilePath(_PathBase,URL):
         return self._pathlibPath.is_file()
 
     @property
-    def exists(self)->CallableValue[bool]: # type: ignore # pylint:disable=invalid-overridden-method
+    def exists(self)->CallableValue[bool]: # type: ignore # pylint:disable=invalid-overridden-method  # noqa: E501
         """
         Return True if this file or directory exists, False otherwise
         """
@@ -853,7 +873,7 @@ class FilePath(_PathBase,URL):
 
         The pathlib.Path function for this is completely
         different in its desgin (and not as nice).
-        
+
         Use makeDir() instead.
         """
         msg="""
@@ -861,7 +881,7 @@ class FilePath(_PathBase,URL):
 
             The pathlib.Path function for this is completely
             different in its desgin (and not as nice).
-            
+
             Use makeDir() instead.
             """
         warn(msg,DeprecationWarning,stacklevel=2)
@@ -931,7 +951,7 @@ class FilePath(_PathBase,URL):
             self._pathlibPath.lstat().st_mtime,
             tz=datetime.timezone.utc)
 
-    def copy(self)->"FilePath": # type: ignore
+    def copy(self)->"FilePath": # type: ignore # pylint: disable=arguments-differ # noqa: E501
         """
         DEPRECATED.
 
@@ -968,7 +988,10 @@ class FilePath(_PathBase,URL):
         Copy this file to a new location
 
         :destination: the new location for the file
-        :overwrite: whether or not to overwrite the destination if it already exists
+        :overwrite: whether or not to overwrite the destination
+            if it already exists
+        :recursive: whether or not to copy directories recursively
+            (default=False)
         """
         import shutil
         destination=asFilePath(destination)
@@ -977,7 +1000,7 @@ class FilePath(_PathBase,URL):
                 if overwrite=='newer':
                     if destination.lastModifiedTime>=self.lastModifiedTime:
                         return destination
-                elif overwrite==('ignore','skip'):
+                elif overwrite in ('ignore','skip'):
                     return destination
                 elif overwrite=='error':
                     raise FileExistsError(str(destination))
@@ -988,10 +1011,11 @@ class FilePath(_PathBase,URL):
                     shutil.copystat(str(self),str(destination))
                 except Exception as e:
                     print(e)
-                    print(f'Problem copying stats. File exists={destination.exists()} "{destination}"')
+                    print(f'Problem copying stats. File exists={destination.exists()} "{destination}"') # noqa: E501 # pylint: disable=line-too-long
             for c in self.children:
                 if c.isDir:
-                    # if it's not recursive, then we create the directory but not its contents
+                    # if it's not recursive, then we create
+                    # the directory but not its contents
                     destination.makedirs(c.name)
                     if not recursive:
                         continue
@@ -1001,7 +1025,7 @@ class FilePath(_PathBase,URL):
                 if overwrite=='newer':
                     if destination.lastModifiedTime>=self.lastModifiedTime:
                         return destination
-                elif overwrite==('ignore','skip'):
+                elif overwrite in ('ignore','skip'):
                     return destination
                 elif overwrite=='error':
                     raise FileExistsError(str(destination))
@@ -1011,7 +1035,7 @@ class FilePath(_PathBase,URL):
                 # make sure the context is included in the error
                 me=str(self)
                 if str(e).find(me)<0:
-                    raise FileNotFoundError(f'Unable to copy file "{me}" to "{destination}"') from e
+                    raise FileNotFoundError(f'Unable to copy file "{me}" to "{destination}"') from e  # noqa: E501 # pylint: disable=line-too-long
                 raise e
         return destination
     copyFiles=copyFile
@@ -1025,7 +1049,10 @@ class FilePath(_PathBase,URL):
         Recursively copy this file to a new location
 
         :destination: the new location for the file
-        :overwrite: whether or not to overwrite the destination if it already exists
+        :overwrite: whether or not to overwrite the destination
+            if it already exists
+        :recursive: whether or not to copy directories recursively
+            (default=True)
         """
         return self.copyFile(destination,overwrite,recursive)
     copytree=copyTree

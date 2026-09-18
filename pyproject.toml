@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paths"
+version = "0.0.0"
+description = "General-purpose URL and path abstraction utilities."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+dependencies = [
+    "Pillow",
+    "stringTools",
+]
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+]
+
+[tool.setuptools]
+package-dir = {"paths" = "."}
+packages = ["paths"]
+
+[tool.setuptools.package-data]
+paths = ["py.typed"]
+
+[tool.coverage.run]
+branch = true
+source = ["paths"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

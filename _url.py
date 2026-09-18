@@ -97,7 +97,7 @@ class URL(
 
     def __new__(cls,
         url:typing.Optional[URLCompatible],
-        *args,**kwargs):
+        *args:typing.ParamSpecArgs,**kwargs:typing.ParamSpecKwargs):
         """
         Intercepting this allows us the stupid pet trick
         of creating derived types from one constructor,
@@ -106,6 +106,8 @@ class URL(
         would be "Url", but it is actually "HttpUrl"
         Or type(Url('file://d:/cheese')) a File
         """
+        _=args
+        _=kwargs
         actualClass=cls.determineUrlSubclass(url)
         return super().__new__(actualClass) # type: ignore
 
@@ -202,6 +204,24 @@ class URL(
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
 
+    def __getitem__(self,idx:typing.Union[str,int,slice]):
+        """Access query parameters by name or path steps by position."""
+        if isinstance(idx,str):
+            return self.cgi.get(idx)
+        return PathLike.__getitem__(self,idx)
+
+    def __setitem__(self,idx:typing.Any,value:typing.Any)->None:
+        """Set a query parameter by name."""
+        if not isinstance(idx,str):
+            raise TypeError("URL indexes must be query parameter names")
+        self.cgi[idx]=value
+
+    def __delitem__(self,idx:typing.Any)->None:
+        """Delete a query parameter by name."""
+        if not isinstance(idx,str):
+            raise TypeError("URL indexes must be query parameter names")
+        del self.cgi[idx]
+
     def _encode(self)->str:
         """
         Return the encoded URL as a string.
@@ -295,7 +315,7 @@ class URL(
     ls=dir
 
     @classmethod
-    def _from_parts(cls,*args):
+    def _from_parts(cls,*args:typing.ParamSpecArgs):
         """
         This is necessary to get __new__() working due to pathlib.Path
         """
@@ -694,17 +714,17 @@ class URL(
             return 1
         return 0
     # Implementing the new dunder methods using __cmp__
-    def __lt__(self,other):
+    def __lt__(self,other:URLCompatible):
         return self.__cmp__(other)<0
-    def __le__(self,other):
+    def __le__(self,other:URLCompatible):
         return self.__cmp__(other)<=0
-    def __eq__(self,other):
+    def __eq__(self,other:URLCompatible): # type: ignore
         return self.__cmp__(other)==0
-    def __ne__(self,other):
+    def __ne__(self,other:URLCompatible): # type: ignore
         return self.__cmp__(other)!=0
-    def __gt__(self, other):
+    def __gt__(self, other:URLCompatible):
         return self.__cmp__(other)>0
-    def __ge__(self,other):
+    def __ge__(self,other:URLCompatible):
         return self.__cmp__(other)>=0
 
     def __hash__(self)->int:
