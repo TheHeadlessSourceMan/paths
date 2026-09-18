@@ -1,2 +1,2 @@
 Pillow
-stringTools
+stringTools @ git+https://github.com/TheHeadlessSourceMan/stringTools.git

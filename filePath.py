@@ -284,7 +284,7 @@ class FilePath(_PathBase,URL):
     def __new__(cls,
         location:typing.Optional[FilePathCompatible],
         *args:typing.ParamSpecArgs,
-        **kwargs:typing.ParamSpecKwargs):
+        **kwargs:typing.ParamSpecKwargs): # noqa: E129
         """ """
         self = _PathBase.__new__(cls, '[BAD PATH]', '[BAD PATH]')
         #if location is None:

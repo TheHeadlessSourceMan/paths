@@ -165,7 +165,7 @@ class TextLocation:
     """
 
     @typing.overload
-    def __init__(self,
+    def __init__(self, # type: ignore
         fromRow:TextLocationSinglePoint,
         fromColumn:None=None,
         toRow:typing.Optional[TextLocationSinglePoint]=None,
@@ -177,7 +177,7 @@ class TextLocation:
         """
 
     @typing.overload
-    def __init__(self,
+    def __init__(self, # type: ignore
         fromRow:typing.Optional[int]=None,
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Optional[int]=None,
@@ -189,7 +189,7 @@ class TextLocation:
         """
 
     @typing.overload
-    def __init__(self,
+    def __init__(self, # type: ignore
         fromRow:'FileLocationCompatible'):
         """
         :fromRow: can be used as location to make ordered-parameters easier
