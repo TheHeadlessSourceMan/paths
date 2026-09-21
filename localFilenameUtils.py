@@ -233,7 +233,7 @@ def sanitizePath(
             if useForwardSlashSeparator:
                 path=path.replace('/','\\')
             elements=path.split('\\')
-        elif useBackSlashSeparator:
+        elif useForwardSlashSeparator:
             elements=path.split('/')
         else:
             elements=[path]
@@ -269,7 +269,7 @@ def deSanitizePath(
         if useForwardSlashSeparator:
             path=path.replace('/','\\')
         elements=path.split('\\')
-    elif useBackSlashSeparator:
+    elif useForwardSlashSeparator:
         elements=path.split('/')
     else:
         elements=[path]

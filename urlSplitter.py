@@ -165,14 +165,7 @@ def urlAssign(
     ret.fullPath=path
     #ret.fragment=parsed.fragment
     ret.cgi.clear()
-    if parsed.query is not None and parsed.query:
-        cgi=parsed.query.split('&')
-        for c in cgi:
-            item=[urllib.parse.unquote(v) for v in c.split('=',1)]
-            if len(item)<2:
-                ret.cgi[item[0]]=None
-            else:
-                ret.cgi[item[0]]=item[1]
+    ret.cgi.query=parsed.query
     if not ret.protocol and relativeTo is not None:
         from .urlTyping import asUrl
         relativeTo=asUrl(relativeTo,None)
