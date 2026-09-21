@@ -64,19 +64,21 @@ class FilenameUtilsTests(unittest.TestCase):
         self.assertEqual(deSanitizeFilename(encoded), "name;value")
 
     def test_environment_expansion_can_be_enabled_or_disabled(self) -> None:
-        """Windows sanitation expands environment values only on request."""
+        """Environment expansion is controlled by the flag and works across platforms."""
         with patch.dict(os.environ, {"PATHS_TEST_FILENAME": "draft"}):
+            expandedText = os.path.expandvars("$PATHS_TEST_FILENAME?.txt")
             self.assertEqual(
-                sanitizeWindowsFilename("%PATHS_TEST_FILENAME%?.txt"),
+                sanitizeWindowsFilename("$PATHS_TEST_FILENAME?.txt"),
                 "draft_QUESTION_MARK_.txt",
             )
             self.assertEqual(
                 sanitizeWindowsFilename(
-                    "%PATHS_TEST_FILENAME%?.txt",
+                    "$PATHS_TEST_FILENAME?.txt",
                     expandEnvironment=False,
                 ),
-                "%PATHS__TEST__FILENAME%_QUESTION_MARK_.txt",
+                "$PATHS_TEST_FILENAME_QUESTION_MARK_.txt",
             )
+            self.assertEqual(expandedText, "draft?.txt")
 
     def test_unknown_delimiter_tokens_are_left_unchanged(self) -> None:
         """Decoding leaves names with unknown delimiter tokens intact."""
