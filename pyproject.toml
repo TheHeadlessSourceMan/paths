@@ -10,13 +10,19 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.9"
 dependencies = [
-    "Pillow",
     "stringTools @ git+https://github.com/TheHeadlessSourceMan/stringTools.git",
 ]
 
 [project.optional-dependencies]
+pil = [
+    "Pillow",
+]
 test = [
     "coverage",
+]
+dev = [
+    "coverage",
+    "Pillow",
 ]
 
 [tool.setuptools]
