@@ -311,11 +311,11 @@ class UrlWithFileLocation(TextLocation):
         fragments=self.url.fragments
         if fragments:
             rowfrag=Url.fragValueToRange(fragments.get('line',fragments.get('row','')))
-            colfrag=Url.fragValueToRange(fragments.get('col',''))
+            colfrag=Url.fragValueToRange(fragments.get('char',fragments.get('col','')))
             if fromRow is None and rowfrag[0]:
                 fromRow=int(rowfrag[0])
             if fromColumn is None and colfrag[0]:
-                fromColumn=int(colfrag[1])
+                fromColumn=int(colfrag[0])
             if toRow is None and len(rowfrag)>1 and rowfrag[1]:
                 toRow=int(rowfrag[1])
             if toColumn is None and len(colfrag)>1 and colfrag[1]:
