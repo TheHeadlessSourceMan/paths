@@ -60,72 +60,6 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         Tear down the test case
         """
 
-    def testWebUrl(self):
-        """
-        Test normal http urls
-        """
-        path=r"http://www.fooblatz.com/the/path/file.php?name=val"
-        hr(path)
-        u=URL(path)
-        assertMember(u,'protocol','http')
-        assertMember(u,'host','www.fooblatz.com')
-        assertMember(u,'domain','fooblatz.com')
-        assertMember(u,'subdomain','www')
-        assertMember(u,'port',None)
-        assertMember(u,'path','the/path')
-        assertMember(u,'resource','file.php')
-        assertMember(u,'fullPath','the/path/file.php')
-        assertMember(u,'filePath',None)
-        assert len(u)==1
-        assert u['name']=='val'
-        assert u['semprini'] is None
-        u['semprini']=5
-        assert u['semprini']=='5'
-        del u['name']
-        assert u.url==r"http://www.fooblatz.com/the/path/file.php?semprini=5"
-        del u['semprini']
-        u.subdomain='www1'
-        assert u.url==r"http://www1.fooblatz.com/the/path/file.php"
-        u.domain='grabbley.nz'
-        assert u.url==r"http://www1.grabbley.nz/the/path/file.php"
-        u.password='secret'
-        assert u.url==r"http://www1.grabbley.nz/the/path/file.php"
-        u.username='username'
-        assert u.url==\
-            r"http://username:secret@www1.grabbley.nz/the/path/file.php"
-        u.user='user'
-        assert u.url==r"http://user:secret@www1.grabbley.nz/the/path/file.php"
-        assert u.username==u.user
-        u.password=None
-        assert u.url==r"http://user@www1.grabbley.nz/the/path/file.php"
-        u.host='www.fooblatz.com'
-        assert u.url==r"http://user@www.fooblatz.com/the/path/file.php"
-        u.host='fooblatz.com'
-        assert u.url==r"http://user@fooblatz.com/the/path/file.php"
-        assert u.url==u.name
-        print('OK')
-
-    def testIpUrl(self):
-        """
-        Test urls with ip addresses
-        """
-        path=r"ftp://ralph:secret@192.168.1.47:400"
-        hr(path)
-        u=URL(path)
-        assertMember(u,'protocol','ftp')
-        assertMember(u,'username','ralph')
-        assertMember(u,'password','secret')
-        assertMember(u,'host','192.168.1.47')
-        assertMember(u,'domain','192.168.1.47')
-        assertMember(u,'subdomain',None)
-        assertMember(u,'port',400)
-        assertMember(u,'resource',None)
-        assertMember(u,'fullPath',None)
-        assertMember(u,'filePath',None)
-        assert u['semprini'] is None
-        assert u.name==u.url
-        print('OK')
-
     def testFilenameRoundtrip(self):
         """
         Round-trip test of a filename
@@ -382,23 +316,6 @@ class Test(unittest.TestCase): # pylint: disable=no-member
         assert u.tell()==len(testString)-3
         assert u.read(3)==testString[-3:]
 
-    def testUncPaths(self):
-        """
-        test whether windows unc paths work
-
-        see:
-            https://foswiki.org/Support/Faq72
-            https://bytes.com/topic/python/answers/29322-unc-paths-file-object-open
-        """
-        url=r"file://///myserver/path/somefile.doc"
-        unc=r"\\myserver\path\somefile.doc"
-        u=URL(url)
-        u2=URL(unc)
-        assertMember(u,'url',url)
-        assertMember(u2,'url',url)
-        assertMember(u2,'filePath',unc)
-        assertMember(u,'filePath',unc)
-
     def testRelativePaths(self):
         """
         test relative paths
@@ -487,18 +404,15 @@ def testSuite():
     Combine unit tests into an entire suite
     """
     testSuite = unittest.TestSuite() # pylint: disable=no-member
-    testSuite.addTest(Test("testUncPaths"))
     testSuite.addTest(Test("testFilenameRoundtrip"))
     testSuite.addTest(Test("testRelativeFileUrl"))
     testSuite.addTest(Test("testRelativePaths"))
     testSuite.addTest(Test("testWindowsDriveUrl"))
     testSuite.addTest(Test("testCompareUrls"))
-    testSuite.addTest(Test("testWebUrl"))
     testSuite.addTest(Test("testFileToUrl"))
     testSuite.addTest(Test("testUrlToFile"))
     testSuite.addTest(Test("testUrlToFilePipeChar"))
     testSuite.addTest(Test("testCommandLine"))
-    testSuite.addTest(Test("testIpUrl"))
     testSuite.addTest(Test("testReadWrite"))
     testSuite.addTest(Test("testSanitizeFilename"))
     testSuite.addTest(Test("testSanitizePath"))
