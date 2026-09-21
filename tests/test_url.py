@@ -297,8 +297,9 @@ class UrlTests(unittest.TestCase):
             os.unlink(temporary.name)
         with self.assertRaises(DeprecationWarning):
             _ = url.isFile
+        self.assertEqual(url.filename, os.path.basename(temporary.name))
         with self.assertRaises(NotImplementedError):
-            _ = url.filename
+            _ = URL("https://example.com/items").filename
 
 
 if __name__ == "__main__":
