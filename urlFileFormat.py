@@ -1,12 +1,19 @@
 """
 Format of a .url file
 """
+import pathlib
 import typing
 import datetime
 import configparser
-import PIL
+try:
+    import PIL.Image
+    hasPIL=True
+    ImageType=PIL.Image.Image
+except ImportError:
+    hasPIL=False
+    ImageType=None
 from .urlTyping import UrlCompatible,asUrl
-from ._url import Url
+from ._url import URL, Url
 
 
 def windowsFiletimeToDatetime(filetime:bytes):
@@ -20,8 +27,8 @@ def windowsFiletimeToDatetime(filetime:bytes):
         datetime.datetime: The corresponding datetime.
     """
     filetime=filetime[-8:]
-    filetime=int.from_bytes(filetime,byteorder='little',signed=False)
-    offset=datetime.timedelta(microseconds=filetime/10)
+    t=int.from_bytes(filetime,byteorder='little',signed=False)
+    offset=datetime.timedelta(microseconds=t/10)
     return datetime.datetime(1601,1,1)+offset
 
 
@@ -47,7 +54,7 @@ class UrlFileFormat:
     https://www.cyanwerks.com/formats/file-format-url.html
     """
     def __init__(self,filenameOrContents:UrlCompatible):
-        self._filename:typing.Optional[Url]=None
+        self._filename:typing.Optional[URL]=None
         self._ini:typing.Optional[configparser.ConfigParser]=None
         self.load(filenameOrContents)
 
@@ -58,7 +65,7 @@ class UrlFileFormat:
         """
         if filenameOrContents is None:
             if self._filename is not None:
-                filenameOrContents=self._filename
+                filenameOrContents=self._filename # type: ignore
             else:
                 raise Exception("No filename to load")
         contents=None
@@ -71,7 +78,8 @@ class UrlFileFormat:
                 and filenameOrContents.lower().find("[internetshortcut]")>=0:
                 contents=filenameOrContents
         if contents is None:
-            self._filename=Url(filenameOrContents)
+            self._filename=URL(
+                filenameOrContents) # type: ignore
             contents=self._filename.read()
         self.decode(contents)
     assign=load
@@ -92,9 +100,9 @@ class UrlFileFormat:
         """
         if filename is None:
             if self._filename is None:
-                self._filename=asUrl("untitled.url")
+                self._filename=typing.cast(URL,asUrl("untitled.url"))
         else:
-            self._filename=asUrl(filename)
+            self._filename=typing.cast(URL,asUrl(filename))
         self._filename.write(self.encode())
 
     def encode(self)->str:
@@ -108,30 +116,49 @@ class UrlFileFormat:
         self._ini.write(data)
         return data.getvalue()
 
+    def getFileStr(self,
+        name:str,
+        sectionName:str="InternetShortcut"
+        )->str:
+        """
+        Get a string value from the ini file.
+
+        Args:
+            name (str): The name of the value to retrieve.
+            sectionName (str): The section in the ini file.
+                Defaults to "InternetShortcut".
+
+        Returns:
+            str: The value as a string, or an empty string if not found.
+        """
+        if self._ini is None:
+            return ""
+        section:typing.Dict[str,str]=\
+            self._ini.get(sectionName,{}) # type: ignore
+        return section.get(name,"")
+
     @property
     def url(self)->Url:
         """
         The URL of the internet shortcut
         """
-        if self._ini is None:
-            s=""
-        else:
-            s=self._ini.get('InternetShortcut',{}).get('URL',"")
-        return Url(s)
+        return Url(self.getFileStr('URL'))
 
     @property
-    def icon(self)->typing.Optional[PIL.Image.Image]:
+    def icon(self)->typing.Optional[ImageType]: # type: ignore
         """
         The icon for this url
         """
+        if not hasPIL:
+            return None
         if self._ini is None:
             return None
-        filename=self._ini.get('InternetShortcut',{}).get('IconFile',"")
-        idx=self._ini.get('InternetShortcut',{}).get('IconIndex',"")
-        img=PIL.Image.open(filename)
+        filename=pathlib.Path(self.getFileStr('IconFile'))
+        idx=self.getFileStr('IconIndex')
+        img=PIL.Image.open(str(filename)) # type: ignore
         if idx and filename.suffix.lower() in ('.dll','.exe'):
-            img=img.ico[int(idx)]
-        return img
+            img=img.ico[int(idx)] # type: ignore
+        return img # type: ignore
 
     @property
     def modifiedTime(self)->typing.Optional[datetime.datetime]:
@@ -140,7 +167,7 @@ class UrlFileFormat:
         """
         if self._ini is None:
             return None
-        t=self._ini.get('InternetShortcut',{}).get('Modified',"")
+        t=self.getFileStr('Modified',"InternetShortcut")
         if not t:
             return None
         return windowsFiletimeToDatetime(bytes.fromhex(t))
