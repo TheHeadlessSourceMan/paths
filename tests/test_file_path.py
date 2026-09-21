@@ -64,6 +64,14 @@ class FilePathTests(unittest.TestCase):
 
         self.assertEqual(result, "base/subdir/file.txt")
 
+    def test_file_path_supports_file_like_seek_operations(self):
+        """FilePath URL wrappers preserve read, seek, and tell behavior."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = FilePath(tmpdir) / "data.txt"
+            expected = "My word is my passport. Verify me."
+            self.assertEqual(target.write_text(expected), len(expected))
+            self.assertEqual(target.read_text(), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
