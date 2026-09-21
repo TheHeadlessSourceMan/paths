@@ -35,9 +35,9 @@ paths = ["py.typed"]
 [tool.coverage.run]
 branch = true
 source = ["paths"]
-omit = ["tests/*"]
+omit = ["tests/*", "playground.py"]
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-omit = ["tests/*"]
+omit = ["tests/*", "playground.py"]
