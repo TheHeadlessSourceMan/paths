@@ -96,7 +96,10 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         Exactly the same thing as a clear() followed by an update()
         """
         self.clear()
-        if otherDict is not None and otherDict and otherDict!=self:
+        if otherDict is not None \
+            and otherDict \
+            and otherDict is not self:
+            #
             self.update(otherDict)
 
     def __delitem__(self,k:str)->None:
@@ -139,7 +142,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
         if query is not None:
             queryDict=urllib.parse.parse_qs(query,keep_blank_values=True)
             for k,vv in queryDict.items():
-                self._params[k]=vv[-1]
+                self._params[k]=vv[0] if len(vv)==1 else vv
 
     @property
     def queryString(self)->str:
