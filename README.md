@@ -1,6 +1,7 @@
 # paths
 
 [![Unit tests](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/unit-tests.yml)
+[![Pylint type checking](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/pylint-type-checking.yml/badge.svg)](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/pylint-type-checking.yml)
 [![Coverage](https://img.shields.io/badge/coverage-30%25-red)](https://theheadlesssourceman.github.io/paths/coverage/)
 
 This is primarily an abstract implementation of the concept of "a path", such as a/b/c wherein b is a child of a, and so on.
