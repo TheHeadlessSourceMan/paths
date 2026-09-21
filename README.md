@@ -1,7 +1,7 @@
 # paths
 
 [![Unit tests](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/TheHeadlessSourceMan/paths/actions/workflows/unit-tests.yml)
-![Coverage](https://img.shields.io/badge/coverage-pending-lightgrey)
+[![Coverage](https://img.shields.io/badge/coverage-pending-lightgrey)](https://theheadlesssourceman.github.io/paths/)
 
 This is primarily an abstract implementation of the concept of "a path", such as a/b/c wherein b is a child of a, and so on.
 This is not only for file paths, but anything that can be represented as a path.

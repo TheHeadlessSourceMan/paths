@@ -34,12 +34,20 @@ jobs:
         run: |
           python -m coverage report
           python -m coverage json -o coverage.json
+          python -m coverage html -d htmlcov
+          touch htmlcov/.nojekyll
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-json
           path: coverage.json
+
+      - name: Upload coverage pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov
 
   coverage-badge:
     needs: test
@@ -67,12 +75,12 @@ jobs:
           coverage = json.loads(Path("coverage.json").read_text(encoding="utf-8"))
           percent = round(coverage["totals"]["percent_covered"])
           color = "brightgreen" if percent >= 90 else "green" if percent >= 80 else "yellow" if percent >= 70 else "orange" if percent >= 60 else "red"
-          badge = f"![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})"
+            badge = f"[![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})](https://theheadlesssourceman.github.io/paths/)"
 
           readme = Path("README.md")
           content = readme.read_text(encoding="utf-8")
           updated = re.sub(
-              r"!\[Coverage\]\(https://img\.shields\.io/badge/coverage-[^)]+\)",
+              r"(?:\[)?!\[Coverage\]\(https://img\.shields\.io/badge/coverage-[^)]+\)(?:\]\([^)]+\))?",
               badge,
               content,
               count=1,
@@ -93,3 +101,30 @@ jobs:
             git commit -m "Update coverage badge [skip ci]"
             git push
           fi
+
+  deploy-coverage-pages:
+    needs: test
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download coverage pages
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov
+
+      - name: Upload coverage pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: htmlcov
+
+      - name: Deploy coverage pages
+        id: deployment
+        uses: actions/deploy-pages@v4
