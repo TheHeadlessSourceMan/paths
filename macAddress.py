@@ -31,6 +31,19 @@ class MacAddress:
             self.arpLookup()
         return self._ip
 
+    @staticmethod
+    def _is_ip_address(value:str)->bool:
+        """Return True when the token looks like an IPv4 address."""
+        if value is None:
+            return False
+        parts = value.strip('()[]').split('.')
+        if len(parts) != 4:
+            return False
+        try:
+            return all(0 <= int(part) <= 255 for part in parts)
+        except ValueError:
+            return False
+
     def arpLookup(self):
         """
         look this up in the arp table to determine an ip address
@@ -38,11 +51,41 @@ class MacAddress:
         from k_runner.osrun import osrun
         fmt=self.formatted('-',True)
         result=osrun('arp -a')
-        for line in result.stdout.split('\n'):
-            line=line.strip().split()
-            if len(line)==3 and line[1]==fmt:
-                self._ip=line[0]
-                break
+        for raw_line in result.stdout.split('\n'):
+            line = raw_line.strip().split()
+            if not line:
+                continue
+
+            if len(line) >= 2:
+                mac_token = line[-1].strip('()[]')
+                mac_value = mac_token.replace('-', '').replace(':', '').upper()
+                if (
+                    self._is_ip_address(line[0])
+                    and len(mac_value) == 12
+                    and all(ch in '0123456789ABCDEF' for ch in mac_value)
+                    and mac_value == self._addr
+                ):
+                    self._ip = line[0].strip('()[]')
+                    return self._ip
+
+            if len(line) >= 3:
+                mac_token = line[1].strip('()[]')
+                mac_value = mac_token.replace('-', '').replace(':', '').upper()
+                if self._is_ip_address(line[0]) and mac_token.lower() == fmt:
+                    self._ip = line[0].strip('()[]')
+                    return self._ip
+                if (
+                    len(mac_value) == 12
+                    and all(ch in '0123456789ABCDEF' for ch in mac_value)
+                    and mac_value == self._addr
+                ):
+                    if self._is_ip_address(line[0]):
+                        self._ip = line[0].strip('()[]')
+                        return self._ip
+                    if len(line) >= 4 and self._is_ip_address(line[-2].strip('()[]')):
+                        self._ip = line[-2].strip('()[]')
+                        return self._ip
+
         return self._ip
 
     def assign(self,addr:str)->None:
