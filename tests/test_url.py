@@ -228,7 +228,7 @@ class UrlTests(unittest.TestCase):
         self.assertEqual(url.auth, "")
 
     def test_path_and_full_path_setters_normalize_and_validate(self):
-        """Path setters normalize and reject malformed full paths."""
+        """Path setters normalize while preserving empty path segments."""
         url = URL("https://example.com/items/file.txt")
 
         url.path = "one/./two/three/.."
@@ -237,8 +237,14 @@ class UrlTests(unittest.TestCase):
         self.assertEqual(url.fullPath, "report.txt")
         with self.assertRaises(Exception):
             url.path = "one/../../report.txt"
-        with self.assertRaises(Exception):
-            url.fullPath = "one//two.txt"
+        url.fullPath = "one//two.txt"
+        self.assertEqual(url.fullPath, "one//two.txt")
+
+    def test_relative_url_path_preserves_empty_segment(self):
+        """Relative paths with an empty segment do not require a protocol."""
+        url = URL("paths//tests")
+
+        self.assertEqual(url.fullPath, "paths//tests")
 
     def test_url_string_encoding_modes_and_replace_helpers(self):
         """URL serialization preserves escapes and supports replacement."""
@@ -252,7 +258,7 @@ class UrlTests(unittest.TestCase):
             "summary.txt",
         )
         self.assertEqual(
-            url.replace("report", "summary")
+            url.replace("report", "summary")\
                 .replace(re.compile("summary"), "final").resource,
             "final.txt",
         )

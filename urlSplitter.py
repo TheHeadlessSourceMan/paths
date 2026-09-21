@@ -161,6 +161,10 @@ def urlAssign(
     if isWindowsAbsolutePath:
         path.replace('%3A',self.windowsDriveSeparator,1) # url decode where they encoded the ':' # noqa: E501 # pylint: disable=line-too-long
         ret.scheme='file'
+    elif not ret.scheme:
+        # a plain filesystem path (eg unix "/tmp/foo") with no scheme
+        # of its own is always treated as a local file:// url
+        ret.scheme='file'
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path

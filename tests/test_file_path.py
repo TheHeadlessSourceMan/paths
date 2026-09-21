@@ -2,6 +2,7 @@
 Unit tests for FilePath objects
 """
 import os
+import pathlib
 import tempfile
 import unittest
 
@@ -27,6 +28,21 @@ class FilePathTests(unittest.TestCase):
 
         self.assertIsInstance(result, FilePath)
         self.assertIsNot(type(result), URL)
+
+    def test_relative_sample_directory_allows_empty_path_segment(self):
+        """Existing sample directories remain valid with a doubled slash."""
+        tests_directory = pathlib.Path(__file__).parent
+        project_root = tests_directory.parent
+        sample_directory = tests_directory.joinpath(
+            "sample_url_paths", "component", "nested"
+        )
+        relative_path = sample_directory.relative_to(project_root).as_posix()
+        relative_path = relative_path.replace("component/", "component//")
+
+        self.assertTrue(sample_directory.is_dir())
+        result = URL(relative_path)
+
+        self.assertEqual(result.fullPath, relative_path)
 
     def test_path_join_read_write_and_callable_exists(self):
         """Joined FilePath values can be written, read, and checked."""

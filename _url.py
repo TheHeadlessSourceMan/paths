@@ -140,11 +140,11 @@ class URL(
                 protocol='file'
         actualClass:typing.Optional[typing.Type[URL]]=\
             cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,URL)
-        if actualClass is None or not issubclass(actualClass,URL):
+        if actualClass is None or not issubclass(actualClass,URL): # type: ignore
             raise TypeError(f'Unable to determine type of URL for "{url}"')
         return actualClass
 
-    def __init__(self,
+    def __init__(self, # type: ignore
         url:typing.Optional[URLCompatible]="",
         relativeTo:typing.Optional[URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
@@ -907,8 +907,6 @@ class URL(
             self.path=pr[0]
         else:
             self._path=None
-        if fullPath.find('//')>1:
-            raise MalformedURL(fullPath,'Cannot find "://"')
 
     def hyperlink(self,caption:typing.Optional[str]=None)->str:
         """

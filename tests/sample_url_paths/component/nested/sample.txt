@@ -1,0 +1,1 @@
+Sample fixture for URL path parsing tests.

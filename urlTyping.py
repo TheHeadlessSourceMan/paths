@@ -4,7 +4,7 @@ typing shenanigans to make URL objects more easy and enjoyable
 import typing
 import pathlib
 if typing.TYPE_CHECKING:
-    from paths import URL
+    from paths import URL,Url
 
 
 class HasURL(typing.Protocol):
@@ -35,7 +35,7 @@ class IsFileWithName(typing.Protocol):
     fileno:int
     name:str
 
-URLCompatibleStrict=typing.Union["URL",HasURL,IsFileWithName,pathlib.Path]
+URLCompatibleStrict=typing.Union["URL","Url",HasURL,IsFileWithName,pathlib.Path]
 URLCompatible=typing.Union[URLCompatibleStrict,str,bytes,DictLike]
 UrlCompatibleStrict=URLCompatibleStrict
 UrlCompatible=URLCompatible
