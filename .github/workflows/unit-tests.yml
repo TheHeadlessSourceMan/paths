@@ -51,7 +51,7 @@ jobs:
 
   coverage-badge:
     needs: test
-    if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,6 +65,12 @@ jobs:
         with:
           name: coverage-json
 
+      - name: Download coverage pages
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov
+
       - name: Update coverage badge
         run: |
           python - <<'PY'
@@ -75,7 +81,7 @@ jobs:
           coverage = json.loads(Path("coverage.json").read_text(encoding="utf-8"))
           percent = round(coverage["totals"]["percent_covered"])
           color = "brightgreen" if percent >= 90 else "green" if percent >= 80 else "yellow" if percent >= 70 else "orange" if percent >= 60 else "red"
-          badge = f"[![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})](https://theheadlesssourceman.github.io/paths/)"
+          badge = f"[![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})](https://theheadlesssourceman.github.io/paths/coverage/)"
 
           readme = Path("README.md")
           content = readme.read_text(encoding="utf-8")
@@ -90,44 +96,21 @@ jobs:
           readme.write_text(updated, encoding="utf-8")
           PY
 
-      - name: Commit coverage badge
+      - name: Update coverage pages
         run: |
-          if git diff --quiet README.md; then
-            echo "Coverage badge already up to date."
+          rm -rf docs/coverage
+          mkdir -p docs
+          cp -R htmlcov docs/coverage
+          touch docs/.nojekyll
+
+      - name: Commit coverage report
+        run: |
+          if [ -z "$(git status --porcelain -- README.md docs)" ]; then
+            echo "Coverage report already up to date."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add README.md
-            git commit -m "Update coverage badge [skip ci]"
+            git add README.md docs
+            git commit -m "Update coverage report [skip ci]"
             git push
           fi
-
-  deploy-coverage-pages:
-    needs: test
-    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Download coverage pages
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-html
-          path: htmlcov
-
-      - name: Upload coverage pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          name: coverage-pages-${{ github.run_attempt }}
-          path: htmlcov
-
-      - name: Deploy coverage pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          artifact_name: coverage-pages-${{ github.run_attempt }}
