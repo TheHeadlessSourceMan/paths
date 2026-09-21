@@ -75,7 +75,7 @@ jobs:
           coverage = json.loads(Path("coverage.json").read_text(encoding="utf-8"))
           percent = round(coverage["totals"]["percent_covered"])
           color = "brightgreen" if percent >= 90 else "green" if percent >= 80 else "yellow" if percent >= 70 else "orange" if percent >= 60 else "red"
-            badge = f"[![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})](https://theheadlesssourceman.github.io/paths/)"
+          badge = f"[![Coverage](https://img.shields.io/badge/coverage-{percent}%25-{color})](https://theheadlesssourceman.github.io/paths/)"
 
           readme = Path("README.md")
           content = readme.read_text(encoding="utf-8")
