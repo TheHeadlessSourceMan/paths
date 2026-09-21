@@ -85,13 +85,13 @@ jobs:
 
           readme = Path("README.md")
           content = readme.read_text(encoding="utf-8")
-          updated = re.sub(
+          updated, replacements = re.subn(
               r"(?:\[)?!\[Coverage\]\(https://img\.shields\.io/badge/coverage-[^)]+\)(?:\]\([^)]+\))?",
               badge,
               content,
               count=1,
           )
-          if updated == content:
+          if replacements == 0:
               raise SystemExit("README.md coverage badge was not found")
           readme.write_text(updated, encoding="utf-8")
           PY
