@@ -327,7 +327,10 @@ class FileMatcher:
             elif len(regexStrs)==1:
                 regexStr=regexStrs[0]
             else:
-                regexStr='&'.join([f'({s})' for s in regexStrs])
+                # combine as logical AND via lookaheads
+                # ('&'.join(...) would be a literal '&', not a conjunction)
+                regexStr=''.join(f'(?={s})' for s in regexStrs[:-1]) \
+                    +regexStrs[-1]
             self.regex=regexStr
         return self._regex # type: ignore
     @regex.setter
@@ -345,7 +348,7 @@ class FileMatcher:
         """
         if not isinstance(filename,str):
             if isinstance(filename,Path):
-                filename=str(filename)
+                filename=filename.as_posix()
             else:
                 filename=str(asURL(filename))
         return self.regex.match(filename) is not None

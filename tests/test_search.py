@@ -57,7 +57,7 @@ class SearchTests(unittest.TestCase):
                 path.write_text("sample", encoding="utf-8")
 
             matches = sorted(
-                str(path.relative_to(root))
+                path.relative_to(root).as_posix()
                 for path in findFiles(
                     startDirs=root,
                     recursive=True,

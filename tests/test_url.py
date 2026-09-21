@@ -4,6 +4,7 @@ Unit tests for the URL class
 import unittest
 import typing
 import re
+import os
 import tempfile
 from unittest.mock import Mock, patch
 
@@ -251,7 +252,8 @@ class UrlTests(unittest.TestCase):
             "summary.txt",
         )
         self.assertEqual(
-            url.replace(re.compile("summary"), "final").resource,
+            url.replace("report", "summary")
+                .replace(re.compile("summary"), "final").resource,
             "final.txt",
         )
 
@@ -259,8 +261,10 @@ class UrlTests(unittest.TestCase):
         """Directory iteration and relative absolute conversion fail."""
         relative = URL("https://example.com/items/report.txt")
         self.assertIs(relative.absolute(), relative)
+        hostless = URL("https://example.com/items/report.txt")
+        hostless.host = None
         with self.assertRaises(UnknownBaseDirectory):
-            URL("items/report.txt").absolute()
+            hostless.absolute()
         with self.assertRaises(NonIterableDirectory):
             list(URL("https://example.com/items").iterdir())
 
@@ -279,13 +283,18 @@ class UrlTests(unittest.TestCase):
 
     def test_file_url_and_file_classification_helpers(self):
         """File conversion, extension, and classification helpers work."""
-        with tempfile.NamedTemporaryFile(suffix=".TXT") as temporary:
+        temporary = tempfile.NamedTemporaryFile(suffix=".TXT", delete=False)
+        temporary.write(b"hello")
+        temporary.close()
+        try:
             url = URL(temporary.name)
             self.assertEqual(url.extension, "txt")
             self.assertEqual(url.filePath, temporary.name)
             self.assertFalse(url.isDirectory)
             self.assertTrue(url.isTextFile)
             self.assertFalse(url.isBinaryFile)
+        finally:
+            os.unlink(temporary.name)
         with self.assertRaises(DeprecationWarning):
             _ = url.isFile
         with self.assertRaises(NotImplementedError):

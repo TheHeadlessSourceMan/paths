@@ -40,7 +40,7 @@ class FilePathTests(unittest.TestCase):
             self.assertTrue(child.exists)
             self.assertTrue(child.exists())
             self.assertEqual(child.read_text(), "hello")
-            self.assertEqual(child.extension, ".txt")
+            self.assertEqual(child.extension, "txt")
             self.assertEqual(str(child.parent), str(root))
 
     def test_as_file_path_can_force_absolute_paths(self):

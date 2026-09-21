@@ -14,7 +14,7 @@ from paths.urlNavigation import UrlNavigation
 from paths.dataReadWrite import DataReadWrite
 from paths.paramDict import ParamDict
 from paths.cleverUrls import CleverUrls
-from paths.filePathTools import encodeFilePath
+from paths.filePathTools import encodeFilePath,illegalCharsForOs
 from paths.errors import MalformedURL,NonIterableDirectory,UnknownBaseDirectory
 from paths.pathLike import PathLike
 if typing.TYPE_CHECKING:
@@ -529,7 +529,7 @@ class URL(
         if not isinstance(withThis,str):
             withThis=str(withThis)
         if isinstance(replaceThis,str):
-            s=replaceThis.replace(s,withThis)
+            s=s.replace(replaceThis,withThis)
         else:
             s=replaceThis.sub(withThis,s)
         return URL(s)
@@ -625,7 +625,15 @@ class URL(
             path='\\\\'+path
         path=urllib.parse.unquote_plus(path)
         # NOTE: os for path is inferred from the path itself
-        path=encodeFilePath(path,enquote,illegalChars,osForPath,errors)
+        # the path separator and a drive-letter colon are structural,
+        # not illegal file content, so they must not be flagged here
+        pathIllegalChars=illegalChars
+        if pathIllegalChars is None:
+            pathIllegalChars=illegalCharsForOs(osForPath)
+        pathIllegalChars=pathIllegalChars.replace(os.sep,'')
+        if osForPath=='nt' and len(path)>1 and path[1]==':':
+            pathIllegalChars=pathIllegalChars.replace(':','')
+        path=encodeFilePath(path,enquote,pathIllegalChars,None,errors)
         return path
 
     @property
@@ -654,6 +662,15 @@ class URL(
     @protocol.setter
     def protocol(self,protocol:str):
         self.scheme=protocol
+
+    @property
+    def isAbsolute(self)->bool: # type: ignore
+        """
+        A url is absolute if it has a host, or its path starts at the root
+        """
+        if self.host is not None:
+            return True
+        return bool(self._path) and self._path.startswith('/')
 
     @property
     def path(self)->str:
@@ -794,7 +811,6 @@ class URL(
             allowColons=self.protocol=='file'
             px:typing.List[str]=[]
             for p in self.path.split('/'):
-                p=urllib.parse.quote(p)
                 if self.ignoreAlreadyEncoded:
                     p=p.replace(r'%',r'//%PCT%//')
                     p=urllib.parse.quote(p)

@@ -453,13 +453,13 @@ class FilePath(_PathBase,URL):
         """
         File extension
         """
-        return self._pathlibPath.suffix
+        return self._pathlibPath.suffix.lstrip('.').lower()
     @property
     def ext(self)->str:
         """
         File extension
         """
-        return self._pathlibPath.suffix
+        return self._pathlibPath.suffix.lstrip('.').lower()
 
     def __truediv__(self, # type: ignore
         other:FilePathCompatible)->"FilePath":
