@@ -388,6 +388,9 @@ class FileWalker:
             try:
                 filename=next(self._currentDirectory)
             except StopIteration:
+                # generators are always truthy, so reset explicitly
+                # or the outer loop never advances to the next tape entry
+                self._currentDirectory=[]
                 continue
             if filename in self._visited:
                 continue

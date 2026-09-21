@@ -1078,12 +1078,12 @@ class URL(
             return False
         while True:
             character=self.readBytes(1) # the first byte of a short might be null if we're Unicode. # noqa: E501 # pylint: disable=line-too-long
-            if character=='':
+            if character==b'':
                 break
             character=self.readBytes(1)
-            if character=='':
+            if character==b'':
                 break
-            elif character[1]=='\0':
+            elif character==b'\0':
                 self.close()
                 return True
         self.close()
