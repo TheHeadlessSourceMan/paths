@@ -28,13 +28,13 @@ jobs:
           python -m pip install -e . --no-deps
 
       - name: Run unit tests with coverage
-        run: python -m coverage run -m unittest discover -s tests
+        run: python -m coverage run --omit='tests/*' -m unittest discover -s tests
 
       - name: Write coverage report
         run: |
-          python -m coverage report
-          python -m coverage json -o coverage.json
-          python -m coverage html -d htmlcov
+          python -m coverage report --omit='tests/*'
+          python -m coverage json -o coverage.json --omit='tests/*'
+          python -m coverage html -d htmlcov --omit='tests/*'
           touch htmlcov/.nojekyll
 
       - name: Upload coverage report
