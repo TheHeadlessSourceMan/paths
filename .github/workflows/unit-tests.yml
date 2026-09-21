@@ -123,8 +123,11 @@ jobs:
       - name: Upload coverage pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: coverage-pages-${{ github.run_attempt }}
           path: htmlcov
 
       - name: Deploy coverage pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: coverage-pages-${{ github.run_attempt }}
