@@ -40,7 +40,7 @@ filenameNameToSymbol=dict([(v,k) for k,v in filenameSymbolToName.items()])
 invalidWindowsFilenameCharactersRe=re.compile(
     r'[<>:"/\\|?*\x00-\x1F\x7F]|_vti_')
 invalidWindowsFilenamesRe=re.compile(
-    r'CON|PRN|AUX|NUL|COM[0-9]+|LPT[0-9]+|\.lock')
+    r'(?:CON|PRN|AUX|NUL|COM[0-9]+|LPT[0-9]+|\.lock)\Z')
 
 
 def _sanitizeDelimitedFilename(
