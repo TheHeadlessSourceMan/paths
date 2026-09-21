@@ -327,8 +327,8 @@ class UrlWithFileLocation(TextLocation):
         """
         starting row of this file location
         """
-        parts=self.url.fragments.get('line','0').split(',')
-        return int(parts[0])
+        return Url.fragValueToRange(
+            self.url.fragments.get('line',self.url.fragments.get('row','')))[0]
     @fromRow.setter
     def fromRow(self,fromRow:typing.Optional[int]=None):
         if fromRow is None:
@@ -341,8 +341,8 @@ class UrlWithFileLocation(TextLocation):
         """
         ending row of this file location
         """
-        parts=self.url.fragments.get('line','0').split(',')
-        return int(parts[-1])
+        return Url.fragValueToRange(
+            self.url.fragments.get('line',self.url.fragments.get('row','')))[1]
     @toRow.setter
     def toRow(self,toRow:typing.Optional[int]=None):
         if toRow is None:
@@ -359,8 +359,8 @@ class UrlWithFileLocation(TextLocation):
         """
         starting Column of this file location
         """
-        parts=self.url.fragments.get('char','0').split(',')
-        return int(parts[0])
+        return Url.fragValueToRange(
+            self.url.fragments.get('char',self.url.fragments.get('col','')))[0]
     @fromColumn.setter
     def fromColumn(self,fromColumn:typing.Optional[int]=None):
         if fromColumn is None:
@@ -373,8 +373,8 @@ class UrlWithFileLocation(TextLocation):
         """
         ending Column of this file location
         """
-        parts=self.url.fragments.get('char','0').split(',')
-        return int(parts[-1])
+        return Url.fragValueToRange(
+            self.url.fragments.get('char',self.url.fragments.get('col','')))[1]
     @toColumn.setter
     def toColumn(self,toColumn:typing.Optional[int]=None):
         if toColumn is None:

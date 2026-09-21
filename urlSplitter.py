@@ -68,7 +68,8 @@ def urlAssign(
         self.path=url.path
         self.isUNC=url.isUNC
         self.resource=url.resource
-        #self.fragment=url.fragment
+        self._fragment=url.fragment # pylint: disable=protected-access
+        self.fragments=url.fragments.copy()
         self.cgi=url.cgi.copy()
         return
     # make it ALWAYS a simple url string for processing
@@ -163,7 +164,9 @@ def urlAssign(
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path
-    #ret.fragment=parsed.fragment
+    ret._fragment=parsed.fragment # pylint: disable=protected-access
+    ret.fragments=dict(urllib.parse.parse_qsl(
+        parsed.fragment.replace(';','&'),keep_blank_values=True))
     ret.cgi.clear()
     ret.cgi.query=parsed.query
     if not ret.protocol and relativeTo is not None:

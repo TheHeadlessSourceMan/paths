@@ -490,6 +490,7 @@ class URL(
         if self.cgi:
             self.cgi.clear()
         self._fragment=None
+        self.fragments.clear()
         self._isDirectory=None
 
     @property

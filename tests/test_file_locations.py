@@ -28,7 +28,12 @@ class FileLocationTests(unittest.TestCase):
         self.assertEqual(intersection.fromRow, 2)
         self.assertEqual(intersection.fromColumn, 2)
         self.assertEqual(intersection.toRow, 3)
-        self.assertEqual(intersection.toColumn, 3)
+        self.assertEqual(intersection.toColumn, 4)
+
+        earlier = TextLocationSinglePoint(2, 10)
+        later = TextLocationSinglePoint(5, 1)
+        self.assertEqual(earlier.min(later), earlier)
+        self.assertEqual(earlier.max(later), later)
 
     def test_file_location_parses_rfc5147_fragments(self) -> None:
         """Rows and columns are parsed from the fragment using RFC 5147 syntax."""

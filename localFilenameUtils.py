@@ -46,12 +46,26 @@ invalidWindowsFilenamesRe=re.compile(
 def _sanitizeDelimitedFilename(
     filename:str,
     invalidCharactersRe:typing.Pattern[str],
-    delimiter:str
+    delimiter:str,
+    preserveEnvironmentVariables:bool=False
     )->str:
     """
     Sanitize filename using reversible delimiter tokens.
     """
-    filename=filename.replace(delimiter,delimiter+delimiter)
+    if preserveEnvironmentVariables:
+        environmentVariableRe=re.compile(
+            r'\$[A-Za-z_][A-Za-z0-9_]*|\$\{[^}]+\}|%[^%]+%')
+        parts=[]
+        lastPos=0
+        for match in environmentVariableRe.finditer(filename):
+            parts.append(filename[lastPos:match.start()].replace(
+                delimiter,delimiter+delimiter))
+            parts.append(match.group(0))
+            lastPos=match.end()
+        parts.append(filename[lastPos:].replace(delimiter,delimiter+delimiter))
+        filename=''.join(parts)
+    else:
+        filename=filename.replace(delimiter,delimiter+delimiter)
     ret:typing.List[str]=[]
     lastPos=0
     for m in invalidCharactersRe.finditer(filename):
@@ -120,7 +134,8 @@ def sanitizeWindowsFilename(
         if delimiter is None:
             delimiter='_'
         filename=_sanitizeDelimitedFilename(
-            filename,invalidWindowsFilenameCharactersRe,delimiter)
+            filename,invalidWindowsFilenameCharactersRe,delimiter,
+            preserveEnvironmentVariables=expandEnvironment is False)
         # replace a ~$ thing at the beginning of the string
         if filename.startswith('~$'):
             filename=f"{delimiter}{filenameSymbolToName['!']}{delimiter}{delimiter}{filenameSymbolToName['$']}{delimiter}" # noqa: E501 # pylint: disable=line-too-long
