@@ -2,7 +2,7 @@
 import os
 import unittest
 
-from relativePathCleanup import cleanup, cleanupOsPath
+from paths.relativePathCleanup import cleanup, cleanupOsPath
 
 
 class RelativePathCleanupTests(unittest.TestCase):

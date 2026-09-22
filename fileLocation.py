@@ -42,15 +42,16 @@ class UrlWithFileLocation(TextLocation):
 
     def __init__(self,
         url:"UrlWithLocationCompatible"="",
-        fromRow:typing.Union[None,int,
-            'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
+        fromRow:typing.Union[None,int,'FileLocationCompatible',
+            TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
         relativeTo:typing.Optional[paths.URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','TextLocation']=None):
+        location:typing.Union[None,
+            'FileLocationCompatible','TextLocation']=None):
         """
         :fromRow: can be used as location to make ordered-parameters easier
         :maxParentLevels: the maximum number of parent levels to allow
@@ -68,7 +69,9 @@ class UrlWithFileLocation(TextLocation):
     def __hash__(self)->int:
         return hash(str(self))
 
-    def asOffsetIntoText(self,text:typing.Optional[str]=None)->typing.Tuple[int,int]:
+    def asOffsetIntoText(self,
+        text:typing.Optional[str]=None
+        )->typing.Tuple[int,int]:
         """
         Convert this point into an offset in the given text.
         You can leave the text blank and it will auto-read from file.
@@ -142,15 +145,15 @@ class UrlWithFileLocation(TextLocation):
         return result
 
     # Implementing the new dunder methods using __cmp__
-    def __lt__(self,other):
+    def __lt__(self,other:'UrlWithLocationCompatible'):
         return self.__cmp__(other)<0
-    def __le__(self,other):
+    def __le__(self,other:'UrlWithLocationCompatible'):
         return self.__cmp__(other)<=0
-    def __ne__(self,other):
+    def __ne__(self,other:'UrlWithLocationCompatible'): # type: ignore
         return self.__cmp__(other)!=0
-    def __gt__(self, other):
+    def __gt__(self, other:'UrlWithLocationCompatible'):
         return self.__cmp__(other)>0
-    def __ge__(self,other):
+    def __ge__(self,other:'UrlWithLocationCompatible'):
         return self.__cmp__(other)>=0
 
     def contains(self,other:TextLocation)->bool: # type: ignore
@@ -180,7 +183,7 @@ class UrlWithFileLocation(TextLocation):
             we return file.txt:100-210, or raise a ValueError exception?
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
-            raise ValueError('Cannot combine line ranges across two different files')
+            raise ValueError('Cannot combine line ranges across two different files') # noqa: E501
         location=TextLocation.union(self,other)
         return UrlWithFileLocation(self.url,location)
     def __add__(self, # type: ignore
@@ -201,11 +204,12 @@ class UrlWithFileLocation(TextLocation):
         with another location removed from it.
 
         returns None if this causes the location to completely disappear
-        NOTE: this could result in this being split into two, eg. 
-            file.txt:100..400 - file.txt:200..300 = (file.txt:100..200, file.txt:300-400)
+        NOTE: this could result in this being split into two, eg.
+            file.txt:100..400 - file.txt:200..300 =
+                (file.txt:100..200, file.txt:300-400)
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
-            raise ValueError('Cannot subtract line ranges across two different files')
+            raise ValueError('Cannot subtract line ranges across two different files') # noqa: E501
         location=TextLocation.difference(self,other)
         if location is None:
             return None
@@ -228,14 +232,14 @@ class UrlWithFileLocation(TextLocation):
         other:'TextLocation'
         )->typing.Optional['UrlWithFileLocation']:
         """
-        Return a new location that is a combination of the parts of this location
-        and of another location that overlap.
+        Return a new location that is a combination of the parts
+        of this location and of another location that overlap.
 
         returns None if there are no parts in common causing the
         location to completely disappear
         """
         if isinstance(other,UrlWithFileLocation) and other.url!=self.url:
-            # raise ValueError('Cannot intersect line ranges across two different files')
+            # raise ValueError('Cannot intersect line ranges across two different files') # noqa: E501
             return None # probably ok to say that there is no intersection?
         location=TextLocation.intersection(self,other)
         if location is None:
@@ -246,14 +250,14 @@ class UrlWithFileLocation(TextLocation):
         """
         read the data at the specified location
         """
-        def v2a(n,default=0):
+        def v2a(n:typing.Optional[int],default:int=0)->int:
             if n is None:
                 return default
             if n<1:
                 return 0
             return n-1
         data=self.url.read()
-        if self.fromLine is None:
+        if self.fromLine is None: # type: ignore
             return data
         lines=data.replace('\r','').split('\n')
         lines=lines[v2a(self.fromLine):v2a(self.toLine,-1)]
@@ -269,15 +273,16 @@ class UrlWithFileLocation(TextLocation):
 
     def assign(self, # type: ignore # pylint: disable=arguments-renamed
         url:"UrlWithLocationCompatible"="",
-        fromRow:typing.Union[None,int,
-            'FileLocationCompatible',TextLocationSinglePoint,TextLocation]=None,
+        fromRow:typing.Union[None,int,'FileLocationCompatible',
+            TextLocationSinglePoint,TextLocation]=None,
         fromColumn:typing.Optional[int]=None,
         toRow:typing.Union[None,int,TextLocationSinglePoint]=None,
         toColumn:typing.Optional[int]=None,
         relativeTo:typing.Optional[paths.URLCompatible]=None,
         maxParentLevels:typing.Optional[int]=None,
         maxChildLevels:typing.Optional[int]=None,
-        location:typing.Union[None,'FileLocationCompatible','TextLocation']=None
+        location:typing.Union[None,
+            'FileLocationCompatible','TextLocation']=None
         )->None:
         """
         assign the value of this file location
@@ -307,11 +312,13 @@ class UrlWithFileLocation(TextLocation):
             if toColumn is None:
                 toColumn=url.toColumn
             url=url.url
-        self.url=Url(url,relativeTo,maxParentLevels,maxChildLevels)
+        self.url=Url(url,relativeTo,maxParentLevels,maxChildLevels) # type: ignore # noqa: E501
         fragments=self.url.fragments
         if fragments:
-            rowfrag=Url.fragValueToRange(fragments.get('line',fragments.get('row','')))
-            colfrag=Url.fragValueToRange(fragments.get('char',fragments.get('col','')))
+            rowfrag=Url.fragValueToRange(fragments.get(
+                'line',fragments.get('row','')))
+            colfrag=Url.fragValueToRange(fragments.get(
+                'char',fragments.get('col','')))
             if fromRow is None and rowfrag[0]:
                 fromRow=int(rowfrag[0])
             if fromColumn is None and colfrag[0]:
@@ -413,7 +420,7 @@ class UrlWithFileLocation(TextLocation):
         return f'<a href="{href}">{title}</a>'
 
     def formatted(self,
-        fmt,
+        fmt:str,
         otherReplacements:typing.Optional[typing.Dict[str,typing.Any]]=None
         )->str:
         """
@@ -432,7 +439,7 @@ class UrlWithFileLocation(TextLocation):
         if otherReplacements is not None:
             for k,v in otherReplacements.items():
                 fmt=fmt.replace('{%s}'%k,str(v))
-        replacements={
+        replacements:typing.Dict[str,typing.Any]={
             'filename':self.url.fullPath,
             'row':self.row,
             'col':self.col}
@@ -524,10 +531,12 @@ class UrlWithFileLocations(UrlWithFileLocation):
 
         NOTE: there is no setter, because that doesn't make sense
         """
-        r=0
+        r=None
         for loc in self.locations:
             if r is None or loc.fromRow<r:
                 r=loc.fromRow
+        if r is None:
+            r=0
         return r
     @fromRow.setter
     def fromRow(self,fromRow:typing.Optional[int]=None):
@@ -544,10 +553,12 @@ class UrlWithFileLocations(UrlWithFileLocation):
 
         NOTE: there is no setter, because that doesn't make sense
         """
-        r=-1
+        r=None
         for loc in self.locations:
             if r is None or loc.toRow>r:
                 r=loc.toRow
+        if r is None:
+            r=-1
         return r
     @toRow.setter
     def toRow(self,toRow:typing.Optional[int]=None):
@@ -606,8 +617,8 @@ class UrlWithFileLocations(UrlWithFileLocation):
             Line 3,5,7
         """
         ret:typing.List[str]=[]
-        if self.url is None:
-            if self.line is not None:
+        if self.url is None: # type: ignore
+            if self.line is not None: # type: ignore
                 ret.append('Line ')
         elif self.url.protocol=='file':
             fp=self.url.filePath
@@ -618,7 +629,7 @@ class UrlWithFileLocations(UrlWithFileLocation):
         else:
             ret.append(str(self.url))
             ret.append(':')
-        ret2=[]
+        ret2:typing.List[str]=[]
         for loc in self.locations:
             ret2.append(str(loc))
         ret.append(','.join(ret2))

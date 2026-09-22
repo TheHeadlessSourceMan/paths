@@ -7,7 +7,6 @@ efficiencies by on-demand precalculating how many characters
 per line.
 """
 import typing
-import itertools
 import bisect
 from paths import UrlWithFileLocation,UrlCompatible,Url
 
@@ -36,8 +35,13 @@ class LineLookup:
         Total number if characters before each line
         """
         if self._totalBeforeLine is None:
-            a=[len(x)+1 for x in self.data.split('\n')]
-            self._totalBeforeLine=list(itertools.accumulate(a))
+            total=0
+            self._totalBeforeLine=[]
+            for line in self.data.splitlines(True):
+                self._totalBeforeLine.append(total)
+                total+=len(line)
+            if not self._totalBeforeLine:
+                self._totalBeforeLine=[0]
         return self._totalBeforeLine
 
     def getLines(self,start:int,end:typing.Optional[int]=None)->str:
@@ -47,14 +51,19 @@ class LineLookup:
         if end is None:
             end=start
         tbl=self.totalBeforeLine
-        s=tbl[start]
-        e=len(self.data) if end>=len(tbl) else self.totalBeforeLine[end+1]
+        if start<1 or end<start:
+            raise IndexError(f'Invalid line range: {start}-{end}')
+        s=tbl[start-1]
+        e=len(self.data) if end>=len(tbl) else tbl[end]
         return self.data[s:e]
 
     def __getitem__(self,idx:typing.Union[int,typing.Tuple[int,int]])->str:
         if isinstance(idx,tuple):
             return self.getLines(idx[0],idx[1])
         return self.getLines(idx)
+
+    def __len__(self)->int:
+        return self.data.count('\n')+1
 
     def reverseLookup(self,
         row:typing.Union[int,UrlWithFileLocation],
@@ -70,15 +79,14 @@ class LineLookup:
         if isinstance(row,UrlWithFileLocation):
             col=row.col
             row2=row.row
-            if row2 is None:
+            if row2 is None: # type: ignore
                 row2=1
         if col is None:
             col=1
-        total=0
-        if typing.cast(int,row)>0:
-            total+=self.totalBeforeLine[typing.cast(int,row)-1]
-        total+=col
-        return total
+        row=typing.cast(int,row)
+        if row<1:
+            raise IndexError(f'Invalid line number: {row}')
+        return self.totalBeforeLine[row-1]+col-1
     position=reverseLookup
     rlookup=reverseLookup
 
@@ -90,10 +98,8 @@ class LineLookup:
         For single-byte character encodings this is the same thing,
         but for multi-byte you cannot take this for granted!
         """
-        row=bisect.bisect(self.totalBeforeLine,pos)
-        col=pos
-        if row>0:
-            col=pos-self.totalBeforeLine[row-1]
+        row=bisect.bisect_right(self.totalBeforeLine,pos)
+        col=pos-self.totalBeforeLine[row-1]
         return UrlWithFileLocation(
-            self.filename,fromRow=row+1,fromColumn=col+1)
+            self.filename,fromRow=row,fromColumn=col+1)
     location=lookup

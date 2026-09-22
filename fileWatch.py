@@ -95,7 +95,7 @@ def waitForFileChange(
     setattr(_changeWatcherContext,'keepGoing',True)
     while _changeWatcherContext.keepGoing:
         # Watch for file modifications within the directory
-        results=win32file.ReadDirectoryChangesW( # noqa: E501 # pylint: disable=c-extension-no-member
+        results=win32file.ReadDirectoryChangesW( # noqa: E501 # pylint: disable=c-extension-no-member # type: ignore
             hDirectory,
             1024,
             False,
@@ -103,8 +103,9 @@ def waitForFileChange(
             win32con.FILE_NOTIFY_CHANGE_FILE_NAME | \
             win32con.FILE_NOTIFY_CHANGE_SIZE,
             None,
-            None
+            None # type: ignore
         )
+        results=typing.cast(typing.List[typing.Tuple[int,str]],results)
         for action,actionFilename in results:
             if watchingWholeDirectory or filename.name==actionFilename:
                 changeTarget:Path=directoryToWatch/actionFilename
@@ -123,7 +124,7 @@ def waitForFileChange(
                     result=None
                 if result is not None and result is True:
                     _changeWatcherContext.keepGoing=False
-    win32file.CloseHandle(hDirectory) # pylint: disable=c-extension-no-member
+    win32file.CloseHandle(hDirectory) # pylint: disable=c-extension-no-member # type: ignore # noqa: E501
     return result
 
 

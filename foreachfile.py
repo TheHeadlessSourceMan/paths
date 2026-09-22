@@ -7,7 +7,7 @@ import typing
 from pathlib import Path
 import k_runner
 from k_runner import OsRunResult,argvToString
-from search import findFiles,MatchType,osIsCaseSensitive
+from .search import findFiles,MatchType,osIsCaseSensitive
 
 
 def forEachFile(
@@ -28,9 +28,13 @@ def forEachFile(
     if isinstance(files,(str,Path)):
         files=(files,)
     for file in files:
-        def fileFix(s,file)->str:
+        def fileFix(
+            s:typing.Union[str,Path],
+            file:typing.Union[str,Path]
+            )->str:
             """
-            Replace every instance of $FILE, %FILE%, {FILE} ${FILE} in the given string
+            Replace every instance of $FILE, %FILE%, {FILE} ${FILE}
+            in the given string
             """
             s=str(s)
             for replacement in ('$FILE','%FILE%','{FILE}','${FILE}'):
@@ -45,7 +49,7 @@ def forEachFile(
 
 def forEachFoundFile(
     cmd:typing.Union[str,typing.Iterable[str]],
-    match:typing.Union[None,str,typing.Pattern]=None,
+    match:typing.Union[None,str,typing.Pattern[str]]=None,
     matchType:MatchType=MatchType.SimpleStringMatch,
     extensions:typing.Union[None,str,typing.Iterable[str]]=None,
     startDirs:typing.Union[
@@ -58,12 +62,15 @@ def forEachFoundFile(
     environment:typing.Union[None,typing.Dict[str,str]]=None,
     )->typing.Generator[OsRunResult,None,None]:
     """
-    A tool that runs a program on every file that matches a given set of criteria
+    A tool that runs a program on every file that matches
+    a given set of criteria
 
     This is very useful for command lines.
     """
     for file in findFiles(
-        match,matchType,extensions,startDirs,recursive,depthFirst,caseSensitive):
+        match,matchType,extensions,startDirs,
+        recursive,depthFirst,caseSensitive):
+        #
         yield from forEachFile(cmd,file,shell,environment)
 
 
@@ -85,7 +92,7 @@ def cmdline(args:typing.Iterable[str])->int:
     environment:typing.Dict[str,str]={}
     depthFirst:bool=False
     shell=True
-    cmd=[]
+    cmd:typing.List[str]=[]
     buildingCommand=False
     for arg in args:
         if buildingCommand:
@@ -96,7 +103,8 @@ def cmdline(args:typing.Iterable[str])->int:
             if k in ('-h','--help'):
                 printHelp=True
             elif k.startswith('--ext') and len(kw)>1:
-                extensions.extend([s.strip() for s in kw[1].replace(';',',').split(',')])
+                parts=kw[1].replace(';',',').split(',')
+                extensions.extend([s.strip() for s in parts])
             elif k.startswith('--env') and len(kw)>1:
                 for s in kw[1].split(','):
                     colonLocation=s.find(':')
@@ -109,7 +117,8 @@ def cmdline(args:typing.Iterable[str])->int:
                         splitLocation=colonLocation
                     else:
                         splitLocation=equalsLocation
-                    environment[s[0:splitLocation].strip()]=s[splitLocation+1:].strip()
+                    environment[s[0:splitLocation].strip()]=\
+                        s[splitLocation+1:].strip()
             elif k in ('--case','--casesensitive'):
                 if len(kw)>1 and kw[1]:
                     caseSensitive=kw[1][0].lower() in ('y','t','1')
@@ -140,9 +149,9 @@ def cmdline(args:typing.Iterable[str])->int:
                     startDirs.append(match)
                 match=arg
     if printHelp:
-        print("USAGE: foreachfile.py [flags] [in_dir ...] [match] do [cmd $FILE]")
-        print("  where everything after \"do\" is the command to run on each file")
-        print("  each file can be specified with common replacement strategies like:")
+        print("USAGE: foreachfile.py [flags] [in_dir ...] [match] do [cmd $FILE]") # noqa: E501
+        print("  where everything after \"do\" is the command to run on each file") # noqa: E501
+        print("  each file can be specified with common replacement strategies like:") # noqa: E501
         print(r"    $FILE ${FILE} %FILE%")
         print("FLAGS:")
         print("  -h ................. print this help")
@@ -154,7 +163,7 @@ def cmdline(args:typing.Iterable[str])->int:
         print("  --case[sensitive][=y/n] .... match case sensitivity")
         print("  --shell[=y/n] .............. use command shell")
         print("            (setting to \"no\" can speed thing up slightly)")
-        print("  --env[iron[ment]]=[k:v, ...] .. specify shell environment variables")
+        print("  --env[iron[ment]]=[k:v, ...] .. specify shell environment variables") # noqa: E501
         print("            (each k:v can be separated by : or =)")
         print("EXAMPLE:")
         print('  foreachfile --ext=jpg,jpeg "~/my pictures" "" do gimp $FILE')
@@ -163,18 +172,18 @@ def cmdline(args:typing.Iterable[str])->int:
         # if there is nothing to do, simply print the found file names
         for f in findFiles(match,matchType,extensions,
             startDirs,recursive,depthFirst,caseSensitive):
-            print(f'{ANSI_COLORS.ANSI_CYAN.value}{f.absolute()}{ANSI_COLORS.ANSI_OFF.value}')
+            print(f'{ANSI_COLORS.ANSI_CYAN.value}{f.absolute()}{ANSI_COLORS.ANSI_OFF.value}') # pylint: disable=line-too-long # noqa: E501
     else:
         for runResult in forEachFoundFile(cmd,
-            match,matchType,extensions,startDirs,recursive,depthFirst,caseSensitive,
-            shell,environment):
-            print(f'{ANSI_COLORS.ANSI_CYAN.value}{argvToString(cmd)}{ANSI_COLORS.ANSI_OFF.value}')
+            match,matchType,extensions,startDirs,recursive,
+            depthFirst,caseSensitive,shell,environment):
+            print(f'{ANSI_COLORS.ANSI_CYAN.value}{argvToString(cmd)}{ANSI_COLORS.ANSI_OFF.value}') # pylint: disable=line-too-long # noqa: E501
             if not runResult.finished:
-                print(f'{ANSI_COLORS.ANSI_DARK_YELLOW.value}WAITING...{ANSI_COLORS.ANSI_OFF.value}')
+                print(f'{ANSI_COLORS.ANSI_DARK_YELLOW.value}WAITING...{ANSI_COLORS.ANSI_OFF.value}') #pylint: disable=line-too-long # noqa: E501
                 while not runResult.finished:
                     time.sleep(50)
             if runResult.failed:
-                print(f'{ANSI_COLORS.ANSI_DARK_RED.value}{runResult.stdOutErr}{ANSI_COLORS.ANSI_OFF.value}') # pylint: disable=line-too-long
+                print(f'{ANSI_COLORS.ANSI_DARK_RED.value}{runResult.stdOutErr}{ANSI_COLORS.ANSI_OFF.value}') # pylint: disable=line-too-long # noqa: E501
             else:
                 print(runResult.stdOutErr)
     return 0
