@@ -254,14 +254,13 @@ class UrlTests(unittest.TestCase):
         url.ignoreAlreadyEncoded = False
         self.assertIn("%2520", str(url))
         self.assertEqual(
-            url.replace("report", "summary").resource,
-            "summary.txt",
-        )
-        self.assertEqual(
-            url.replace("report", "summary")\
-                .replace(re.compile("summary"), "final").resource,
-            "final.txt",
-        )
+            url.replace("report","summary").resource,
+            "summary.txt",)
+        comparable=url\
+            .replace("report","summary")\
+            .replace(re.compile("summary"),"final")\
+            .resource
+        self.assertEqual(comparable,"final.txt",)
 
     def test_directory_and_absolute_error_helpers(self):
         """Directory iteration and relative absolute conversion fail."""

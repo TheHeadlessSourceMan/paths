@@ -84,6 +84,7 @@ class TextLocationSinglePoint:
         Returns the maximum of this and one or more other points
         """
         if hasattr(other,'__iter__'):
+            other=typing.cast(typing.Iterable['TextLocationSinglePoint'],other)
             mmax=self
             for item in other: # type: ignore
                 if item>mmax:
@@ -102,6 +103,7 @@ class TextLocationSinglePoint:
         Returns the maximminimum of this and one or more other points
         """
         if hasattr(other,'__iter__'):
+            other=typing.cast(typing.Iterable['TextLocationSinglePoint'],other)
             mmax=self
             for item in other: # type: ignore
                 if item<mmax:
@@ -302,7 +304,7 @@ class TextLocation:
         """
         shortcut to call the openEditor tool
         """
-        import openEditor
+        import osTools.openEditor as openEditor
         openEditor.openEditor(self,editor=editor) # type: ignore
 
     def contains(self,other:'TextLocation')->bool:
@@ -535,8 +537,8 @@ class TextLocation:
         """
         string representation of this object
         """
-        ret=[]
-        if self.line is not None:
+        ret:typing.List[str]=[]
+        if self.line is not None: # type: ignore
             ret.append('%d'%self.line)
             if self.fromColumn!=-1:
                 ret.append(':%d'%self.fromColumn)

@@ -128,6 +128,7 @@ class UrlNavigation:
 
         TODO: support maxParentLevels and minParentLevels
         """
+        _=maxParentLevels,maxChildLevels
         return self.getSibling(url)
     unRelativeUrl=getRelativeUrl
     relative=getRelativeUrl

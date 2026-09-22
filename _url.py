@@ -140,7 +140,7 @@ class URL(
                 protocol='file'
         actualClass:typing.Optional[typing.Type[URL]]=\
             cls.URL_PROTOCOL_OBJECT_TYPES.get(protocol,URL)
-        if actualClass is None or not issubclass(actualClass,URL): # type: ignore
+        if actualClass is None or not issubclass(actualClass,URL): # type: ignore # noqa: E501
             raise TypeError(f'Unable to determine type of URL for "{url}"')
         return actualClass
 
@@ -204,37 +204,43 @@ class URL(
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
 
-    def __getitem__(self,idx:typing.Union[str,int,slice]):
-        """Access query parameters by name or path steps by position."""
+    def __getitem__(self, # type: ignore
+        idx:typing.Union[str,int,slice]):
+        """
+        Access query parameters by name or path steps by position.
+        """
         if isinstance(idx,str):
             return self.cgi.get(idx)
         return PathLike.__getitem__(self,idx)
 
     def __setitem__(self,idx:typing.Any,value:typing.Any)->None:
-        """Set a query parameter by name."""
+        """
+        Set a query parameter by name."""
         if not isinstance(idx,str):
             raise TypeError("URL indexes must be query parameter names")
         self.cgi[idx]=value
 
     def __delitem__(self,idx:typing.Any)->None:
-        """Delete a query parameter by name."""
+        """
+        Delete a query parameter by name.
+        """
         if not isinstance(idx,str):
             raise TypeError("URL indexes must be query parameter names")
         del self.cgi[idx]
 
-    def _encode(self)->str:
+    def _encode(self)->bytes:
         """
-        Return the encoded URL as a string.
+        Return the encoded URL as bytes.
         """
-        return f'[InternetShortcut]\nURL={self}\n'
+        return f'[InternetShortcut]\nURL={self}\n'.encode('utf-8')
 
-    def _decode(self,data:str)->None:
+    def _decode(self,data:bytes)->None:
         """
-        Decode the given URL string.
+        Decode the given URL bytes.
 
-        :data: the URL string to decode
+        :data: the URL bytes to decode
         """
-        self.assign(data)
+        self.assign(data.decode('utf-8',errors='ignore'))
 
     def absolute(self)->"Url":
         """
@@ -242,13 +248,13 @@ class URL(
         """
         if self.isAbsolute:
             return self
-        raise UnknownBaseDirectory(self)
+        raise UnknownBaseDirectory(self) # type: ignore
 
     def iterdir(self)->typing.Generator["URL",None,None]:
         """
         iterate over the current directory
         """
-        raise NonIterableDirectory(self)
+        raise NonIterableDirectory(self) # type: ignore
     @property
     def children(self)->typing.Generator["URL",None,None]:
         """
@@ -289,7 +295,7 @@ class URL(
         :recursive: default=true
         """
         _=extensions,recursive
-        raise NonIterableDirectory(self)
+        raise NonIterableDirectory(self) # type: ignore
 
     def dir(
         self,
@@ -494,12 +500,12 @@ class URL(
         self._isDirectory=None
 
     @property
-    def url(self
+    def url(self # type: ignore
         )->"URL":
         """
         create an identical copy
         """
-        return URL(self)
+        return URL(self) # type: ignore
     @url.setter
     def url(self,url:URLCompatible):
         self.assign(url)
@@ -508,7 +514,7 @@ class URL(
         """
         create an identical copy
         """
-        return URL(self)
+        return URL(self) # type: ignore
 
     def replace(self,
         replaceThis:typing.Union[str,typing.Pattern[str]],
@@ -877,11 +883,11 @@ class URL(
         """
         from .urlFileFormat import UrlFileFormat,isUrlFileData
         if not isUrlFileData(data):
-            self.assign(Url(data))
+            self.assign(Url(data)) # type: ignore
             return
         f=UrlFileFormat("")
-        f.assign(self)
-        self.assign(f)
+        f.assign(self) # type: ignore
+        self.assign(f) # type: ignore
 
     @property
     def fullPath(self)->typing.Optional[str]:
@@ -987,7 +993,7 @@ class URL(
         to call allUrlMatches()
         """
         from paths.urlMatch import urlMatches
-        return urlMatches(self,matches,ignoreCase)
+        return urlMatches(self,matches,ignoreCase) # type: ignore
     fileMatches=urlMatches
     matches=urlMatches
 
@@ -1204,7 +1210,7 @@ class URL(
             in a relative path
         """
         from paths.urlSplitter import urlAssign
-        urlAssign(self,url,
+        urlAssign(self,url, # type: ignore
             relativeTo,maxParentLevels,maxChildLevels,_isDirectory)
     setUrl=assign
 
@@ -1217,19 +1223,19 @@ class URL(
         is the same as
             Url("c:\\something\\something_else")
         """
-        return Url(other,relativeTo=self)
+        return Url(other,relativeTo=self) # type: ignore
 
     def __truediv__(self,other:URLCompatible)->"Url": # type: ignore
         """
         Implement the "/" operator like pathlib.Path has
         """
-        return Url(other,relativeTo=self)
+        return Url(other,relativeTo=self) # type: ignore
 
     def __ltruediv__(self,other:URLCompatible)->"Url": # type: ignore
         """
         Implement the "/" operator like pathlib.Path has
         """
-        return Url(self,relativeTo=other)
+        return Url(self,relativeTo=other) # type: ignore
 
 Url=URL # same thing
 

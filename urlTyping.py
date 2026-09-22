@@ -35,7 +35,8 @@ class IsFileWithName(typing.Protocol):
     fileno:int
     name:str
 
-URLCompatibleStrict=typing.Union["URL","Url",HasURL,IsFileWithName,pathlib.Path]
+URLCompatibleStrict=typing.Union[
+    "URL","Url",HasURL,IsFileWithName,pathlib.Path]
 URLCompatible=typing.Union[URLCompatibleStrict,str,bytes,DictLike]
 UrlCompatibleStrict=URLCompatibleStrict
 UrlCompatible=URLCompatible
@@ -139,7 +140,7 @@ def asURL(url:typing.Optional[URLCompatible],
     import paths
     if isinstance(url,paths.URL):
         return url
-    return paths.URL(url,relativeTo,maxParentLevels,maxChildLevels)
+    return paths.URL(url,relativeTo,maxParentLevels,maxChildLevels) # type: ignore # noqa: E501
 asUrl=asURL # alias name
 
 

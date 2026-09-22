@@ -68,12 +68,12 @@ def urlAssign(
         self.path=url.path
         self.isUNC=url.isUNC
         self.resource=url.resource
-        self._fragment=url.fragment # pylint: disable=protected-access
+        self._fragment=url.fragment # pylint: disable=protected-access # type: ignore # noqa: E501
         self.fragments=url.fragments.copy()
         self.cgi=url.cgi.copy()
         return
     # make it ALWAYS a simple url string for processing
-    url=self._getUrlString(url) # pylint: disable=protected-access
+    url=self._getUrlString(url) # pylint: disable=protected-access # type: ignore # noqa: E501
     if url is None:
         return # it was already cleared above
     # check for possibly malformed file://
@@ -140,7 +140,7 @@ def urlAssign(
             .replace(':',' ')\
             .replace(';',' ')\
             .split()
-        urlFrag=[]
+        urlFrag:typing.List[str]=[]
         if len(fileFrag)>0:
             urlFrag.append(f"line={fileFrag[0].replace('-',',')}")
             if len(fileFrag)>1:
@@ -168,22 +168,24 @@ def urlAssign(
     if path.startswith('/'):
         path=path[1:]
     ret.fullPath=path
-    ret._fragment=parsed.fragment # pylint: disable=protected-access
+    ret._fragment=parsed.fragment # pylint: disable=protected-access # type: ignore # noqa: E501
     ret.fragments=dict(urllib.parse.parse_qsl(
         parsed.fragment.replace(';','&'),keep_blank_values=True))
     ret.cgi.clear()
     ret.cgi.query=parsed.query
     if not ret.protocol and relativeTo is not None:
         from .urlTyping import asUrl
-        relativeTo=asUrl(relativeTo,None)
-        r2=relativeTo.getRelativeUrl(ret,maxParentLevels,maxChildLevels)
+        relativeTo=asUrl(relativeTo,None) # type: ignore
+        r2=relativeTo.getRelativeUrl( # type: ignore
+            ret,maxParentLevels,maxChildLevels)
         if r2 is None:
             raise paths.MalformedURL(url,'relative url broke')
         else:
-            ret=r2
+            ret=r2 # type: ignore
+    ret=typing.cast(paths.URL,ret) # type: ignore # noqa: E501
     if ret.host is None and ret.protocol!='file':
         raise paths.MalformedURL(url,'missing host')
-    if ret.protocol!='file' and ret.path is not None:
+    if ret.protocol!='file' and ret.path:
         # remove any leading / from path
         if path.startswith('/'):
             path=path[1:]
