@@ -42,6 +42,13 @@ class SearchTests(unittest.TestCase):
         self.assertFalse(matcher.matches("/tmp/other.txt"))
         self.assertFalse(matcher.matches("/tmp/notes.py"))
 
+    def test_file_matcher_glob_matches_filename_in_path(self):
+        """Filename glob patterns apply to files found beneath a directory."""
+        matcher = FileMatcher("*.txt", MatchType.GlobMatch)
+
+        self.assertTrue(matcher.matches("/tmp/notes.txt"))
+        self.assertFalse(matcher.matches("/tmp/notes.py"))
+
     def test_find_files_recurses_and_filters_extensions(self):
         """findFiles yields files under nested directories and honors extension limits."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -66,6 +73,22 @@ class SearchTests(unittest.TestCase):
             )
 
             self.assertEqual(matches, ["alpha.txt", "nested/beta.txt"])
+
+    def test_find_files_advances_past_empty_start_directory(self):
+        """An exhausted directory iterator advances to the next start directory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            empty = root / "empty"
+            populated = root / "populated"
+            empty.mkdir()
+            populated.mkdir()
+            (populated / "result.txt").write_text("sample", encoding="utf-8")
+
+            matches = list(
+                findFiles(startDirs=(empty, populated), recursive=False)
+            )
+
+            self.assertEqual(matches, [populated / "result.txt"])
 
     def test_find_directories_containing_file_types(self):
         """Directories are reported when they contain a matching file type."""

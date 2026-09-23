@@ -89,6 +89,9 @@ def waitForFileChange(
         win32con.FILE_FLAG_BACKUP_SEMANTICS,
         None
     )
+    ready=getattr(_changeWatcherContext,'ready',None)
+    if ready is not None:
+        ready.set()
     result=None
     if _changeWatcherContext is None:
         _changeWatcherContext=type('',(),{'keepGoing':True})()
@@ -153,7 +156,10 @@ def watchForFileChange(
     SEE ALSO:
         https://timgolden.me.uk/python/win32_how_do_i/watch_directory_for_changes.html
     """
-    context=type('',(),{'keepGoing':True})()
+    context=type('',(),{
+        'keepGoing':True,
+        'ready':threading.Event(),
+    })()
     thread=threading.Thread(
         target=waitForFileChange,args=[filename,onChange,context])
     setattr(thread,'context',context)
@@ -162,6 +168,7 @@ def watchForFileChange(
         self.join()
     setattr(thread,'stop',stop)
     thread.start()
+    context.ready.wait()
     return thread
 
 

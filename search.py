@@ -351,6 +351,10 @@ class FileMatcher:
                 filename=filename.as_posix()
             else:
                 filename=str(asURL(filename))
+        if self._matchType==MatchType.GlobMatch \
+            and isinstance(self._match,str) \
+            and '/' not in self._match.replace('\\','/'):
+            filename=Path(filename).name
         return self.regex.match(filename) is not None
     __eq__=matches #type: ignore
 
@@ -374,7 +378,7 @@ class FileWalker:
             startDirs=['.']
         self._tape:typing.List[Path]=[Path(p) for p in startDirs]
         self._visited:typing.Set[Path]=set()
-        self._currentDirectory:typing.Generator[Path]=[] # type: ignore
+        self._currentDirectory:typing.Optional[typing.Generator[Path]]=None
         self.recursive=recursive
         self.depthFirst=depthFirst
         self.yeildDirectories=yeildDirectories
@@ -384,16 +388,14 @@ class FileWalker:
 
     def __next__(self)->Path:
         while True:
-            while not self._currentDirectory:
+            while self._currentDirectory is None:
                 while not self._tape:
                     raise StopIteration
                 self._currentDirectory=self._tape.pop(0).iterdir()
             try:
                 filename=next(self._currentDirectory)
             except StopIteration:
-                # generators are always truthy, so reset explicitly
-                # or the outer loop never advances to the next tape entry
-                self._currentDirectory=[]
+                self._currentDirectory=None
                 continue
             if filename in self._visited:
                 continue

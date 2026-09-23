@@ -4,6 +4,7 @@ A tool that runs a program on every file that matches a given set of criteria
 This is very useful for command lines.
 """
 import typing
+import os
 from pathlib import Path
 import k_runner
 from k_runner import OsRunResult,argvToString
@@ -44,7 +45,18 @@ def forEachFile(
             newCmd=fileFix(cmd,file)
         else:
             newCmd=[fileFix(c,file) for c in cmd]
-        yield k_runner.run(newCmd,shell,env=environment)
+        useShell=shell
+        if shell and isinstance(newCmd,str):
+            if os.name=='nt':
+                newCmd=('cmd.exe','/d','/c',newCmd)
+            else:
+                newCmd=('/bin/sh','-c',newCmd)
+            useShell=False
+        runner=k_runner.OsRun(newCmd,shell=useShell,env=environment)
+        result=runner.run()
+        if not result.stdOutErr:
+            result.stdouterr=result.stdout+result.stderr
+        yield result
 
 
 def forEachFoundFile(

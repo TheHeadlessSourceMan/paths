@@ -81,8 +81,10 @@ class FileWatchTests(unittest.TestCase):
             self.fail("File change callback was not invoked.")
         else:
             self.assertGreater(reportedChanges[0].timestamp,timeThreshold)
-            self.assertEqual(reportedChanges[0].changeType,"modified")
-            self.assertEqual(filename,str(reportedChanges[0].filename))
+            self.assertEqual(reportedChanges[0].changeType,
+                FileChangeType.UPDATE)
+            self.assertEqual(filename.resolve(),
+                reportedChanges[0].filename.resolve())
             self.assertNotEqual(str(reportedChanges[0]),"")
         t.join()
 
