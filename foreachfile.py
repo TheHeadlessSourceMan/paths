@@ -52,10 +52,27 @@ def forEachFile(
             else:
                 newCmd=('/bin/sh','-c',newCmd)
             useShell=False
-        runner=k_runner.OsRun(newCmd,shell=useShell,env=environment)
+        stdout=bytearray()
+        stderr=bytearray()
+        stdouterr=bytearray()
+        callbacks=k_runner.DataRecievedCallbacks(
+            stdoutBytesCallbacks=stdout.extend,
+            stderrBytesCallbacks=stderr.extend,
+            stdouterrBytesCallbacks=stdouterr.extend,
+        )
+        runner=k_runner.OsRun(
+            newCmd,
+            shell=useShell,
+            env=environment,
+            runCallbacks=callbacks,
+        )
         result=runner.run()
+        if not result.stdout:
+            result.stdout=stdout.decode('utf-8','replace')
+        if not result.stderr:
+            result.stderr=stderr.decode('utf-8','replace')
         if not result.stdOutErr:
-            result.stdouterr=result.stdout+result.stderr
+            result.stdouterr=stdouterr.decode('utf-8','replace')
         yield result
 
 
