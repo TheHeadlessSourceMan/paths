@@ -180,7 +180,7 @@ class URL(
         UrlNavigation.__init__(self)
         CleverUrls.__init__(self)
         PathLike.__init__(self,None)
-        self.cgi:ParamDict=ParamDict()
+        self._cgi:ParamDict=ParamDict()
         self.windowsDriveSeparator:str=':' # drive indicator in urls, file://c:/ vs file://c|/ # noqa: E501 # pylint: disable=line-too-long
         self.scheme:str=''
         self.username:typing.Optional[str]=None
@@ -204,13 +204,24 @@ class URL(
             self.assign(
                 url,relativeTo,maxParentLevels,maxChildLevels)
 
+    @property
+    def cgi(self)->ParamDict:
+        """
+        Manipulate the CGI parameters as a ParamDict.
+        """
+        return self._cgi
+    @cgi.setter
+    def cgi(self,value:ParamDict)->None:
+        self._cgi.clear()
+        self._cgi.update(value)
+
     def __getitem__(self, # type: ignore
         idx:typing.Union[str,int,slice]):
         """
         Access query parameters by name or path steps by position.
         """
         if isinstance(idx,str):
-            return self.cgi.get(idx)
+            return self._cgi.get(idx)
         return PathLike.__getitem__(self,idx)
 
     def __setitem__(self,idx:typing.Any,value:typing.Any)->None:
@@ -218,7 +229,7 @@ class URL(
         Set a query parameter by name."""
         if not isinstance(idx,str):
             raise TypeError("URL indexes must be query parameter names")
-        self.cgi[idx]=value
+        self._cgi[idx]=value
 
     def __delitem__(self,idx:typing.Any)->None:
         """
@@ -226,7 +237,7 @@ class URL(
         """
         if not isinstance(idx,str):
             raise TypeError("URL indexes must be query parameter names")
-        del self.cgi[idx]
+        del self._cgi[idx]
 
     def _encode(self)->bytes:
         """
@@ -493,8 +504,8 @@ class URL(
         self.port=None
         self.path=''
         self.isUNC=False
-        if self.cgi:
-            self.cgi.clear()
+        if self._cgi:
+            self._cgi.clear()
         self._fragment=None
         self.fragments.clear()
         self._isDirectory=None
@@ -556,7 +567,7 @@ class URL(
         """
         if kwargs:
             url=self.copy()
-            url.cgi.update(kwargs) # type: ignore
+            url._cgi.update(kwargs) # type: ignore
             return url.read()
         return self.read()
     __call__=call
@@ -834,7 +845,7 @@ class URL(
             ret.append('/')
         if self.resource is not None:
             ret.append(urllib.parse.quote(self.resource))
-        query=self.cgi.queryString
+        query=self._cgi.queryString
         if query:
             ret.append(query)
         return ''.join(ret)
@@ -1236,8 +1247,27 @@ class URL(
         Implement the "/" operator like pathlib.Path has
         """
         return Url(self,relativeTo=other) # type: ignore
-
 Url=URL # same thing
+
+
+def urlencode(s:str)->str:
+    """
+    General-purpose url encode tool
+    """
+    return urllib.parse.quote(s)
+urlescape=urlencode
+escape=urlencode
+quote=urlencode
+
+
+def urldecode(s:str)->str:
+    """
+    General-purpose url decode tool
+    """
+    return urllib.parse.unquote(s)
+urlunescape=urldecode
+unescape=urldecode
+unquote=urldecode
 
 
 def cmdline(args:typing.Iterable[str])->int:

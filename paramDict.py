@@ -78,6 +78,7 @@ class ParamDict(typing.Dict[str,PARAM_VAL_TYPE]):
 
     def update(self,otherDict:typing.Union[ # type: ignore
         "ParamDict",
+        typing.Dict[str,PARAM_VAL_TYPE],
         typing.Iterable[typing.Tuple[str,PARAM_VAL_TYPE]]]
         )->None:
         """

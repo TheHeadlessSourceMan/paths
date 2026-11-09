@@ -145,7 +145,7 @@ class LoadAndSaveBytes:
         if self._decodeBytes is None:
             if self._decodeStr is None:
                 raise Exception('Cannot load this kind of data')
-            self._decodeStr(data.decode('utf-8',errors='ignore')) # pylint: disable=not-callable
+            self._decodeStr(data.decode('utf-8',errors='ignore')) # noqa: E501 # pylint: disable=not-callable
         else:
             self._decodeBytes(data) # pylint: disable=not-callable
 
@@ -169,7 +169,7 @@ class LoadAndSaveBytes:
         if self._encodeBytes is None:
             if self._encodeStr is None:
                 raise Exception('Cannot save this kind of data')
-            return self._encodeStr().encode('utf-8',errors='ignore') # pylint: disable=not-callable
+            return self._encodeStr().encode('utf-8',errors='ignore') # noqa: E501 # pylint: disable=not-callable
         return self._encodeBytes() # pylint: disable=not-callable
 
     @property
@@ -369,10 +369,10 @@ class LoadAndSave(LoadAndSaveBytes):
         except ImportError:
             pass
         try:
-            import chardet  # type: ignore
-            result=chardet.detect(data)
+            import chardet # type: ignore
+            result=chardet.detect(data) # type: ignore
             if result is not None and 'encoding' in result:
-                return result['encoding']
+                return result['encoding'] # type: ignore
         except ImportError:
             pass
         return 'UTF-8'
