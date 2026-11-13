@@ -22,12 +22,20 @@ class IsFileWithMimeType(typing.Protocol):
 MimeTypeCompatible=typing.Union[
     str,"MimeType",IsFileWithMime,IsFileWithMimeType]
 
-
+@typing.overload
 def asMimeType(mime:MimeTypeCompatible)->"MimeType":
+    ...
+@typing.overload
+def asMimeType(mime:None)->None:
+    ...
+def asMimeType(mime:typing.Optional[MimeTypeCompatible]
+    )->typing.Optional["MimeType"]:
     """
     Always returns a MimeType.  Will either return mime as-is
     or create a new MimeType if there is not one already.
     """
+    if mime is None:
+        return None
     if isinstance(mime,MimeType):
         return mime
     return MimeType(mime)

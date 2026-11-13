@@ -9,6 +9,9 @@ from abc import abstractmethod
 import time
 from .mimeType import MimeType
 
+UrlWatcherCallback=typing.Union[
+    typing.Callable[[str],typing.Any],
+    typing.Callable[[], typing.Any]]
 
 class DataReadWrite:
     """
@@ -177,15 +180,11 @@ class DataReadWrite:
         """
         file-like object read method
         """
-        if numLines is not None:
-            data=self.read(None,encoding,errors)
-            for i,line in enumerate(data.split('\n')):
-                if i>=numLines:
-                    return
-                yield line
-        else:
-            for line in self.read(None,encoding,errors).split('\n'):
-                yield line
+        data:str=self.readString(encoding=encoding,errors=errors)
+        for i,line in enumerate(data.splitlines()):
+            if numLines is not None and i>=numLines:
+                return
+            yield line
 
     def _readFile(self)->None:
         """
@@ -263,7 +262,7 @@ class DataReadWrite:
         return self._idx
 
     def watch(self,
-        notifyFn:typing.Optional[typing.Callable]=None,
+        notifyFn:typing.Optional[UrlWatcherCallback]=None,
         pollInterval:float=1
         )->None:
         """
@@ -280,5 +279,7 @@ class DataReadWrite:
             if self.data!=d:
                 if notifyFn is None:
                     return
+                elif notifyFn.__code__.co_argcount==0:
+                    notifyFn() # type: ignore
                 else:
-                    notifyFn(self)
+                    notifyFn(self) # type: ignore

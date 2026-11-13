@@ -826,7 +826,9 @@ class FilePath(_PathBase,URL):
         """
         Is this the same as another filename?
         """
-        return self.absolute()==asFileString(other,True)
+        # compare as strings; comparing FilePath to str would recurse here
+        return os.path.normcase(str(self.absolute()))\
+            ==os.path.normcase(asFileString(other,True))
 
     @property
     def isCwd(self)->bool:
@@ -950,6 +952,13 @@ class FilePath(_PathBase,URL):
         return datetime.datetime.fromtimestamp(
             self._pathlibPath.lstat().st_mtime,
             tz=datetime.timezone.utc)
+
+    @property
+    def fileSize(self)->int:
+        """
+        Get the file size in bytes, queried from the os on every call
+        """
+        return os.stat(str(self._pathlibPath)).st_size
 
     def copy(self)->"FilePath": # type: ignore # pylint: disable=arguments-differ # noqa: E501
         """
